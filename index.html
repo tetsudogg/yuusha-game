@@ -488,7 +488,7 @@ body.mob .craft .cbtn{min-height:52px}body.mob .craft .ctab{min-height:50px}body
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.143'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.144'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -8720,21 +8720,21 @@ function dk(k){loadDex();return(DEX.m[k]&&DEX.m[k].k)||0;}
 const LEGKEYS=()=>Object.keys(ITEMS).filter(k=>ITEMS[k].legend);
 const ACH=[
  {id:'f10',c:'冒険',n:'10Fにたどり着く',t:'迷宮の新参者',ok:()=>deepest()>=10,pr:()=>[deepest(),10]},
- {id:'b30',c:'冒険',n:'30Fでセヴランに勝つ',t:'上司に勝った部下',ok:()=>dk('sevran')>0},
- {id:'clear',c:'冒険',n:'50Fでガルディンに勝つ',t:'魔王の証を預かる者',ok:()=>(VS.rec.clear||0)>=1},
+ {id:'b30',hid:1,c:'冒険',n:'30Fでセヴランに勝つ',t:'上司に勝った部下',ok:()=>dk('sevran')>0},
+ {id:'clear',hid:1,c:'冒険',n:'50Fでガルディンに勝つ',t:'魔王の証を預かる者',ok:()=>(VS.rec.clear||0)>=1},
  {id:'clear5',c:'冒険',n:'50Fに5回たどり着く',t:'迷宮の常連',ok:()=>f50N()>=5,pr:()=>[f50N(),5]}, // Ver 0.1.44：クリアは初回だけ数えるので、50Fに着いた回数で数える
  {id:'f51',c:'冒険',n:'51Fにたどり着く',t:'深淵を越えし者',ok:()=>deepest()>=51},
  {id:'f75',c:'冒険',n:'75Fの大扉にたどり着く',t:'最深部への旅人',ok:()=>deepest()>=75},
- {id:'true1',c:'冒険',n:'100Fで勇者アステルに勝つ',t:'勇者に勝った管理人',ok:()=>(VS.rec.tclear||0)>=1},
+ {id:'true1',hid:1,c:'冒険',n:'100Fで勇者アステルに勝つ',t:'勇者に勝った管理人',ok:()=>(VS.rec.tclear||0)>=1},
  {id:'true3',c:'冒険',n:'100Fに3回たどり着く',t:'最深部の常連',ok:()=>f100N()>=3,pr:()=>[f100N(),3]},
  {id:'k100',c:'戦い',n:'敵を合計100体倒す',t:'魔物狩り',ok:()=>statOf('kills')>=100,pr:()=>[statOf('kills'),100]},
  {id:'k1000',c:'戦い',n:'敵を合計1000体倒す',t:'迷宮の腕きき',ok:()=>statOf('kills')>=1000,pr:()=>[statOf('kills'),1000]},
  {id:'k5000',c:'戦い',n:'敵を合計5000体倒す',t:'迷宮最強の管理人',ok:()=>statOf('kills')>=5000,pr:()=>[statOf('kills'),5000]},
  {id:'bossall',c:'戦い',n:'ボスを全種類倒す',t:'ボスハンター',ok:()=>BOSSKEYS().every(k=>dk(k)>0),pr:()=>[BOSSKEYS().filter(k=>dk(k)>0).length,BOSSKEYS().length]},
- {id:'maou50',c:'戦い',n:'魔王化を合計50回',t:'魔王の化身',ok:()=>statOf('maou')>=50,pr:()=>[statOf('maou'),50]},
+ {id:'maou50',hid:1,c:'戦い',n:'魔王化を合計50回',t:'魔王の化身',ok:()=>statOf('maou')>=50,pr:()=>[statOf('maou'),50]},
  {id:'crit100',c:'戦い',n:'会心の一撃を合計100回',t:'会心の達人',ok:()=>statOf('crit')>=100,pr:()=>[statOf('crit'),100]},
  {id:'mh10',c:'戦い',n:'モンスターハウスを合計10回制圧する',t:'魔物の巣を払う者',ok:()=>statOf('mh')>=10,pr:()=>[statOf('mh'),10]},
- {id:'lowlv',c:'戦い',n:'Lv20以下で30Fのセヴランに勝つ',t:'小さな英雄',ev:1},
+ {id:'lowlv',hid:1,c:'戦い',n:'Lv20以下で30Fのセヴランに勝つ',t:'小さな英雄',ev:1},
  {id:'dex50',c:'集める',n:'図鑑の達成率50%',t:'物知り',ok:()=>dexPct()>=0.5,pr:()=>[Math.floor(dexPct()*100),50]},
  {id:'dex100',c:'集める',n:'図鑑をすべて埋める',t:'迷宮の博士',ok:()=>dexPct()>=1,pr:()=>[Math.floor(dexPct()*100),100]},
  {id:'leg1',c:'集める',n:'伝説の装備を手に入れる',t:'伝説の継承者',ok:()=>{loadDex();return LEGKEYS().some(k=>DEX.i[k]);}},
@@ -8747,10 +8747,10 @@ const ACH=[
  {id:'manor',c:'村と家',n:'魔王の館を建てる',t:'館の主',ok:()=>homeLv()>=3,off:1},
  {id:'castle',c:'村と家',n:'魔王城を建てる',t:'魔王城の主',ok:()=>homeLv()>=6,off:1},
  {id:'rich',c:'村と家',n:'所持金と預け金をあわせて100万G',t:'村いちばんのお金持ち',ok:()=>(P&&P.gold||0)+(VS.bank||0)>=1000000},
- {id:'maou1',c:'仲間',n:'魔王化が使えるようになる',t:'魔王の資質を持つ者',ok:()=>!!VS.maou},
+ {id:'maou1',hid:1,c:'仲間',n:'魔王化が使えるようになる',t:'魔王の資質を持つ者',ok:()=>!!VS.maou},
  {id:'met3',c:'仲間',n:'ボルン・リゼル・フィーナの3人と出会う',t:'頼もしい仲間たち',ok:()=>['born','rizel','fina'].every(k=>VS.met&&VS.met[k])},
- {id:'boss2',c:'仲間',n:'セヴランとガルディンを協力者に迎える',t:'魔物に慕われし者',ok:()=>!!(VS.bossAlly&&VS.bossAlly.sevran&&VS.bossAlly.galdin)},
- {id:'party3',c:'仲間',n:'仲間3人と一緒に50Fでガルディンに勝つ',t:'頼れる管理人',ev:1}].filter(e=>!e.off);
+ {id:'boss2',hid:1,c:'仲間',n:'セヴランとガルディンを協力者に迎える',t:'魔物に慕われし者',ok:()=>!!(VS.bossAlly&&VS.bossAlly.sevran&&VS.bossAlly.galdin)},
+ {id:'party3',hid:1,c:'仲間',n:'仲間3人と一緒に50Fでガルディンに勝つ',t:'頼れる管理人',ev:1}].filter(e=>!e.off);
 function achN(){const a=VS&&VS.ach||{};return ACH.filter(e=>a[e.id]).length;}
 function achTitle(){const e=VS&&VS.title&&ACH.find(q=>q.id===VS.title);return e&&VS.ach&&VS.ach[e.id]?e.t:'';}
 function statAdd(k,n){if(!VS||isTest())return;VS.stat=VS.stat||{};VS.stat[k]=(VS.stat[k]||0)+(n||1);}
@@ -8765,6 +8765,8 @@ let achT=0;
 function achCheck(quiet){if(!VS||!VS.stat||isTest()||EVP)return;if(!quiet){const t=now();if(t-achT<400)return;achT=t;}try{for(const e of ACH)if(!e.ev&&!(VS.ach&&VS.ach[e.id])&&e.ok())achUnlock(e.id,quiet);}catch(err){}}
 function achMenu(sel){closeAll();const a=VS.ach||{};
   const items=ACH.map((e,i)=>{const got=a[e.id],pr=!got&&e.pr?e.pr():null;
+    // Ver 0.1.144：物語のネタバレになる実績（hid）は、達成するまで中身を「？？？」にする（ユーザーの依頼）
+    if(!got&&e.hid)return{label:'☆ ？？？',col:'#9a90b8',right:'未達成',rcol:'#6a6088',action:()=>openMenu({title:'まだの実績',text:'【'+e.c+'】？？？\n\nまだ達成していない\n（物語を進めると、わかる）',items:[{label:'閉じる',action:()=>achMenu(i)}]})};
     return{label:(got?'★ ':'☆ ')+e.n,col:got?'#ffd24a':'#9a90b8',right:got?'『'+e.t+'』':pr?Math.min(pr[0],pr[1])+' / '+pr[1]:'未達成',rcol:got?'#e0c0ff':'#6a6088',action:()=>openMenu({title:got?'実績：'+e.n:'まだの実績',tcol:got?'#ffd24a':null,
       text:'【'+e.c+'】'+e.n+'\n\n'+(got?'達成ずみ！　称号『'+e.t+'』':'まだ達成していない'+(pr?'（いま '+Math.min(pr[0],pr[1])+' / '+pr[1]+'）':'')+'\n達成すると、称号『'+e.t+'』がもらえる'),items:[{label:'閉じる',action:()=>achMenu(i)}]})};});
   items.push({label:'閉じる',action:()=>{closeAll();render();}});
