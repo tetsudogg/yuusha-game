@@ -488,7 +488,7 @@ body.mob .craft .cbtn{min-height:52px}body.mob .craft .ctab{min-height:50px}body
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.145'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.146'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -3831,17 +3831,30 @@ function bflyConfuse(m,t){ // Ver 0.1.53：30階のボス・セヴランの混�
    ・大剣突き：まっすぐ5マス先まで届く一突き（攻撃力×1.3・仮）。当たると35%で混乱（2〜3ターン）
    ・絶対防御：となりにラズか仲間がいるときだけ。全身が赤くなり、次に自分が動くまで、すべての攻撃を受け付けない
    ・ふつうの攻撃：となりの1人を切る。技の出やすさ（炎の一閃35%・大剣突き35%・絶対防御20%）は仮 */
-function galdinFront(m,d){const cx=m.x+d[0]*2,cy=m.y+d[1]*2,o=[];for(let yy=-1;yy<=1;yy++)for(let xx=-1;xx<=1;xx++){const x=cx+xx,y=cy+yy;if(pass(x,y)&&!(x===m.x&&y===m.y))o.push([x,y]);}return o;}
+// Ver 0.1.146：ガルディンを強くした（ユーザーの依頼）。ふつうの攻撃＝攻撃力×1.2で、となり（まわり1マス）の全員。炎の一閃・衝撃の一閃＝まわり3マスの全員に攻撃力×1.2。大剣突き＝攻撃力×1.5
+// 衝撃の一閃の出やすさ（35%）は仮
+const GALDIN={atk:1.2,flash:1.2,shock:1.2,thrust:1.5,r:3,shockP:0.35};
+function galdinRing(m,r){const o=[];for(let yy=-r;yy<=r;yy++)for(let xx=-r;xx<=r;xx++){const x=m.x+xx,y=m.y+yy;if((xx||yy)&&pass(x,y))o.push([x,y]);}return o;}
+function galdinSweep(m){
+  const ts=[P,...allies].filter(c=>c.hp>0&&!(c.down>0)&&cheb(m,c)===1&&diagOK(m.x,m.y,c.x-m.x,c.y-m.y));if(!ts.length)return false;
+  const a0=m.atk;m.atk=Math.round(a0*GALDIN.atk);try{for(const c of ts){m.fdir=[Math.sign(c.x-m.x),Math.sign(c.y-m.y)];if(m.fdir[0])m.face=m.fdir[0];monAttack(m,c);if(G.over)break;}}finally{m.atk=a0;}return true;}
+function galdinShock(m){
+  const cells=galdinRing(m,GALDIN.r);
+  msg(m.name+'の「衝撃の一閃」！ 大剣の一振りが、衝撃の波となって広がる！','bad');shakeA=Math.max(shakeA,10);sfx('slashbig');G.flash={t0:now(),c:'255,240,170',d:300};
+  fx(cells,'rgba(255,235,150,0.45)');const[cx,cy]=ctr(m);burst(cx,cy,46,'#ffe9a0',80,1.2,-4,true);
+  for(const c of galdinInCells(cells)){let dm=m.atk*GALDIN.shock;if(c===P&&maouActive())dm*=MAOU.guard;dm=Math.max(1,Math.round(dm));
+    if(c===P){mpGain(1);sfx('hurt');}msg('衝撃の一閃が '+nameOf(c)+'に'+dm+'のダメージ','bad');damageEnt(c,dm,m,'衝撃の一閃');if(G.over)return;
+    if(c.hp>0&&!(c.down>0))inflict(c,'bolt',m,0.35);}}
 function galdinInCells(cells){return[P,...allies].filter(c=>c.hp>0&&!(c.down>0)&&cells.some(([a,b])=>a===c.x&&b===c.y));}
 function galdinFlash(m,d){
-  const cells=galdinFront(m,d);m.fdir=d.slice();if(d[0])m.face=d[0];
+  const cells=galdinRing(m,GALDIN.r);m.fdir=d.slice();if(d[0])m.face=d[0];
   msg(m.name+'の「炎の一閃」！ 大剣が紅蓮の炎をまとって振り抜かれる！','bad');shakeA=Math.max(shakeA,8);sfx(ELEM.fire.sfx);G.flash={t0:now(),c:'255,110,40',d:300};
-  fx(cells,'rgba(255,100,40,0.6)');const[cx,cy]=tileC({x:m.x+d[0]*2,y:m.y+d[1]*2});burst(cx,cy,34,'#ff7a30',60,1.1,-4,true);
-  for(const c of galdinInCells(cells)){elemHit(m,c,'fire',m.atk*0.8,'炎の一閃が',0.35);if(G.over)return;}}
+  fx(cells,'rgba(255,100,40,0.6)');const[cx,cy]=ctr(m);burst(cx,cy,46,'#ff7a30',80,1.2,-4,true);
+  for(const c of galdinInCells(cells)){elemHit(m,c,'fire',m.atk*GALDIN.flash,'炎の一閃が',0.35);if(G.over)return;}}
 function galdinThrust(m,d){
   m.fdir=d.slice();if(d[0])m.face=d[0];const cells=[];let x=m.x,y=m.y;for(let i=0;i<5;i++){if(!pass(x+d[0],y+d[1])||!diagOK(x,y,d[0],d[1]))break;x+=d[0];y+=d[1];cells.push([x,y]);}
   msg(m.name+'の「大剣突き」！ 鋭い切っ先が一直線に伸びる！','bad');shakeA=Math.max(shakeA,9);sfx('slashbig');fx(cells,'rgba(230,230,255,0.7)');
-  for(const c of galdinInCells(cells)){const hp0=c.hp,a0=m.atk;m.atk=Math.round(a0*1.3);try{monAttack(m,c);}finally{m.atk=a0;}if(G.over)return;
+  for(const c of galdinInCells(cells)){const hp0=c.hp,a0=m.atk;m.atk=Math.round(a0*GALDIN.thrust);try{monAttack(m,c);}finally{m.atk=a0;}if(G.over)return;
     if(c.hp<hp0&&c.hp>0&&!(c.down>0)&&chance(.35)){const n=chance(.5)?2:3;
       if(c===P){if(statusImmune()||ringIs('rsleep'))msg('しかし混乱を防いだ','good');else if(gWard('混乱')){}else{P.conf=Math.max(P.conf||0,n);popText(P,'混乱','#e0a0ff');msg('強烈な一撃で、頭がくらくらする…（混乱 '+n+'ターン）','bad');}}
       else if(!(c.guardT>0)){c.conf=Math.max(c.conf||0,n);popText(c,'混乱','#e0a0ff');msg(c.name+'は混乱した','bad');}}}}
@@ -3930,8 +3943,11 @@ function bossAI(m){
   if(m.d.ai==='galdin'){
     const dx=t.x-m.x,dy=t.y-m.y,d=[Math.sign(dx),Math.sign(dy)],adj=[P,...allies].some(c=>c.hp>0&&!(c.down>0)&&cheb(m,c)===1);
     if(ok&&adj&&chance(.2)){galdinGuard(m);m.spJust=1;return true;}
-    if(ok&&galdinInCells(galdinFront(m,d)).length&&chance(.35)){galdinFlash(m,d);m.spJust=1;return true;}
+    if(ok&&partyNear(m,GALDIN.r).length&&chance(.35)){galdinFlash(m,d);m.spJust=1;return true;}
+    if(ok&&partyNear(m,GALDIN.r).length&&chance(GALDIN.shockP)){galdinShock(m);m.spJust=1;return true;}
     if(ok&&lined(m,t,5)&&chance(.35)){galdinThrust(m,d);m.spJust=1;return true;}
+    // ふつうの攻撃：となりの全員を切る（Ver 0.1.146）
+    if(galdinSweep(m))return true;
     return false;}
   if(m.d.ai==='cerb'){
     const dx=t.x-m.x,dy=t.y-m.y,d=[Math.sign(dx),Math.sign(dy)];
