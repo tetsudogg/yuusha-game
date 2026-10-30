@@ -488,7 +488,7 @@ body.mob .craft .cbtn{min-height:52px}body.mob .craft .ctab{min-height:50px}body
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.144'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.145'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -3811,10 +3811,12 @@ function bflyPowder(m){ // 30階のボス・セヴランの紫の霧（敵）：
   msg(m.name+'の魔法陣！ 紫の魔力の霧が広がった！','bad');shakeA=Math.max(shakeA,5);
   const[cx,cy]=ctr(m);burst(cx,cy,40,'#d8a0ff',70,1.4,-6,true);burst(cx,cy,20,'#f0d020',50,1.2,-4,true);
   for(const c of partyNear(m,6)){fx([[c.x,c.y]],'rgba(200,140,255,0.6)');
-    if(c===P){if(statusImmune()||ringIs('rsleep'))msg('しかし眠りを防いだ','good');else if(gWard('眠り')){}else if(chance(.8)){P.sleep=Math.max(P.sleep||0,2);msg('眠ってしまった…','bad');}else msg('眠気をこらえた！','good');}
-    else if(!(c.guardT>0)&&chance(.8)){c.sleep=Math.max(c.sleep||0,2);msg(c.name+'は眠ってしまった','bad');}
+    if(c===P){if(statusImmune()||ringIs('rsleep'))msg('しかし眠りを防いだ','good');else if(gWard('眠り')){}else if(chance(SEVSLEEP)){P.sleep=Math.max(P.sleep||0,2);msg('眠ってしまった…','bad');}else msg('眠気をこらえた！','good');}
+    else if(!(c.guardT>0)&&chance(SEVSLEEP)){c.sleep=Math.max(c.sleep||0,2);msg(c.name+'は眠ってしまった','bad');}
     if(inflict(c,'poison',m))moudoku(c);}
 }
+// Ver 0.1.145：紫の霧で眠る確率（ラズ・仲間）。80% → 50%（ユーザーの依頼）
+const SEVSLEEP=0.5;
 // Ver 0.1.120：セヴランの毒は猛毒（毎ターン、最大HPの10%。続くターンは毒と同じ。ユーザーの依頼）
 function moudoku(c){const s=c.est&&c.est.poison;if(!s)return;s.d=Math.max(s.d,Math.round((c.maxHp||1)*0.1));s.mo=1;msg('猛毒だ！ 毎ターン、最大HPの1割が減っていく！','bad');popText(c,'猛毒',ELEM.poison.col);}
 function bflyConfuse(m,t){ // Ver 0.1.53：30階のボス・セヴランの混乱の魔法（敵）：ねらった相手と、そのとなりの味方を2〜3ターン混乱させる
@@ -3849,11 +3851,13 @@ function bflyFlame(m){ // Ver 0.1.73：30階のボス・セヴランの全体へ
   const[cx,cy]=ctr(m);burst(cx,cy,40,'#ff6a3a',70,1.3,-6,true);
   for(const c of[P,...allies]){if(G.over)return;if(!(c.hp>0)||c.down>0)continue;elemHit(m,c,'fire',m.atk*0.5,'炎が',1);}
 }
-function bflyThunder(m){ // Ver 0.1.80：30階のボス・セヴランの範囲の魔法（敵）：まわり2マスの味方全員に雷（攻撃×0.8）＋しびれることがある（名前は仮）
-  msg(m.name+'の雷の魔法！ 足元の魔法陣から、紫の雷がほとばしる！','bad');shakeA=Math.max(shakeA,9);sfx('hit_bolt');G.flash={t0:now(),c:'200,150,255',d:350};
-  const[cx,cy]=ctr(m);burst(cx,cy,50,'#c890ff',80,1.2,-4,true);burst(cx,cy,20,'#fff6a0',50,0.7,-6,true);
-  const cells=[];for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(pass(m.x+dx,m.y+dy))cells.push([m.x+dx,m.y+dy]);fx(cells,'rgba(200,150,255,0.5)');
-  for(const c of partyNear(m,2)){elemHit(m,c,'bolt',m.atk*0.8,'紫の雷が');if(G.over)return;}
+// Ver 0.1.145：雷の魔法を「紫の魔力の爆発」（名前は仮）に変えた（ユーザーの依頼）。範囲（まわり2マス）と強さ（攻撃×0.8）は前と同じ。属性はなく、しびれもない
+function bflyBurst(m){
+  msg(m.name+'の魔力の爆発！ 足元の魔法陣から、紫の魔力がはじけた！','bad');shakeA=Math.max(shakeA,9);sfx('mc_dark');G.flash={t0:now(),c:'190,120,255',d:350};
+  const[cx,cy]=ctr(m);burst(cx,cy,50,'#c890ff',80,1.2,-4,true);burst(cx,cy,20,'#f0d8ff',50,0.7,-6,true);
+  const cells=[];for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(pass(m.x+dx,m.y+dy))cells.push([m.x+dx,m.y+dy]);fx(cells,'rgba(190,120,255,0.5)');
+  for(const c of partyNear(m,2)){let dm=m.atk*0.8;if(c===P&&maouActive())dm*=MAOU.guard;dm=Math.max(1,Math.round(dm));
+    if(c===P){mpGain(1);sfx('hurt');}msg('紫の魔力が '+nameOf(c)+'に'+dm+'のダメージ','bad');damageEnt(c,dm,m,'魔力の爆発');if(G.over)return;}
 }
 function bflyBullet(m,t){ // Ver 0.1.80：30階のボス・セヴランの離れた相手への通常攻撃「魔力弾」（敵）：まっすぐ5マスまで。攻撃×0.6くらい（防御で少し減る）
   m.fdir=[Math.sign(t.x-m.x),Math.sign(t.y-m.y)];if(m.fdir[0])m.face=m.fdir[0];sfx('stpois');
@@ -3916,7 +3920,8 @@ function bossAI(m){
     // Ver 0.1.73：全体への炎の魔法（攻撃×0.5・火傷）。Ver 0.1.120：前は順番が最後でほとんど出なかったので、霧のすぐ後に動かした（ユーザーの依頼「全体炎症攻撃」）
     if(ok&&chance(.3)){bflyFlame(m);m.spJust=1;return true;}
     if(ok&&cheb(m,t)<=4&&chance(.3)){bflyConfuse(m,t);m.spJust=1;return true;}
-    if(ok&&partyNear(m,2).length&&chance(.3)){bflyThunder(m);m.spJust=1;return true;} // Ver 0.1.80：範囲の雷の魔法（まわり2マス・ユーザーの依頼）
+    // Ver 0.1.80：範囲の魔法（まわり2マス・ユーザーの依頼）。Ver 0.1.145：雷 → 紫の魔力の爆発
+    if(ok&&partyNear(m,2).length&&chance(.3)){bflyBurst(m);m.spJust=1;return true;}
     const dx=t.x-m.x,dy=t.y-m.y;
     if(Math.max(Math.abs(dx),Math.abs(dy))===2&&(dx===0||dy===0||Math.abs(dx)===Math.abs(dy))&&G.map[I(m.x+dx/2,m.y+dy/2)]!==0){m.fdir=[Math.sign(dx),Math.sign(dy)];if(dx)m.face=Math.sign(dx);msg(m.name+'は ひらりと飛び越えて攻撃してきた！','bad');monAttack(m,t);
       if(!G.over&&t===P&&chance(.15)&&!statusImmune()&&!ringIs('rsleep')&&!gWard('混乱')){P.conf=Math.max(P.conf||0,chance(.5)?2:3);msg('霧の魔力で頭がくらくらする…（混乱）','bad');}return true;}
