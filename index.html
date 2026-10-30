@@ -488,7 +488,7 @@ body.mob .craft .cbtn{min-height:52px}body.mob .craft .ctab{min-height:50px}body
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.142'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.143'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -8408,9 +8408,10 @@ function vEntrance(){
   const n=P.inv.length,ok=shortcutOK(),sh=P.shard||0;
   const items=[{label:'1Fから入る',action:()=>{closeAll();startRun();}}];
   if(ok)for(const c of SHORTCUT.filter(scOK))items.push({label:c.f+'Fから入る（Lv'+c.lv+'から）',right:'魔晶のかけら '+c.cost+'個',rcol:sh>=c.cost?'#cf8aff':'#6a6088',disabled:sh<c.cost,action:()=>{closeAll();startRun(c.f);}});
+  // Ver 0.1.143：まだ使えない近道（41F・51F）の説明も、物語のネタバレになるので出さない（ユーザーの依頼）
   // Ver 0.1.110：近道がまだ使えないときの説明（30Fの番人を倒すと…）は、物語のネタバレになるので出さない（ユーザーの依頼）
   items.push({label:'やめる',action:()=>{closeAll();render();}});
-  openMenu({title:'魔界の迷宮',text:'迷宮に入りますか？\n\n持ち物 '+n+'個　所持金 '+(P.gold||0)+'G　魔晶 '+sh+'個\n一緒に行く仲間：'+(VS.hire&&ALLY[VS.hire]?ALLY[VS.hire].name:'なし')+'\n（干し肉と薬草、装備がなければ木の棍棒・木の盾をもらえる）\n\n'+(ok?'【近道】11F・21F・31F'+(clear50OK()?'・41F':'')+(tclearOK()?'・51F':'')+'から始めると、その階に合ったレベルから始まる（仲間はLv5・15・25'+(clear50OK()?'・35':'')+(tclearOK()?'・45':'')+'から）。'+(clear50OK()?'':'50Fをクリアしたあとは、41Fからも始められる。')+(tclearOK()?'':'100Fで勇者アステルに勝ったあとは、51Fからも始められる。')+'仲間は始めた階と、その10階後・20階後に出る。飛ばした階の品物は手に入らない。\n\n':'')+'倒れると、持ち物と所持金はすべて失う。倉庫の物は残る。',items});
+  openMenu({title:'魔界の迷宮',text:'迷宮に入りますか？\n\n持ち物 '+n+'個　所持金 '+(P.gold||0)+'G　魔晶 '+sh+'個\n一緒に行く仲間：'+(VS.hire&&ALLY[VS.hire]?ALLY[VS.hire].name:'なし')+'\n（干し肉と薬草、装備がなければ木の棍棒・木の盾をもらえる）\n\n'+(ok?'【近道】11F・21F・31F'+(clear50OK()?'・41F':'')+(tclearOK()?'・51F':'')+'から始めると、その階に合ったレベルから始まる（仲間はLv5・15・25'+(clear50OK()?'・35':'')+(tclearOK()?'・45':'')+'から）。'+'仲間は始めた階と、その10階後・20階後に出る。飛ばした階の品物は手に入らない。\n\n':'')+'倒れると、持ち物と所持金はすべて失う。倉庫の物は残る。',items});
 }
 const GUIDE=[ // 老冒険者ゼンの話（Ver 2.7.0）
  {q:'この洞窟は？',a:()=>'代々この村で封じられてきた洞窟じゃ。いつからか封印が弱まって、中に入れるようになったのじゃ。\n\n噂では魔界につながっていると言う者もおるが、どこまで続いているのかは誰も知らぬ。なんせ、入るたびに形の変わる不思議な洞窟じゃからのう。\n\n10階ごとに、階段を守るとんでもない番人がおるそうじゃ。気をつけるんじゃぞ。'},
