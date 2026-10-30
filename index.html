@@ -463,6 +463,28 @@ body.mob .craft .cbtn{min-height:52px}body.mob .craft .ctab{min-height:50px}body
 .sdata .btn2{margin:6px 0;width:100%}
 .sdmsg{min-height:1.6em;margin:8px 0;color:#ffd88a}
 .stwarn.stok{background:rgba(14,40,24,.92);border-color:#50c070;color:#d8ffe0}
+
+/* ---- Ver 0.1.147：スマホの操作画面の調整（左右の入れかえ・調整の画面・指で動かす） ---- */
+body.mob.port.padswap #dpad{left:auto;right:max(12px,env(safe-area-inset-right,0px))}
+body.mob.port.padswap #acts{right:auto;left:max(12px,env(safe-area-inset-left,0px))}
+body.mob.land.padswap #dpad{left:auto;right:max(16px,env(safe-area-inset-right,0px))}
+body.mob.land.padswap #acts{right:auto;left:max(14px,env(safe-area-inset-left,0px))}
+body.padedit #pad button,body.paddrag #pad button{pointer-events:none}
+body.paddrag #dpad,body.paddrag #acts{pointer-events:auto;outline:2px dashed #ffd24a;outline-offset:4px;cursor:move;touch-action:none}
+#mapdrag{position:fixed;z-index:30;border:2px dashed #ffd24a;box-sizing:border-box;cursor:move;touch-action:none;background:rgba(255,210,74,.08)}
+.padcfg{position:fixed;z-index:40;left:50%;transform:translateX(-50%);width:min(380px,calc(100vw - 24px));max-height:calc(100vh - var(--padh,240px) - 24px);overflow:auto;
+  bottom:calc(var(--padh,240px) + 10px);background:rgba(12,8,22,.94);border:1px solid #b8913a;border-radius:10px;box-shadow:0 0 0 2px #000,0 8px 22px rgba(0,0,0,.7);
+  padding:10px 12px;color:#e8e0f4;font-size:13px;line-height:1.5;box-sizing:border-box}
+body.mob.land .padcfg{bottom:auto;top:50%;transform:translate(-50%,-50%);width:min(380px,calc(100vw - 470px));min-width:280px;max-height:calc(100vh - 20px)}
+.padcfg .pct{color:#ffd24a;font-weight:bold;margin-bottom:6px;text-align:center}
+.padcfg .pcr{display:grid;grid-template-columns:8.6em 1fr 3.2em;align-items:center;gap:8px;margin:4px 0}
+.padcfg .pcr input{width:100%;accent-color:#f0c542}
+.padcfg .pcr b{text-align:right;color:#ffe9a0;font-weight:normal}
+.padcfg .pcb{display:flex;gap:6px;margin-top:6px}
+.padcfg .pcb .btn2{flex:1;margin:0;padding:8px 4px;font-size:12px;min-width:0}
+.padcfg .pcb .pcgo{border-color:#ffd24a;color:#ffe08a}
+.padcfg.pcbar{bottom:auto;top:max(8px,env(safe-area-inset-top,0px))}
+body.mob.land .padcfg.pcbar{top:max(8px,env(safe-area-inset-top,0px));transform:translateX(-50%)}
 </style>
 </head>
 <body>
@@ -488,7 +510,7 @@ body.mob .craft .cbtn{min-height:52px}body.mob .craft .ctab{min-height:50px}body
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.146'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.147'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -6132,7 +6154,8 @@ function drawFrame(t,dt){
     if(leg&&B.sub){ctx.font='22px DotGothic16, monospace';ctx.lineWidth=5;ctx.strokeStyle=mao?'#12021e':'#2a1400';ctx.strokeText(B.sub,0,44);ctx.fillStyle=mao?'#ff8a9a':'#ffe9a0';ctx.fillText(B.sub,0,44);}
     ctx.restore();ctx.globalAlpha=1;ctx.textAlign='left';}}
   drawCutin(t);drawBossBar();
-  if(G.warp){}else if(G.bigMap)drawBigMap();else drawMini(CW-MW*miniScale()-14,MINIY,miniScale(),0.85);
+  // Ver 0.1.147：小さい地図の場所・大きさ・濃さは、スマホの操作画面の調整（miniRect）で変えられる
+  if(G.warp){}else if(G.bigMap)drawBigMap();else{const mr=miniRect();if(!mr.hide)drawMini(mr.x,mr.y,mr.s,mr.a);}
   if(G.black)f100BlackDraw(t); // Ver 0.1.39：100階の暗転
   if(G.show)drawShow(t); // Ver 0.1.74：必殺技・魔王化の演出（render/skillshow.js）
 }
@@ -6671,7 +6694,7 @@ function showHelp(){
 const MOB=(()=>{try{const v=new URLSearchParams(location.search).get('mobile');if(v==='1')return true;if(v==='0')return false;}catch(e){}
   try{const v=localStorage.getItem('public_game_mob');if(v==='1')return true;if(v==='0')return false;}catch(e){}
   try{return matchMedia('(pointer:coarse)').matches&&!matchMedia('(any-pointer:fine)').matches;}catch(e){return false;}})();
-let ORI='pc',VSC=1,MINIY=12,PADSIDE=0;
+let ORI='pc',VSC=1,MINIY=12,PADSIDE=0,STX=1,STY=1;
 function viewportSize(){
   const v=window.visualViewport;
   return{w:Math.round(v&&v.width||window.innerWidth),h:Math.round(v&&v.height||window.innerHeight)};
@@ -6690,13 +6713,13 @@ function fitStage(){
     st.style.transform='scale('+s+')';f.style.width=Math.round(1008*s)+'px';f.style.height=Math.round(624*s)+'px';layoutHud();return;}
   const vp=viewportSize(),vw=vp.w,vh=vp.h,port=vh>=vw;ORI=port?'port':'land';b.classList.toggle('port',port);b.classList.toggle('land',!port);
   let sw=vw,sh=vh,s;
-  if(port){const ph=Math.round(Math.min(Math.max(vh*0.34,220),290));sh=vh-ph;s=Math.max(0.72,Math.min(1.25,vw/456));document.documentElement.style.setProperty('--padh',ph+'px');
+  if(port){const ph=Math.round(Math.max(160,Math.min(vh*0.5,Math.min(Math.max(vh*0.34,220),290)*padCfg().ph/100)));sh=vh-ph;s=Math.max(0.72,Math.min(1.25,vw/456));document.documentElement.style.setProperty('--padh',ph+'px');
     const db=Math.round(Math.max(40,Math.min(60,(ph-40)/3.5,(vw-66)/7.2))),ab=Math.round(db*1.08),ah=Math.round(Math.max(40,Math.min(52,(ph-44)/4)));
     const R=document.documentElement.style;R.setProperty('--db',db+'px');R.setProperty('--ab',ab+'px');R.setProperty('--ah',ah+'px');PADSIDE=0;}
   else{s=Math.max(0.6,Math.min(1.25,vh/440));PADSIDE=226;}
   VSC=s;resizeView(sw/s,sh/s);
-  st.style.transform='scale('+(sw/CW)+','+(sh/CH)+')';f.style.width=sw+'px';f.style.height=sh+'px';
-  layoutHud();updatePad();
+  STX=sw/CW;STY=sh/CH;st.style.transform='scale('+STX+','+STY+')';f.style.width=sw+'px';f.style.height=sh+'px';
+  layoutHud();updatePad();applyPadCfg();
 }
 function layoutHud(){
   const ph=$('partyhud'),lh=$('loghud');
@@ -6706,6 +6729,65 @@ function layoutHud(){
   if(ORI==='land'){const side=Math.round(PADSIDE/VSC)+8;lh.style.left=side+'px';lh.style.right=side+'px';}else{lh.style.left='';lh.style.right='';}
 }
 function miniScale(){return MOB&&ORI==='port'?2:3;}
+/* ================= Ver 0.1.147：スマホの操作画面の調整（ユーザーの依頼） =================
+   十字キー・ボタンの大きさと位置、左右の入れかえ、操作部分の高さ（縦の画面）、小さい地図の大きさ・濃さ・位置・出す／出さない。
+   縦と横で別々に、public_game_padcfg にしまう。位置は「指で場所を動かす」で、十字キー・ボタンのまとまり・地図を指でずらす。つまみの範囲は仮 */
+const PADCFGKEY='public_game_padcfg';
+const PADDEF={dsz:100,asz:100,ph:100,msz:100,mop:100,mhide:0,swap:0,dx:0,dy:0,ax:0,ay:0,mx:0,my:0};
+let PADCFG=null;
+function padCfgAll(){if(!PADCFG){let o=null;try{o=JSON.parse(localStorage.getItem(PADCFGKEY));}catch(e){}PADCFG=o&&typeof o==='object'?o:{};}return PADCFG;}
+function padOri(){return ORI==='land'?'land':'port';}
+function padCfg(){const a=padCfgAll();return Object.assign({},PADDEF,a[padOri()]||{});}
+function padCfgSave(){try{localStorage.setItem(PADCFGKEY,JSON.stringify(padCfgAll()));}catch(e){}}
+function padCfgSet(patch,refit){const a=padCfgAll();a[padOri()]=Object.assign(padCfg(),patch);padCfgSave();if(refit)fitStage();else applyPadCfg();}
+function padCfgReset(){const a=padCfgAll();delete a[padOri()];padCfgSave();fitStage();}
+function applyPadCfg(){
+  if(!MOB)return;const c=padCfg(),d=$('dpad'),a=$('acts');document.body.classList.toggle('padswap',!!c.swap);
+  if(d){d.style.scale=String(c.dsz/100);d.style.translate=c.dx+'px '+c.dy+'px';}
+  if(a){a.style.scale=String(c.asz/100);a.style.translate=c.ax+'px '+c.ay+'px';}
+  if(typeof G!=='undefined'&&G&&MODE==='dungeon')try{render();}catch(e){}
+  padMapBox();}
+// 小さい地図の場所・大きさ・濃さ（スマホのときだけ設定を使う）
+function miniRect(){const c=MOB?padCfg():PADDEF,s=miniScale()*c.msz/100;return{x:CW-MW*s-14+c.mx,y:MINIY+c.my,s,a:0.85*c.mop/100,hide:!!c.mhide,w:MW*s+12,h:MH*s+12};}
+const PADROWS=[['dsz','十字キーの大きさ',70,150],['asz','ボタンの大きさ',70,150],['ph','操作部分の高さ',70,130,'port'],['msz','地図の大きさ',50,200],['mop','地図の濃さ',20,100]];
+function padCfgOpen(){
+  if(!MOB)return;closeAll();padCfgClose();const c=padCfg();document.body.classList.add('padedit');
+  const box=document.createElement('div');box.id='padcfg';box.className='padcfg';
+  box.innerHTML='<div class="pct">操作画面の調整（'+(padOri()==='land'?'横':'縦')+'の画面）</div>'+
+    PADROWS.filter(r=>!r[4]||r[4]===padOri()).map(([k,l,mn,mx])=>'<label class="pcr"><span>'+l+'</span><input type="range" min="'+mn+'" max="'+mx+'" step="5" value="'+c[k]+'" data-k="'+k+'"><b id="pcv_'+k+'">'+c[k]+'%</b></label>').join('')+
+    '<div class="pcb"><button type="button" class="btn2" id="pcswap">左右を入れかえる：'+(c.swap?'入れかえ中':'ふつう')+'</button><button type="button" class="btn2" id="pcmap">地図：'+(c.mhide?'出さない':'出す')+'</button></div>'+
+    '<div class="pcb"><button type="button" class="btn2 pcgo" id="pcdrag">指で場所を動かす</button></div>'+
+    '<div class="pcb"><button type="button" class="btn2" id="pcreset">最初にもどす</button><button type="button" class="btn2" id="pcclose">閉じる</button></div>';
+  document.body.appendChild(box);
+  box.querySelectorAll('input[type=range]').forEach(r=>{r.oninput=()=>{const k=r.dataset.k,v=+r.value;$('pcv_'+k).textContent=v+'%';padCfgSet({[k]:v},k==='ph');};});
+  $('pcswap').onclick=()=>{padCfgSet({swap:padCfg().swap?0:1});padCfgOpen();};
+  $('pcmap').onclick=()=>{padCfgSet({mhide:padCfg().mhide?0:1});padCfgOpen();};
+  $('pcreset').onclick=()=>{padCfgReset();padCfgOpen();};
+  $('pcclose').onclick=padCfgClose;
+  $('pcdrag').onclick=padDragStart;
+}
+function padCfgClose(){const b=$('padcfg');if(b)b.remove();const t=$('paddragbar');if(t)t.remove();const m=$('mapdrag');if(m)m.remove();document.body.classList.remove('padedit','paddrag');}
+// 指で場所を動かす：十字キー・ボタンのまとまり・地図をずらす。画面の外には出さない（少なくとも 40px は見えるように）
+function padDragStart(){
+  const b=$('padcfg');if(b)b.remove();document.body.classList.add('paddrag');
+  const bar=document.createElement('div');bar.id='paddragbar';bar.className='padcfg pcbar';
+  bar.innerHTML='<div class="pct">十字キー・ボタン・地図を、指でずらしてください</div><div class="pcb"><button type="button" class="btn2" id="pcdone">できた</button><button type="button" class="btn2" id="pcpos0">位置だけ最初にもどす</button></div>';
+  document.body.appendChild(bar);
+  $('pcdone').onclick=()=>{padCfgOpen();};
+  $('pcpos0').onclick=()=>{padCfgSet({dx:0,dy:0,ax:0,ay:0,mx:0,my:0});};
+  const map=document.createElement('div');map.id='mapdrag';document.body.appendChild(map);padMapBox();
+  padDragBind($('dpad'),'dx','dy',1);padDragBind($('acts'),'ax','ay',1);padDragBind(map,'mx','my',0);
+}
+function padMapBox(){const m=$('mapdrag');if(!m)return;const r=miniRect(),st=$('stage').getBoundingClientRect();
+  m.style.left=(st.left+(r.x-6)*STX)+'px';m.style.top=(st.top+(r.y-6)*STY)+'px';m.style.width=(r.w*STX)+'px';m.style.height=(r.h*STY)+'px';m.style.display=r.hide?'none':'';}
+function padDragBind(el,kx,ky,screenPx){
+  if(!el||el._pdb)return;el._pdb=1;let st=null;
+  el.addEventListener('pointerdown',e=>{if(!document.body.classList.contains('paddrag'))return;e.preventDefault();e.stopPropagation();const c=padCfg();st={x:e.clientX,y:e.clientY,ox:c[kx],oy:c[ky]};try{el.setPointerCapture(e.pointerId);}catch(x){}});
+  el.addEventListener('pointermove',e=>{if(!st||!document.body.classList.contains('paddrag'))return;e.preventDefault();
+    let nx=st.ox+(e.clientX-st.x)/(screenPx?1:STX),ny=st.oy+(e.clientY-st.y)/(screenPx?1:STY);nx=Math.round(nx);ny=Math.round(ny);
+    const old=padCfg();padCfgSet({[kx]:nx,[ky]:ny});if(!padInView(screenPx?el:$('mapdrag')))padCfgSet({[kx]:old[kx],[ky]:old[ky]});});
+  const end=()=>{st=null;};el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);}
+function padInView(el){if(!el)return true;const r=el.getBoundingClientRect(),vw=window.innerWidth,vh=window.innerHeight;return r.right>=40&&r.left<=vw-40&&r.bottom>=40&&r.top<=vh-40;}
 function sendKey(code,o){o=o||{};document.dispatchEvent(new KeyboardEvent('keydown',{code,key:o.key||code,shiftKey:!!o.shift,repeat:!!o.repeat,bubbles:true,cancelable:true}));}
 const PAD={dash:false,turn:false,hold:null};
 function buildPad(){
@@ -6793,6 +6875,8 @@ function padMenu(){
   it.push({label:'表示倍率を切り替える（今 '+SC+'倍）',action:()=>{closeAll();sendKey('KeyX');}});
   it.push({label:'BGM：'+(AU.bgmOn?'オン':'オフ'),action:()=>{closeAll();sendKey('KeyB');}});
   it.push({label:'効果音：'+(AU.sfxOn?'オン':'オフ'),action:()=>{closeAll();sendKey('KeyV');}});
+  // Ver 0.1.147：十字キー・ボタン・地図の大きさや位置を変える
+  it.push({label:'操作画面の調整（大きさ・位置・地図）',action:()=>{closeAll();render();padCfgOpen();}});
   it.push({label:'操作ボタンを使わない（PC表示に戻す）',action:()=>{try{localStorage.setItem('public_game_mob','0');}catch(e){}location.reload();}});
   openMenu({title:'メニュー',items:it});render();
 }
@@ -7067,7 +7151,7 @@ function settingsScreen(){
     '<button class="btn2 sopt" id="sprl"><span class="sl">プロローグをもう一度見る</span><span class="sv">▶</span></button>'+
     (storySeen()?'<button class="btn2 sopt" id="sstory"><span class="sl">導入の物語をもう一度見る</span><span class="sv">▶</span></button>':'')+ // Ver 0.1.24：一度見るまでは出さない（ユーザー指定）
     '<button class="btn2 sopt sback" id="bno">戻る（Esc）</button></div>'+
-    '<div class="rec">'+(MOB?'':'冒険中も B（BGM）・V（効果音）・X（表示倍率）キーで切り替えられます。<br>')+'表示倍率は、迷宮と村の見え方（2倍／等倍）です。</div></div>'+
+    '<div class="rec">'+(MOB?'十字キー・ボタン・地図の大きさや位置は、村や迷宮の「設定」ボタン →「操作画面の調整」で変えられます。<br>':'冒険中も B（BGM）・V（効果音）・X（表示倍率）キーで切り替えられます。<br>')+'表示倍率は、迷宮と村の見え方（2倍／等倍）です。</div></div>'+
     '<div class="ver">'+GAMEVER+'</div>',()=>{const b=document.querySelectorAll('.tset .sopt')[SSEL];if(b)b.click();});
   const bs=[...document.querySelectorAll('.tset .sopt')];if(SSEL>=bs.length)SSEL=0;
   const mark=()=>bs.forEach((b,i)=>{b.classList.toggle('sel',i===SSEL);if(i===SSEL)try{b.focus({preventScroll:true});}catch(e){}});
