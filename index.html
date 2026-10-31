@@ -537,14 +537,14 @@ body.paddrag #acts button.phid{opacity:.35}
 </div>
 <div id="keys">
   <b>矢印</b><b>WASD</b><b>テンキー</b> 移動　<b>QEZC</b> 斜め　<b>Shift</b>+移動 ダッシュ　<b>R</b>→方向 向き変え　<b>F</b> 攻撃　<b>Space</b> 足踏み<br>
-  <b>T</b> 矢を撃つ　<b>K</b> 仲間の技・作戦　<b>Y</b> 魔王化（解放後）　<b>I</b>/<b>Enter</b> 道具　<b>G</b> 足元　<b>M</b> 全体マップ　<b>H</b> 遊び方　<b>B</b> BGM　<b>V</b> 効果音　<b>X</b> 表示倍率（2倍／等倍）
+  <b>T</b> 矢を撃つ　<b>K</b> 仲間の技・作戦　<b>Y</b> 魔王化（解放後）　<b>I</b>/<b>Enter</b> 道具　<b>G</b> 足元　<b>M</b> 全体マップ　<b>H</b> 遊び方　<b>B</b> BGM　<b>V</b> 効果音　<b>X</b> 表示倍率（等倍→1.5倍→2倍）
 </div>
 <div id="screen"></div>
 
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.151'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.152'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -1470,11 +1470,16 @@ MON.lich.hp=Math.round(MON.lich.hp*1.5);
 MON.galdin.hp=Math.round(MON.galdin.hp*1.3);
 // Ver 0.1.135：50F のガルディンが弱すぎる（ユーザー）→ HP を 3000 に（ユーザー指定）
 MON.galdin.hp=3000;
+// Ver 0.1.152：ボスの HP（ユーザー指定）。90F のヴォルガ＝3700（2590 から）。80F のフロスティア＝1.3倍（2380 → 3094）。100F のアステルは魔王の幻影のあと
+MON.volga.hp=3700;
+MON.frostia.hp=Math.round(MON.frostia.hp*1.3);
 // Ver 0.1.120：30F のセヴランが弱い（ユーザー）→ HP を1.2倍（1170 → 1404）。仲間のセヴラン（ALLY）は変えない
 MON.sevran.hp=Math.round(MON.sevran.hp*1.2);
 // Ver 0.1.69：100F の2回目から、アステルが仲間にいるときのボス「魔王の幻影」（ユーザーの依頼）。強さは、強さの調整のあとのアステル（shadowking）のHP・攻撃の1.3倍（ユーザー決定）。防御・動き方（ai shadow）は同じ。
 //   「勇者の本気」（HP半分でアステルのセリフ）は使わない。仮の絵＝アステルの前の絵を黒い影に（gfx/sprites_dir.js。あとでユーザーが絵を用意）
 MON.maouphantom=Object.assign({},MON.shadowking,{name:'魔王の幻影',shape:'maouphantom',C:'#1a1028',hp:Math.round(MON.shadowking.hp*1.3),atk:Math.round(MON.shadowking.atk*1.3),wake:'',death:'',noAwake2:true});
+// Ver 0.1.152：100F のアステルの HP は、3000 より少なければ 3000（ユーザー指定）。魔王の幻影（3640）は変えないので、幻影を作ったあとに変える
+if(MON.shadowking.hp<3000)MON.shadowking.hp=3000;
 /* 階の表：to=この行が受け持つ最後の階。theme=THEMES の番号。boss=その階のボス（ボス階は1階だけの行にする）
    50階に伸ばすときは LAST を変え、行を足す */
 const BANDS=[
@@ -2344,7 +2349,7 @@ function genFloor(){
       if(isStairs(cx,cy)){let bd=99;for(let y=r.y;y<r.y+r.h;y++)for(let x=r.x;x<r.x+r.w;x++){const d=Math.abs(x-cx)+Math.abs(y-cy);if(!isStairs(x,y)&&d<bd){bd=d;cx=x;cy=y;}}}
       G.items=G.items.filter(f=>!(f.x===cx&&f.y===cy));G.traps=G.traps.filter(t=>!(t.x===cx&&t.y===cy));
       G.chest={x:cx,y:cy,ri:r.idx,it:genChestItem(),opened:false,dimmed:false,was:false};
-      const pool=Object.keys(MON).filter(k=>MON[k].f[0]<=G.floor&&G.floor<=MON[k].f[1]);
+      const pool=Object.keys(MON).filter(k=>monSpawnable(k));
       const n=Math.max(8,Math.min(14,Math.floor(r.w*r.h/3)));
       const doors=[];for(let y=r.y;y<r.y+r.h;y++)for(let x=r.x;x<r.x+r.w;x++)if(isDoorway(x,y))doors.push({x,y});
       for(let i=0;i<n;i++){let t=null;for(let k=0;k<60;k++){const c=freeTile({room:r});if(c&&!doors.some(d=>cheb(d,c)<=1)&&!(c.x===cx&&c.y===cy)){t=c;break;}}
@@ -2411,6 +2416,8 @@ function openChest(){
 function mhDormant(m){return!!(m&&m.mh&&G.mh&&!G.mh.on);}
 function mhDark(){return!!(G.mh&&!G.mh.on&&G.mons.some(m=>m.mh&&m.hp>0));}
 // Ver 0.1.35：決まった形の階は、ボスがいるあいだだけボスの曲
+// Ver 0.1.152：ふつうに出てくる敵か。ボス・商人・幻影など f:[99,99] の物は「ふつうには出ない」印（前は 50F が最後だったので 99 にしていた）。99F で出てしまっていたのを直した
+function monSpawnable(k){const f=MON[k].f;return!(f[0]===99&&f[1]===99)&&f[0]<=G.floor&&G.floor<=f[1];}
 function baseSong(){if(G.fixed)return G.sealed?1:0;return bossFloor(G.floor)&&(G.floor===LAST||G.sealed)?1:0;}
 function triggerMH(){
   if(!G.mh||G.mh.on)return;G.mh.on=true;
@@ -2455,7 +2462,7 @@ function makeMon(key,x,y){
     sleep:chance(.35)?999:0,slow:0,conf:0,sealed:false,hostile:true,stolen:null,dest:null};
 }
 function spawnMonster(hidden){if(G&&G.peace)return; // 真のクリアのあと、玉座の間には魔物は出ない
-  const pool=Object.keys(MON).filter(k=>MON[k].f[0]<=G.floor&&G.floor<=MON[k].f[1]);if(!pool.length)return;
+  const pool=Object.keys(MON).filter(k=>monSpawnable(k));if(!pool.length)return;
   const t=freeTile({avoidShop:true,hidden});if(!t)return;
   if(cheb(t,P)<=2)return;
   G.mons.push(makeMon(pick(pool),t.x,t.y));
@@ -3325,7 +3332,8 @@ const F100TALK={
   s6a:[['astel','amazed','うわぁっ！！']],
   s6b:[['raz','surprise','しまった！　大丈夫ですか、勇者様！？'],['astel','amazed','……君たち、なんて強さだ'],['astel','earnest','まったく……僕の負けだよ'],['raz','normal','……勇者様'],['astel','earnest','約束どおり、これからは君たちに協力するよ'],['raz','surprise','本当ですか！？'],['raz','yes','や、やったー！！'],['raz','yes','これで、村もどんどん暮らしやすくなるはずです！'],['astel','serious','そもそも……'],['raz','surprise','？'],['astel','serious','君たち、全然世界征服できるよ。それだけの強さがあればね'],['astel','tease','僕が言うのもどうかと思うけど……'],['raz','surprise','えええ！？'],['raz','sorry','そ、そんなのは全く望んでいません！'],['astel','amazed','…………'],['astel','earnest','……ふふ。とんだお人よしだね、君は'],['raz','yes','僕は、みんなと争いなく暮らしたいんです！'],['astel','fun','わかったよ。僕も手伝うから、頑張ろう'],['raz','yes','勇者様がいてくだされば心強いです！　ありがとうございます！'],['astel','normal','それじゃあ、僕は先に村へ戻っているよ'],['raz','surprise','えっ、先に？'],['astel','tease','君たちは、まだこの階を調べたいだろう？'],['astel','normal','部屋の奥に、村へ戻るための転移円陣がある。用が済んだら、それを使うといい'],['raz','yes','わかりました！']]};
 function f100Pages(list){return list.map(([s,ex,t])=>({who:s,ex:ex||'normal',text:'「'+t+'」',spk:s==='raz'?'ラズ':'アステル'}));}
-function f100Talk(list,done){const pg=f100Pages(list);for(const p of pg)msg(p.spk+p.text,'info');talkScene(pg,null,()=>{closeAll();render();done&&done();});}
+// Ver 0.1.152：30F・50F と同じ、立ち絵つきの会話に（ユーザーの依頼。menu.js の talkPor）
+function f100Talk(list,done){const pg=f100Pages(list);for(const p of pg)msg(p.spk+p.text,'info');talkPor(pg,()=>{closeAll();render();done&&done();});}
 function f100Astel(){return G&&G.mons.find(m=>m.key==='shadowking'&&m.kind==='mon');}
 function f100EventOn(){const f=G&&G.fixed;return!!(f&&f.id===100&&!f.ev&&f100Astel());}
 function f100Wait(ms,fn){setTimeout(()=>{if(G&&!G.over&&G.fixed)fn();},ms);}
