@@ -544,7 +544,7 @@ body.paddrag #acts button.phid{opacity:.35}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.152'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.153'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -2691,7 +2691,8 @@ function genFixedFloor(){
   // Ver 0.1.38：100階は、まだ100階をクリアしていない（真のクリア0回）ときが1回目＝アステルがいる。2回目からはボスも転移円陣もない（円陣は初回の帰り道だけ）
   const bossK=bossFloor(G.floor),first=G.floor===DEEP?!!bossK&&!((VS&&VS.rec&&VS.rec.tclear)||0):!!bossK;
   if(!first){if(G.floor!==DEEP)G.portal={x:G.fixed.portal.x,y:G.fixed.portal.y};if((G.floor!==LAST||deepOn())&&G.floor<DEEP)G.stairs={x:G.fixed.stairs.x,y:G.fixed.stairs.y};}
-  for(const c of fixedSpots('C',D))G.chests.push({k:'silver',x:c.x,y:c.y,ri:G.room[I(c.x,c.y)],it:genFixedChestItem(),opened:false,dimmed:false,was:false,noDim:true});
+  // Ver 0.1.153：100F の宝箱だけは金色に（ユーザーの依頼）。中身は今までどおり
+  for(const c of fixedSpots('C',D))G.chests.push({k:G.floor===DEEP?'gold':'silver',x:c.x,y:c.y,ri:G.room[I(c.x,c.y)],it:genFixedChestItem(),opened:false,dimmed:false,was:false,noDim:true});
   const ni=rr(7,11)+(G.bless==='find'?2:0);for(let i=0;i<ni;i++){const t=freeTile({noItem:true});if(t)G.items.push({x:t.x,y:t.y,it:genItem(),seen:false,shop:false});}
   const nt=G.floor===LAST?0:rr(3,5)+Math.min(6,Math.floor(G.floor/4));for(let i=0;i<nt;i++){const t=freeTile({noItem:true,noTrap:true});if(t&&cheb(t,P)>1&&!isDoorway(t.x,t.y)&&!(G.stairs&&cheb(t,G.stairs)<=1))G.traps.push({x:t.x,y:t.y,type:pick(Object.keys(TRAPS)),known:false});}
   const nm=rr(5,7);for(let i=0;i<nm;i++)spawnMonster(false);
@@ -3331,7 +3332,10 @@ const F100TALK={
   s5:[['astel','serious','いいね'],['astel','serious','全力で来るんだよ！']],
   s6a:[['astel','amazed','うわぁっ！！']],
   s6b:[['raz','surprise','しまった！　大丈夫ですか、勇者様！？'],['astel','amazed','……君たち、なんて強さだ'],['astel','earnest','まったく……僕の負けだよ'],['raz','normal','……勇者様'],['astel','earnest','約束どおり、これからは君たちに協力するよ'],['raz','surprise','本当ですか！？'],['raz','yes','や、やったー！！'],['raz','yes','これで、村もどんどん暮らしやすくなるはずです！'],['astel','serious','そもそも……'],['raz','surprise','？'],['astel','serious','君たち、全然世界征服できるよ。それだけの強さがあればね'],['astel','tease','僕が言うのもどうかと思うけど……'],['raz','surprise','えええ！？'],['raz','sorry','そ、そんなのは全く望んでいません！'],['astel','amazed','…………'],['astel','earnest','……ふふ。とんだお人よしだね、君は'],['raz','yes','僕は、みんなと争いなく暮らしたいんです！'],['astel','fun','わかったよ。僕も手伝うから、頑張ろう'],['raz','yes','勇者様がいてくだされば心強いです！　ありがとうございます！'],['astel','normal','それじゃあ、僕は先に村へ戻っているよ'],['raz','surprise','えっ、先に？'],['astel','tease','君たちは、まだこの階を調べたいだろう？'],['astel','normal','部屋の奥に、村へ戻るための転移円陣がある。用が済んだら、それを使うといい'],['raz','yes','わかりました！']]};
-function f100Pages(list){return list.map(([s,ex,t])=>({who:s,ex:ex||'normal',text:'「'+t+'」',spk:s==='raz'?'ラズ':'アステル'}));}
+// Ver 0.1.153：アステルの顔は、オープニングのアステルの顔の絵（EVCH.astel）を使う（ユーザーの依頼）。台本の表情 → オープニングの顔（対応は仮）
+const ASTELOPFACE={normal:'smile',lazy:'tired',amazed:'confused',serious:'serious',earnest:'serious',fun:'excited',tease:'smile',angry:'serious'};
+function astelOpFace(ex){const k=ASTELOPFACE[ex]||'smile';return(typeof EVCH!=='undefined'&&EVCH.astel&&EVCH.astel[k])||null;}
+function f100Pages(list){return list.map(([s,ex,t])=>{const p={who:s,ex:ex||'normal',text:'「'+t+'」',spk:s==='raz'?'ラズ':'アステル'};if(s==='astel'){const f=astelOpFace(p.ex);if(f)p.fimg=f;}return p;});}
 // Ver 0.1.152：30F・50F と同じ、立ち絵つきの会話に（ユーザーの依頼。menu.js の talkPor）
 function f100Talk(list,done){const pg=f100Pages(list);for(const p of pg)msg(p.spk+p.text,'info');talkPor(pg,()=>{closeAll();render();done&&done();});}
 function f100Astel(){return G&&G.mons.find(m=>m.key==='shadowking'&&m.kind==='mon');}
@@ -5092,7 +5096,8 @@ function whenFree(fn){if(MS.length)setTimeout(()=>whenFree(fn),300);else fn();} 
 function talkName(who){if(typeof who==='string'&&who.startsWith('v_')&&typeof VNPC!=='undefined'&&VNPC[who.slice(2)])return VNPC[who.slice(2)].name;return who==='raz'?'ラズ':(ALLY[who]&&ALLY[who].name)||who;}
 function talkCol(who){return{v_grigg:'#b8e070',raz:'#ff8a7a',rizel:'#c8b0ff',born:'#ffd27a',fina:'#a8f0a0',sevran:'#e0a0ff',galdin:'#c8c8d8',astel:'#ffe9a0'}[who]||'#f0c542';}
 function drawTalk(ov,m){
-  const p=m.talk,img=hasFace(p.who)&&(faceOf(p.who)[p.ex]||faceOf(p.who).normal),same=m._shown||TALKPREV===p.who;m._shown=1;TALKPREV=p.who;
+  // Ver 0.1.153：p.fimg があれば、その顔の絵を使う（100F・村のアステルは、オープニングのアステルの顔）
+  const p=m.talk,img=p.fimg||(hasFace(p.who)&&(faceOf(p.who)[p.ex]||faceOf(p.who).normal)),same=m._shown||TALKPREV===p.who;m._shown=1;TALKPREV=p.who;
   let h='<div class="menu talk'+(p.who||p.nm?'':' nar')+'"><div class="tk">'+(p.who?'<div class="tkf'+(same?'':' in')+'">'+(img?'<img alt="'+esc(talkName(p.who))+'" src="'+img+'">':'<img class="px" alt="" src="'+sprURL(p.who==='raz'?'player':p.who)+'">')+
     '</div>':'')+'<div class="tkx">'+(p.who||p.nm?'<div class="tkn" style="color:'+(p.who?talkCol(p.who):'#e8e0c8')+'">'+esc(p.nm||talkName(p.who))+'</div>':'')+'<div class="tkt">'+esc(m.text)+'</div>';
   if(m.items&&m.items.length){h+='<ul>';m.items.forEach((it,i)=>{h+='<li data-i="'+i+'" class="'+(i===m.sel?'sel':'')+'"><span>'+esc(it.label)+'</span>'+(it.right?'<span class="r">'+esc(it.right)+'</span>':'')+'</li>';});h+='</ul>';}
@@ -9997,8 +10002,9 @@ function astelHomeEvent(){ // 家に入った直後（vEnterRoom から）
   V.ev='astel';const a=V.npcs.find(n=>n.id==='p_astel');if(a){a.dir=[Math.sign(P.x-a.x),Math.sign(P.y-a.y)];a.face=P.x>=a.x?1:-1;}
   P.dir=[Math.sign(AHSPOT[0]-P.x),Math.sign(AHSPOT[1]-P.y)];render();
   ahWait(500,()=>{P.say={text:'！',t0:now()};sfx('pick1');render();
-    ahWait(900,()=>{const pg=AHTALK.map(([s,ex,t])=>({who:s,ex,text:'「'+t+'」',spk:s==='raz'?'ラズ':'アステル'}));for(const p of pg)msg(p.spk+p.text,'info');
-      talkScene(pg,null,()=>{closeAll();render();ahWait(300,astelHomeJoin);});});});
+    // Ver 0.1.153：100F と同じ、立ち絵つきの会話（talkPor）。アステルの顔はオープニングの顔（f100event.js の f100Pages）
+    ahWait(900,()=>{const pg=f100Pages(AHTALK);for(const p of pg)msg(p.spk+p.text,'info');
+      talkPor(pg,()=>{closeAll();render();ahWait(300,astelHomeJoin);});});});
 }
 function astelHomeJoin(){
   loadVillage();VS.bossAlly=VS.bossAlly||{};VS.bossAlly.astel=1;saveVillage();V.celeb={t0:now()};sfx('join');msg('アステルが仲間になった！（ラズの家で話しかけると、冒険に誘える）','r4');
