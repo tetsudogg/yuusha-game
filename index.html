@@ -511,6 +511,14 @@ body.mob #acts #fullbtn.on{color:#ffe079!important;border-color:#f0c542;backgrou
 .tset .szoomr{display:grid;grid-template-columns:auto 1fr 3.5em;align-items:center;gap:10px;margin:2px 0 8px;font-size:13px;color:#d8cce8}
 .tset .szoomr input{width:100%;accent-color:#f0c542}
 .tset .szoomr b{text-align:right;color:#ffe9a0;font-weight:normal}
+/* ---- Ver 0.1.150：ボタンを1つずつ動かす（点線・選んだボタン・出さないボタンはうすく） ---- */
+body.paddrag.padeach #acts{outline:none}
+body.paddrag.padeach #acts button{pointer-events:auto;outline:1px dashed #ffd24a;outline-offset:2px;touch-action:none;cursor:move}
+body.paddrag #acts button.psel{outline:2px solid #ffd24a;outline-offset:3px}
+body.paddrag #acts button.phid{opacity:.35}
+.padcfg .pcsel{border-top:1px solid rgba(184,145,58,.4);margin-top:6px;padding-top:6px}
+.padcfg .pcsel b{color:#ffe9a0}
+.padcfg .pcnote{font-size:12px;color:#c8bce0;align-self:center;flex:1;text-align:center}
 </style>
 </head>
 <body>
@@ -536,7 +544,7 @@ body.mob #acts #fullbtn.on{color:#ffe079!important;border-color:#f0c542;backgrou
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.149'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.150'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -6777,6 +6785,7 @@ function applyPadCfg(){
   if(!MOB)return;const c=padCfg(),d=$('dpad'),a=$('acts');document.body.classList.toggle('padswap',!!c.swap);
   if(d){d.style.scale=String(c.dsz/100);d.style.translate=c.dx+'px '+c.dy+'px';}
   if(a){a.style.scale=String(c.asz/100);a.style.translate=c.ax+'px '+c.ay+'px';}
+  padBtnApply();
   if(typeof G!=='undefined'&&G&&MODE==='dungeon')try{render();}catch(e){}
   padMapBox();}
 // 小さい地図の場所・大きさ・濃さ（スマホのときだけ設定を使う）
@@ -6806,23 +6815,56 @@ function zoomPanel(){
   document.body.appendChild(box);
   const set=z=>{setZoom(zoomClamp(z));$('zmr').value=SC;$('zmv').textContent=zoomLabel();if(typeof G!=='undefined'&&G)try{render();}catch(e){}};
   $('zmr').oninput=()=>set($('zmr').value);$('zm1').onclick=()=>set(1);$('zm15').onclick=()=>set(1.5);$('zm2').onclick=()=>set(2);$('pcclose').onclick=padCfgClose;}
-function padCfgClose(){const b=$('padcfg');if(b)b.remove();const t=$('paddragbar');if(t)t.remove();const m=$('mapdrag');if(m)m.remove();document.body.classList.remove('padedit','paddrag');}
+function padCfgClose(){const b=$('padcfg');if(b)b.remove();const t=$('paddragbar');if(t)t.remove();const m=$('mapdrag');if(m)m.remove();document.body.classList.remove('padedit','paddrag','padeach');PADSEL=null;padBtnApply();}
 // 指で場所を動かす：十字キー・ボタンのまとまり・地図をずらす。画面の外には出さない（少なくとも 40px は見えるように）
 function padDragStart(){
   const b=$('padcfg');if(b)b.remove();document.body.classList.add('paddrag');
-  const bar=document.createElement('div');bar.id='paddragbar';bar.className='padcfg pcbar';
-  bar.innerHTML='<div class="pct">十字キー・ボタン・地図を、指でずらしてください</div><div class="pcb"><button type="button" class="btn2" id="pcdone">できた</button><button type="button" class="btn2" id="pcpos0">位置だけ最初にもどす</button></div>';
-  document.body.appendChild(bar);
-  $('pcdone').onclick=()=>{padCfgOpen();};
-  $('pcpos0').onclick=()=>{padCfgSet({dx:0,dy:0,ax:0,ay:0,mx:0,my:0});};
   const map=document.createElement('div');map.id='mapdrag';document.body.appendChild(map);padMapBox();
   padDragBind($('dpad'),'dx','dy',1);padDragBind($('acts'),'ax','ay',1);padDragBind(map,'mx','my',0);
+  padDragBar();padBtnApply();
 }
+// Ver 0.1.150：ボタンを1つずつ動かす・大きさ・出す／出さない（ユーザーの依頼）。なくてはならないボタン（PADMUST）は消せない。十字キー（足踏・斜めの印）はそのまま
+// 設定は、迷宮（d）・村（v）・メニュー（m）ごとに、縦と横で別々にしまう（public_game_padcfg の btn）
+const PADMUST=new Set(['ok','back','close','talk','bag','set','atk','item','foot','ally','maou','arrow']);
+let PADSEL=null;
+function padBtnKey(bid){return(MS.length?'m':MODE==='village'?'v':'d')+':'+bid;}
+function padBtnCfg(bid){const c=padCfg();return(c.btn&&c.btn[padBtnKey(bid)])||{};}
+function padBtnSet(bid,patch){const c=padCfg(),btn=Object.assign({},c.btn||{}),k=padBtnKey(bid);btn[k]=Object.assign({},btn[k]||{},patch);padCfgSet({btn});}
+function padBtnApply(){
+  if(!MOB)return;const drag=document.body.classList.contains('paddrag');
+  document.querySelectorAll('#acts button[data-bid]').forEach(b=>{const bid=b.dataset.bid,o=padBtnCfg(bid),hid=!!o.h&&!PADMUST.has(bid);
+    b.style.translate=(o.x||0)+'px '+(o.y||0)+'px';b.style.scale=o.s?String(o.s/100):'';b.style.display=hid&&!drag?'none':'';b.classList.toggle('phid',hid);b.classList.toggle('psel',drag&&bid===PADSEL);});}
+function padDragBar(){
+  let bar=$('paddragbar');if(!bar){bar=document.createElement('div');bar.id='paddragbar';bar.className='padcfg pcbar';document.body.appendChild(bar);}
+  const each=document.body.classList.contains('padeach');let sel='';
+  if(each&&PADSEL){const el=document.querySelector('#acts button[data-bid="'+PADSEL+'"]'),o=padBtnCfg(PADSEL),nm=el?el.textContent.trim():PADSEL;
+    sel='<div class="pcsel"><div>選んだボタン：<b>'+nm+'</b></div><label class="pcr"><span>大きさ</span><input type="range" id="pcbs" min="60" max="160" step="5" value="'+(o.s||100)+'"><b id="pcbsv">'+(o.s||100)+'%</b></label>'+
+      '<div class="pcb">'+(PADMUST.has(PADSEL)?'<span class="pcnote">このボタンは消せません</span>':'<button type="button" class="btn2" id="pcbh">'+(o.h?'出さない → 出す':'出す → 出さない')+'</button>')+'<button type="button" class="btn2" id="pcb0">このボタンを最初にもどす</button></div></div>';}
+  else if(each)sel='<div class="pcnote">ボタンを指でずらすと動きます。軽く押すと、大きさ・出す／出さないを変えられます。</div>';
+  bar.innerHTML='<div class="pct">'+(each?'ボタンを1つずつ動かす':'十字キー・ボタン・地図を、指でずらしてください')+'</div>'+
+    '<div class="pcb"><button type="button" class="btn2'+(each?'':' pcgo')+'" id="pcgrp">まとめて動かす</button><button type="button" class="btn2'+(each?' pcgo':'')+'" id="pceach">1つずつ動かす</button></div>'+sel+
+    '<div class="pcb"><button type="button" class="btn2" id="pcdone">できた</button><button type="button" class="btn2" id="pcpos0">位置だけ最初にもどす</button></div>';
+  $('pcgrp').onclick=()=>{document.body.classList.remove('padeach');PADSEL=null;padDragBar();padBtnApply();};
+  $('pceach').onclick=()=>{document.body.classList.add('padeach');padDragBar();padBtnApply();};
+  $('pcdone').onclick=()=>{document.body.classList.remove('padeach');PADSEL=null;padCfgOpen();};
+  $('pcpos0').onclick=()=>{const c=padCfg(),btn={};for(const k in c.btn||{}){const o=Object.assign({},c.btn[k]);delete o.x;delete o.y;btn[k]=o;}padCfgSet({dx:0,dy:0,ax:0,ay:0,mx:0,my:0,btn});};
+  if($('pcbs'))$('pcbs').oninput=()=>{const v=+$('pcbs').value;$('pcbsv').textContent=v+'%';padBtnSet(PADSEL,{s:v});};
+  if($('pcbh'))$('pcbh').onclick=()=>{padBtnSet(PADSEL,{h:padBtnCfg(PADSEL).h?0:1});padDragBar();};
+  if($('pcb0'))$('pcb0').onclick=()=>{const c=padCfg(),btn=Object.assign({},c.btn||{});delete btn[padBtnKey(PADSEL)];padCfgSet({btn});padDragBar();};
+}
+function padBtnBind(b){
+  let st=null;
+  b.addEventListener('pointerdown',e=>{if(!document.body.classList.contains('paddrag')||!document.body.classList.contains('padeach'))return;e.preventDefault();e.stopPropagation();
+    const o=padBtnCfg(b.dataset.bid);st={x:e.clientX,y:e.clientY,ox:o.x||0,oy:o.y||0,moved:false,nx:o.x||0,ny:o.y||0};try{b.setPointerCapture(e.pointerId);}catch(x){}});
+  b.addEventListener('pointermove',e=>{if(!st)return;e.preventDefault();e.stopPropagation();const dx=e.clientX-st.x,dy=e.clientY-st.y;if(Math.abs(dx)+Math.abs(dy)>6)st.moved=true;if(!st.moved)return;
+    const nx=Math.round(st.ox+dx),ny=Math.round(st.oy+dy),old=b.style.translate;b.style.translate=nx+'px '+ny+'px';if(padInView(b)){st.nx=nx;st.ny=ny;}else b.style.translate=old;});
+  const end=e=>{if(!st)return;e.stopPropagation();const s0=st;st=null;if(s0.moved)padBtnSet(b.dataset.bid,{x:s0.nx,y:s0.ny});else{PADSEL=b.dataset.bid;padDragBar();padBtnApply();}};
+  b.addEventListener('pointerup',end);b.addEventListener('pointercancel',e=>{st=null;});}
 function padMapBox(){const m=$('mapdrag');if(!m)return;const r=miniRect(),st=$('stage').getBoundingClientRect();
   m.style.left=(st.left+(r.x-6)*STX)+'px';m.style.top=(st.top+(r.y-6)*STY)+'px';m.style.width=(r.w*STX)+'px';m.style.height=(r.h*STY)+'px';m.style.display=r.hide?'none':'';}
 function padDragBind(el,kx,ky,screenPx){
   if(!el||el._pdb)return;el._pdb=1;let st=null;
-  el.addEventListener('pointerdown',e=>{if(!document.body.classList.contains('paddrag'))return;e.preventDefault();e.stopPropagation();const c=padCfg();st={x:e.clientX,y:e.clientY,ox:c[kx],oy:c[ky]};try{el.setPointerCapture(e.pointerId);}catch(x){}});
+  el.addEventListener('pointerdown',e=>{if(!document.body.classList.contains('paddrag'))return;if(el.id==='acts'&&document.body.classList.contains('padeach'))return;e.preventDefault();e.stopPropagation();const c=padCfg();st={x:e.clientX,y:e.clientY,ox:c[kx],oy:c[ky]};try{el.setPointerCapture(e.pointerId);}catch(x){}});
   el.addEventListener('pointermove',e=>{if(!st||!document.body.classList.contains('paddrag'))return;e.preventDefault();
     let nx=st.ox+(e.clientX-st.x)/(screenPx?1:STX),ny=st.oy+(e.clientY-st.y)/(screenPx?1:STY);nx=Math.round(nx);ny=Math.round(ny);
     const old=padCfg();padCfgSet({[kx]:nx,[ky]:ny});if(!padInView(screenPx?el:$('mapdrag')))padCfgSet({[kx]:old[kx],[ky]:old[ky]});});
@@ -6847,7 +6889,7 @@ function buildPad(){
       PAD.hold={to:setTimeout(()=>{PAD.hold.iv=setInterval(()=>sendKey(k,{repeat:true}),MODE==='village'?125:110);},300)};}
   };
   const release=()=>{if(PAD.hold){clearTimeout(PAD.hold.to);clearInterval(PAD.hold.iv);PAD.hold=null;}pad.querySelectorAll('.dn').forEach(b=>b.classList.remove('dn'));};
-  pad.addEventListener('pointerdown',e=>{const b=e.target.closest('button');if(!b)return;e.preventDefault();b.classList.add('dn');audioInit();
+  pad.addEventListener('pointerdown',e=>{const b=e.target.closest('button');if(!b)return;if(document.body.classList.contains('paddrag')||document.body.classList.contains('padedit'))return;e.preventDefault();b.classList.add('dn');audioInit();
     if(b.dataset.k)press(b,b.dataset.k);else if(b._act)b._act();});
   for(const ev of['pointerup','pointercancel','pointerleave'])pad.addEventListener(ev,release);
   pad.addEventListener('contextmenu',e=>e.preventDefault());
@@ -6894,13 +6936,13 @@ function uiIcon(k){ // 操作ボタン用の小さなドット絵アイコン（
 /* Ver 0.1.148：スマホの操作UI（確定デザイン V6・ユーザーの指示書）。補助ボタンは2列×3段、右の列に全画面（上）と大きいボタン（下・2段ぶん）。
    迷宮で仲間技・魔王・矢が出るときだけ、上に1段増やす（左から 仲間技・魔王・矢）。村・メニューも同じ形（ユーザーの決定）。p＝[列,段]（段は増えた段を数えない） */
 function padBtns(){
-  if(MS.length)return[{l:'決定',ic:uiIcon('ok'),k:'Enter',big:1,ok:1},{l:'戻る',ic:uiIcon('back'),k:'Escape',p:[1,1]},{l:'閉じる',ic:uiIcon('close'),k:'KeyQ',p:[2,1]}];
-  if(MODE==='village')return[{l:'話す',ic:uiIcon('talk'),k:'Enter',big:1,ok:1},{l:'持ち物',ic:'i_bag',k:'KeyI',p:[1,1]},{l:'遊び方',ic:uiIcon('book'),k:'KeyH',p:[2,1]},{l:'設定',ic:uiIcon('gear'),f:padMenu,p:[1,2]}];
-  const a=[{l:'攻撃',ic:'i_sword',k:'KeyF',big:1},{l:'地図',ic:uiIcon('map'),k:'KeyM',p:[1,1]},
-    {l:'ダッシュ',ic:uiIcon('dash'),f:()=>{PAD.dash=!PAD.dash;PAD.turn=false;updatePad();},on:PAD.dash,p:[2,1]},
-    {l:'道具',ic:'i_bag',k:'KeyI',p:[1,2]},{l:'向き',ic:uiIcon('turn'),f:()=>{PAD.turn=!PAD.turn;PAD.dash=false;updatePad();},on:PAD.turn,p:[2,2]},
-    {l:'足元',ic:uiIcon('foot'),k:'KeyG',p:[1,3]},{l:'設定',ic:uiIcon('gear'),f:padMenu,p:[2,3]},
-    {l:'仲間技',ic:uiIcon('star'),k:'KeyK',p:[1,0],hide:!allies.length},{l:maouActive()?'あと'+P.maou:'魔王',ic:uiIcon('crown'),k:'KeyY',p:[2,0],hide:!maouOn(),on:maouReady()||maouActive(),cls:'mao'},{l:'矢',ic:varIcon('arrow','#c8b08a'),k:'KeyT',p:[3,0],hide:!(P&&P.arrow)}];
+  if(MS.length)return[{b:'ok',l:'決定',ic:uiIcon('ok'),k:'Enter',big:1,ok:1},{b:'back',l:'戻る',ic:uiIcon('back'),k:'Escape',p:[1,1]},{b:'close',l:'閉じる',ic:uiIcon('close'),k:'KeyQ',p:[2,1]}];
+  if(MODE==='village')return[{b:'talk',l:'話す',ic:uiIcon('talk'),k:'Enter',big:1,ok:1},{b:'bag',l:'持ち物',ic:'i_bag',k:'KeyI',p:[1,1]},{b:'help',l:'遊び方',ic:uiIcon('book'),k:'KeyH',p:[2,1]},{b:'set',l:'設定',ic:uiIcon('gear'),f:padMenu,p:[1,2]}];
+  const a=[{b:'atk',l:'攻撃',ic:'i_sword',k:'KeyF',big:1},{b:'map',l:'地図',ic:uiIcon('map'),k:'KeyM',p:[1,1]},
+    {b:'dash',l:'ダッシュ',ic:uiIcon('dash'),f:()=>{PAD.dash=!PAD.dash;PAD.turn=false;updatePad();},on:PAD.dash,p:[2,1]},
+    {b:'item',l:'道具',ic:'i_bag',k:'KeyI',p:[1,2]},{b:'turn',l:'向き',ic:uiIcon('turn'),f:()=>{PAD.turn=!PAD.turn;PAD.dash=false;updatePad();},on:PAD.turn,p:[2,2]},
+    {b:'foot',l:'足元',ic:uiIcon('foot'),k:'KeyG',p:[1,3]},{b:'set',l:'設定',ic:uiIcon('gear'),f:padMenu,p:[2,3]},
+    {b:'ally',l:'仲間技',ic:uiIcon('star'),k:'KeyK',p:[1,0],hide:!allies.length},{b:'maou',l:maouActive()?'あと'+P.maou:'魔王',ic:uiIcon('crown'),k:'KeyY',p:[2,0],hide:!maouOn(),on:maouReady()||maouActive(),cls:'mao'},{b:'arrow',l:'矢',ic:varIcon('arrow','#c8b08a'),k:'KeyT',p:[3,0],hide:!(P&&P.arrow)}];
   return a.filter(x=>!x.hide);
 }
 let PADSIG='';
@@ -6914,8 +6956,9 @@ function updatePad(){
   const ex=L.some(x=>x.p&&x.p[1]===0)?1:0;box.style.setProperty('--rows',3+ex);
   for(const x of L){const b=document.createElement('button');b.type='button';b.innerHTML=(x.ic?'<img alt="" src="'+sprURL(x.ic)+'">':'')+'<span>'+x.l+'</span>';if(x.k)b.dataset.k=x.k;else b._act=x.f;
     if(x.big){b.className='big'+(x.ok?' ok':'');b.style.gridColumn=3;b.style.gridRow=(2+ex)+' / span 2';}else{b.style.gridColumn=x.p[0];b.style.gridRow=x.p[1]===0?1:x.p[1]+ex;}
-    if(x.cls)b.classList.add(x.cls);if(x.on)b.classList.add('on');box.appendChild(b);}
-  if(fb){fb.style.gridColumn=3;fb.style.gridRow=1+ex;box.appendChild(fb);}
+    if(x.cls)b.classList.add(x.cls);if(x.on)b.classList.add('on');b.dataset.bid=x.b;padBtnBind(b);box.appendChild(b);}
+  if(fb){fb.style.gridColumn=3;fb.style.gridRow=1+ex;fb.dataset.bid='full';padBtnBind(fb);box.appendChild(fb);}
+  padBtnApply();
 }
 function padMenu(){
   const it=[];
