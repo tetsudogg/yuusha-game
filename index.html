@@ -544,7 +544,7 @@ body.paddrag #acts button.phid{opacity:.35}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.153'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.154'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -2691,8 +2691,8 @@ function genFixedFloor(){
   // Ver 0.1.38：100階は、まだ100階をクリアしていない（真のクリア0回）ときが1回目＝アステルがいる。2回目からはボスも転移円陣もない（円陣は初回の帰り道だけ）
   const bossK=bossFloor(G.floor),first=G.floor===DEEP?!!bossK&&!((VS&&VS.rec&&VS.rec.tclear)||0):!!bossK;
   if(!first){if(G.floor!==DEEP)G.portal={x:G.fixed.portal.x,y:G.fixed.portal.y};if((G.floor!==LAST||deepOn())&&G.floor<DEEP)G.stairs={x:G.fixed.stairs.x,y:G.fixed.stairs.y};}
-  // Ver 0.1.153：100F の宝箱だけは金色に（ユーザーの依頼）。中身は今までどおり
-  for(const c of fixedSpots('C',D))G.chests.push({k:G.floor===DEEP?'gold':'silver',x:c.x,y:c.y,ri:G.room[I(c.x,c.y)],it:genFixedChestItem(),opened:false,dimmed:false,was:false,noDim:true});
+  // Ver 0.1.153：100F の宝箱だけは金色に（ユーザーの依頼）。Ver 0.1.154：中身も金色の宝箱と同じ（genChestItem・ユーザーの依頼）
+  for(const c of fixedSpots('C',D))G.chests.push({k:G.floor===DEEP?'gold':'silver',x:c.x,y:c.y,ri:G.room[I(c.x,c.y)],it:G.floor===DEEP?genChestItem():genFixedChestItem(),opened:false,dimmed:false,was:false,noDim:true});
   const ni=rr(7,11)+(G.bless==='find'?2:0);for(let i=0;i<ni;i++){const t=freeTile({noItem:true});if(t)G.items.push({x:t.x,y:t.y,it:genItem(),seen:false,shop:false});}
   const nt=G.floor===LAST?0:rr(3,5)+Math.min(6,Math.floor(G.floor/4));for(let i=0;i<nt;i++){const t=freeTile({noItem:true,noTrap:true});if(t&&cheb(t,P)>1&&!isDoorway(t.x,t.y)&&!(G.stairs&&cheb(t,G.stairs)<=1))G.traps.push({x:t.x,y:t.y,type:pick(Object.keys(TRAPS)),known:false});}
   const nm=rr(5,7);for(let i=0;i<nm;i++)spawnMonster(false);
@@ -4660,10 +4660,45 @@ function useCheck(it){if(it.unpaid){msg('まだ代金を払っていない');ret
 function herbHeal(key,mx){return key==='bigherb'?Math.max(100,Math.round(mx*0.6)):Math.max(25,Math.round(mx*0.25));} // Ver 2.5.5：薬草＝25か最大HPの25%、大薬草＝100か最大HPの60%の多いほう
 function healP(n,up){if(P.hp>=P.maxHp){P.maxHp+=up;P.hp=P.maxHp;msg('最大HPが'+up+'上がった','good');}else{healFx(P,Math.min(n,P.maxHp-P.hp));P.hp=Math.min(P.maxHp,P.hp+n);msg('HPが回復した','good');}}
 function afterIdentify(key,old){if(identify(key))msg('それは'+ITEMS[key].name+'だった','info');}
+/* Ver 0.1.154：杖・巻物・草を使ったときの効果音と光（ユーザーの依頼「使った感がない」）。効果音は audio.js にある名前だけ。光の色・形は効果に合わせた仮のもの */
+function ufxPos(e){const[x,y]=ctr(e);return{x,y};}
+function ufxRing(e,c,r,o){const q=ufxPos(e);vfx(Object.assign({k:'ring',x:q.x,y:q.y+8,r:r||1.6,c,dur:550},o||{}));}
+function ufxCircle(e,c,r,o){const q=ufxPos(e);vfx(Object.assign({k:'circle',x:q.x,y:q.y+8,r:r||1.1,c,dur:850},o||{}));}
+function ufxPillar(e,c,pc,o){const q=ufxPos(e);vfx(Object.assign({k:'pillar',x:q.x,y:q.y+10,w:18,h:60,c,c2:'255,255,235',pc,dur:800},o||{}));}
+function ufxBurst(e,col,n,up){const q=ufxPos(e);burst(q.x,q.y,n||18,col,28,0.9,up===undefined?10:up,true);}
+// 杖・火炎草の光線：ラズから、届いたマス（当たった相手）まで
+function ufxBeam(path,c,pc,w){if(!path||!path.length)return;const a=ufxPos(P),[ex,ey]=path[path.length-1];vfx({k:'beam',x:a.x,y:a.y,x1:ex*TS+TS/2,y1:ey*TS+TS/2,w:w||8,c,pc,dur:420});}
+function herbFx(key){
+  switch(key){
+    case'herb':sfx('hit_heal');ufxCircle(P,'120,255,160',1);ufxBurst(P,'#8affa0',16,20);break;
+    case'bigherb':sfx('hit_heal');ufxCircle(P,'120,255,160',1.5);ufxPillar(P,'110,255,150','#9affb0');ufxBurst(P,'#8affa0',26,22);break;
+    case'cure':sfx('hit_heal');ufxRing(P,'230,255,240',1.8);ufxBurst(P,'#e8fff0',22,16);break;
+    case'power':case'epow':sfx('level');ufxPillar(P,'255,120,60','#ff9a50');ufxRing(P,'255,150,80',1.6,{delay:120});break;
+    case'life':case'bighp':sfx('level');ufxPillar(P,'255,120,170','#ff9ac8');ufxRing(P,'255,150,200',1.6,{delay:120});break;
+    case'guardgr':sfx('hit_barrier');ufxRing(P,'170,200,255',1.4);ufxRing(P,'200,220,255',1.9,{delay:120});ufxBurst(P,'#c8d8ff',16,6);break;
+    case'elixir':sfx('mc_dark');ufxCircle(P,'190,90,255',1.4,{star:true});ufxPillar(P,'170,60,255','#c070ff',{delay:150});break;
+    case'revive':sfx('hit_miracle');vfx({k:'flash',c:'255,240,180',dur:380});ufxPillar(P,'255,220,120','#ffe08a',{w:26,h:90});ufxRing(P,'255,230,140',2.4,{delay:150});break;
+    case'sleepgr':sfx('dim');ufxBurst(P,'#a8a0ff',14,14);popText(P,'Zzz','#c8c0ff');break;
+    case'confgr':sfx('stpois');{const q=ufxPos(P);vfx({k:'spiral',x:q.x,y:q.y,r:0.9,dur:700});}break;
+  }
+}
+function scrollFx(key){
+  sfx('mcircle');
+  const C={ident:'150,220,255',map:'120,230,255',blast:'255,150,60',sleeps:'180,150,255',wup:'255,210,90',sup:'170,210,255',warp:'120,230,255',kikan:'255,230,150'}[key]||'230,220,255';
+  ufxCircle(P,C,1.2,{dur:700});
+  switch(key){
+    case'ident':sfx('holy');ufxBurst(P,'#c8ecff',14,12);break;
+    case'map':vfx({k:'flash',c:'150,230,255',dur:320});ufxRing(P,'140,230,255',9,{dur:900});break;
+    case'wup':sfx('slash');ufxPillar(P,'255,200,80','#ffe070');break;
+    case'sup':sfx('hit_barrier');ufxPillar(P,'160,200,255','#c8e0ff');break;
+    case'warp':sfx('warp');break;
+  }
+}
 function drinkHerb(it){
   if(it.key==='revive'&&G.revUsed&&isKnown('revive')){msg('復活の草の力は、この冒険ではもう使えない（1回の冒険で1個だけ）','info');return;}
   const old=itemName(it);removeInv(it);msg(old+'を飲んだ');afterIdentify(it.key,old);
   if(P.full<P.fullMax){const f0=P.full;P.full=Math.min(P.fullMax,P.full+10);if(P.full>f0)msg('少しお腹がふくれた（満腹度+'+Math.round(P.full-f0)+'）','info');} // 草は満腹度が少し回復
+  herbFx(it.key);
   switch(it.key){
     case'herb':healP(herbHeal('herb',P.maxHp),1);P.conf=0;break;
     case'bigherb':healP(herbHeal('bigherb',P.maxHp),2);P.conf=0;break;
@@ -4671,7 +4706,8 @@ function drinkHerb(it){
     case'power':P.strMax++;P.str++;msg('ちからの最大値が1上がった！（'+P.str+'/'+P.strMax+'）','good');break;
     case'life':P.maxHp+=5;P.hp+=5;msg('最大HPが5上がった！','good');break;
     case'sleepgr':P.sleep=5;msg('眠ってしまった…','bad');break;
-    case'fire':{const r=ray(P.x,P.y,P.dir[0],P.dir[1],1);fx(r.path.length?r.path:[[P.x+P.dir[0],P.y+P.dir[1]]],'rgba(255,120,30,0.7)');
+    case'fire':{const r=ray(P.x,P.y,P.dir[0],P.dir[1],1);const pth=r.path.length?r.path:[[P.x+P.dir[0],P.y+P.dir[1]]];fx(pth,'rgba(255,120,30,0.7)');
+      sfx('efire');ufxBeam(pth,'255,120,40','#ff8a30',12);if(r.hit){ufxBurst(r.hit,'#ff7a30',24,6);ufxRing(r.hit,'255,140,60',1.2);}
       if(r.hit){const d=15+G.floor;msg('炎を吐いた！ '+nameOf(r.hit)+'に'+d+'のダメージ');damageEnt(r.hit,d,P,'火炎草');}else msg('炎を吐いた！');break;}
     case'revive':if(G.revUsed){msg('…何も起こらなかった（復活の草の力は1回の冒険で1個だけ）','info');break;}G.revUsed=true;P.hp=P.maxHp;msg('HPが全回復した（この冒険では、もう復活の草は効かない）','good');break;
     case'confgr':P.conf=10;msg('混乱してしまった！','bad');break;
@@ -4703,13 +4739,14 @@ function readScroll(it){
   if(it.key==='kikan'&&fixedLocked()){msg('扉が強い魔力で閉ざされていて、帰還の巻物の力が届かない…','bad');return false;} // Ver 0.1.31：セヴランとの戦いのあいだは使えない
   const old=itemName(it);removeInv(it);msg(old+'を読んだ');afterIdentify(it.key,old);
   const foes=G.mons.filter(m=>isHostile(m)&&G.vis[I(m.x,m.y)]);
+  scrollFx(it.key);
   switch(it.key){
     case'ident':G.after=identMenu;break;
     case'kikan':returnHome();break;
     case'map':G.explored.fill(1);G.items.forEach(f=>f.seen=true);msg('フロアの様子がわかった！','info');break;
-    case'blast':{const d=20+G.floor*2;fx(foes.map(m=>[m.x,m.y]),'rgba(255,160,40,0.7)');if(!foes.length)msg('爆発が起きたが、誰もいなかった');
+    case'blast':{const d=20+G.floor*2;fx(foes.map(m=>[m.x,m.y]),'rgba(255,160,40,0.7)');sfx('blaze');shakeA=Math.max(shakeA,10);vfx({k:'flash',c:'255,170,80',dur:360});for(const m of foes){ufxBurst(m,'#ff9a40',26,8);ufxRing(m,'255,150,60',1.4);}if(!foes.length)msg('爆発が起きたが、誰もいなかった');
       for(const m of foes){msg(m.name+'に'+d+'のダメージ');dmgMon(m,d,P);}break;}
-    case'sleeps':if(!foes.length)msg('何も起こらなかった');for(const m of foes)sleepTry(m);break;
+    case'sleeps':sfx('dim');ufxRing(P,'180,150,255',6,{dur:800});for(const m of foes)ufxBurst(m,'#b8a8ff',12,14);if(!foes.length)msg('何も起こらなかった');for(const m of foes)sleepTry(m);break;
     case'wup':if(P.weapon){P.weapon.plus++;msg(itemName(P.weapon)+'が強くなった！','good');}else msg('武器を装備していない…');break;
     case'sup':if(P.shield){P.shield.plus++;msg(itemName(P.shield)+'が強くなった！','good');}else msg('盾を装備していない…');break;
     case'warp':teleport(P);msg('どこかへワープした！');break;
@@ -4723,19 +4760,21 @@ function zapStaff(it){
   it.charges--;
   const[dx,dy]=P.dir;const r=ray(P.x,P.y,dx,dy,10);
   fx(r.path,'rgba(200,160,255,0.55)');
-  if(!r.hit){msg('魔法弾は何にも当たらなかった');return true;}
+  // Ver 0.1.154：魔法弾の光と音
+  sfx('stpois');ufxBeam(r.path,'200,160,255','#d8b0ff',6);
+  if(!r.hit){sfx('miss');msg('魔法弾は何にも当たらなかった');return true;}
   afterIdentify(it.key,old);
   const e=r.hit,nm=nameOf(e);
   if(e.kind==='npc'||(e.kind==='ally'&&e.down>0)){msg(nm+'には効果がなかった');return true;}
   if(e.kind==='mon')makeHostile(e);
   switch(it.key){
-    case'thunder':{const d=15+G.floor;msg('雷が落ちた！ '+nm+'に'+d+'のダメージ');damageEnt(e,d,P,'雷');break;}
+    case'thunder':{sfx('thunder');vfx({k:'flash',c:'255,250,200',dur:260});ufxPillar(e,'255,240,120','#fff0a0',{w:14,h:110,dur:500});ufxBurst(e,'#fff070',20,4);const d=15+G.floor;msg('雷が落ちた！ '+nm+'に'+d+'のダメージ');damageEnt(e,d,P,'雷');break;}
     case'blow':{let n=0;while(n<10){const nx=e.x+dx,ny=e.y+dy;if(!pass(nx,ny)||!diagOK(e.x,e.y,dx,dy)||entityAt(nx,ny))break;e.x=nx;e.y=ny;n++;}
-      msg(nm+'は吹き飛ばされた！ 5のダメージ');damageEnt(e,5,P,'吹き飛ばし');break;}
-    case'sleepst':sleepTry(e);break;
-    case'swap':{const x=e.x,y=e.y;e.x=P.x;e.y=P.y;P.x=x;P.y=y;computeVisible();msg(nm+'と場所を入れ替えた');break;}
-    case'slowst':e.slow=20;msg(nm+'の動きが鈍くなった');break;
-    case'sealst':e.sealed=true;msg(nm+'の特技が封じられた');break;
+      sfx('leap');ufxRing(e,'230,230,255',1.3);ufxBurst(e,'#d8d0c0',16,4);msg(nm+'は吹き飛ばされた！ 5のダメージ');damageEnt(e,5,P,'吹き飛ばし');break;}
+    case'sleepst':sfx('dim');ufxBurst(e,'#b8a8ff',16,14);sleepTry(e);break;
+    case'swap':{sfx('warp');warpFx(P);warpFx(e);const x=e.x,y=e.y;e.x=P.x;e.y=P.y;P.x=x;P.y=y;computeVisible();warpFx(P);msg(nm+'と場所を入れ替えた');break;}
+    case'slowst':sfx('stice');ufxRing(e,'140,200,255',1.2);ufxBurst(e,'#a0d0ff',14,-6);e.slow=20;msg(nm+'の動きが鈍くなった');break;
+    case'sealst':sfx('mc_dark');ufxCircle(e,'150,60,200',0.9,{dur:700});ufxBurst(e,'#a050d0',14,8);e.sealed=true;msg(nm+'の特技が封じられた');break;
   }
   return true;
 }
@@ -4745,6 +4784,8 @@ function zapScepter(it){
   it.charges--;const[dx,dy]=P.dir;let x=P.x,y=P.y;const path=[],hits=[];
   for(let i=0;i<10;i++){if(!pass(x+dx,y+dy)||!diagOK(x,y,dx,dy))break;x+=dx;y+=dy;path.push([x,y]);const e=entityAt(x,y);if(isHostile(e))hits.push(e);}
   fx(path,'rgba(255,230,120,0.8)');shakeA=Math.max(shakeA,6);sfx('hit');P.an={dx,dy,t0:now()};
+  // Ver 0.1.154：王錫も雷の光と音
+  sfx('thunder');ufxBeam(path,'255,230,120','#fff0a0',10);vfx({k:'flash',c:'255,245,190',dur:240});
   if(!hits.length)msg('雷鳴が走ったが、何にも当たらなかった');
   const d=24+G.floor*2;
   for(const e of hits){if(e.hp<=0||G.over)continue;msg('魔王の雷！ '+e.name+'に'+d+'のダメージ','r4');dmgMon(e,d,P);}
