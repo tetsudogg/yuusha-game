@@ -544,7 +544,7 @@ body.paddrag #acts button.phid{opacity:.35}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.150'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.151'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -6827,7 +6827,10 @@ function padDragStart(){
 // 設定は、迷宮（d）・村（v）・メニュー（m）ごとに、縦と横で別々にしまう（public_game_padcfg の btn）
 const PADMUST=new Set(['ok','back','close','talk','bag','set','atk','item','foot','ally','maou','arrow']);
 let PADSEL=null;
-function padBtnKey(bid){return(MS.length?'m':MODE==='village'?'v':'d')+':'+bid;}
+const PADMENUMAP={d:{ok:'atk',back:'item',close:'foot'},v:{ok:'talk',back:'bag',close:'help'}};
+function padBtnKey(bid){const m=MODE==='village'?'v':'d';return m+':'+(MS.length&&PADMENUMAP[m][bid]||bid);}
+// 迷宮で、仲間技・魔王・矢の段が出ているか（メニューのときも、同じ段の数にする）
+function padExtra(){return MODE==='dungeon'&&!!((typeof allies!=='undefined'&&allies.length)||(P&&P.arrow)||(typeof maouOn==='function'&&maouOn()));}
 function padBtnCfg(bid){const c=padCfg();return(c.btn&&c.btn[padBtnKey(bid)])||{};}
 function padBtnSet(bid,patch){const c=padCfg(),btn=Object.assign({},c.btn||{}),k=padBtnKey(bid);btn[k]=Object.assign({},btn[k]||{},patch);padCfgSet({btn});}
 function padBtnApply(){
@@ -6936,7 +6939,8 @@ function uiIcon(k){ // 操作ボタン用の小さなドット絵アイコン（
 /* Ver 0.1.148：スマホの操作UI（確定デザイン V6・ユーザーの指示書）。補助ボタンは2列×3段、右の列に全画面（上）と大きいボタン（下・2段ぶん）。
    迷宮で仲間技・魔王・矢が出るときだけ、上に1段増やす（左から 仲間技・魔王・矢）。村・メニューも同じ形（ユーザーの決定）。p＝[列,段]（段は増えた段を数えない） */
 function padBtns(){
-  if(MS.length)return[{b:'ok',l:'決定',ic:uiIcon('ok'),k:'Enter',big:1,ok:1},{b:'back',l:'戻る',ic:uiIcon('back'),k:'Escape',p:[1,1]},{b:'close',l:'閉じる',ic:uiIcon('close'),k:'KeyQ',p:[2,1]}];
+  // Ver 0.1.151：メニューのときは、もとの画面（迷宮・村）と同じ場所に出す。決定＝攻撃（話す）の場所、戻る＝道具（持ち物）、閉じる＝足元（遊び方）。ボタン1つずつの設定（位置・大きさ・出す出さない）も、その場所のボタンのものを使う
+  if(MS.length){const v=MODE==='village';return[{b:'ok',l:'決定',ic:uiIcon('ok'),k:'Enter',big:1,ok:1},{b:'back',l:'戻る',ic:uiIcon('back'),k:'Escape',p:v?[1,1]:[1,2]},{b:'close',l:'閉じる',ic:uiIcon('close'),k:'KeyQ',p:v?[2,1]:[1,3]}];}
   if(MODE==='village')return[{b:'talk',l:'話す',ic:uiIcon('talk'),k:'Enter',big:1,ok:1},{b:'bag',l:'持ち物',ic:'i_bag',k:'KeyI',p:[1,1]},{b:'help',l:'遊び方',ic:uiIcon('book'),k:'KeyH',p:[2,1]},{b:'set',l:'設定',ic:uiIcon('gear'),f:padMenu,p:[1,2]}];
   const a=[{b:'atk',l:'攻撃',ic:'i_sword',k:'KeyF',big:1},{b:'map',l:'地図',ic:uiIcon('map'),k:'KeyM',p:[1,1]},
     {b:'dash',l:'ダッシュ',ic:uiIcon('dash'),f:()=>{PAD.dash=!PAD.dash;PAD.turn=false;updatePad();},on:PAD.dash,p:[2,1]},
@@ -6953,7 +6957,7 @@ function updatePad(){
   if(sig===PADSIG)return;PADSIG=sig;
   // 全画面ボタンは、作りなおすときに消さないよう、いったん外して最後にもどす（押したときの動きは buildPad のまま）
   const fb=$('fullbtn');if(fb&&fb.parentNode===box)box.removeChild(fb);box.innerHTML='';
-  const ex=L.some(x=>x.p&&x.p[1]===0)?1:0;box.style.setProperty('--rows',3+ex);
+  const ex=(MS.length&&MODE==='dungeon'?padExtra():L.some(x=>x.p&&x.p[1]===0))?1:0;box.style.setProperty('--rows',3+ex);
   for(const x of L){const b=document.createElement('button');b.type='button';b.innerHTML=(x.ic?'<img alt="" src="'+sprURL(x.ic)+'">':'')+'<span>'+x.l+'</span>';if(x.k)b.dataset.k=x.k;else b._act=x.f;
     if(x.big){b.className='big'+(x.ok?' ok':'');b.style.gridColumn=3;b.style.gridRow=(2+ex)+' / span 2';}else{b.style.gridColumn=x.p[0];b.style.gridRow=x.p[1]===0?1:x.p[1]+ex;}
     if(x.cls)b.classList.add(x.cls);if(x.on)b.classList.add('on');b.dataset.bid=x.b;padBtnBind(b);box.appendChild(b);}
