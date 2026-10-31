@@ -507,6 +507,10 @@ body.mob #acts #fullbtn.on{color:#ffe079!important;border-color:#f0c542;backgrou
 #dpad .c{background:#1e1832;color:#c8b8e8;font-size:11px}
 #dpad button.dn{background:linear-gradient(#8a6a24,#5a3e10);border-color:#ffd24a}
 @media (max-width:350px){body.mob.port #acts button{font-size:10px;letter-spacing:0}body.mob.port #acts button img{width:18px;height:18px}}
+/* ---- Ver 0.1.149：表示倍率のつまみ（タイトルの設定） ---- */
+.tset .szoomr{display:grid;grid-template-columns:auto 1fr 3.5em;align-items:center;gap:10px;margin:2px 0 8px;font-size:13px;color:#d8cce8}
+.tset .szoomr input{width:100%;accent-color:#f0c542}
+.tset .szoomr b{text-align:right;color:#ffe9a0;font-weight:normal}
 </style>
 </head>
 <body>
@@ -532,7 +536,7 @@ body.mob #acts #fullbtn.on{color:#ffe079!important;border-color:#f0c542;backgrou
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.148'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.149'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -558,7 +562,12 @@ const TS=24,MW=56,MH=36,LAST=50,MIDF=30,DEEP=100,DMID=75; // DEEP=一番深い�
  // LAST=最終階 MIDF=一区切りの階（ボスを倒すと帰還の魔法陣） // 最終階（BANDS の最後の行と合わせる）
 let SC=2,NW=504,NH=312,CW=1008,CH=624,PW=252,PH=156,BOSSY=104;
 function setZoom(z){SC=z;NW=CW/z;NH=CH/z;try{localStorage.setItem('public_game_zoom',String(z));}catch(e){}}
-try{const z=Number(localStorage.getItem('public_game_zoom'));if(z===1||z===2)setZoom(z);}catch(e){}
+// Ver 0.1.149：表示倍率を 1.0〜2.0 倍のあいだで細かく変えられるように（ユーザーの依頼）。X キー・ボタンは 等倍 → 1.5倍 → 2倍 の順に切りかえ
+const ZOOMMIN=1,ZOOMMAX=2,ZOOMSTEP=0.1,ZOOMLIST=[1,1.5,2];
+function zoomClamp(z){z=Math.round(Number(z)*10)/10;return Number.isFinite(z)?Math.max(ZOOMMIN,Math.min(ZOOMMAX,z)):1;}
+function zoomLabel(z){z=z===undefined?SC:z;return z===1?'等倍':(Math.round(z*10)/10)+'倍';}
+function zoomNext(){const n=ZOOMLIST.find(v=>v>SC+0.01);setZoom(n===undefined?ZOOMLIST[0]:n);}
+try{const v=localStorage.getItem('public_game_zoom');if(v!==null){const z=Number(v);if(z>=ZOOMMIN&&z<=ZOOMMAX)setZoom(zoomClamp(z));}}catch(e){}
 const cv=$('view'),ctx=cv.getContext('2d');
 const rnd=n=>Math.floor(Math.random()*n);
 const rr=(a,b)=>a+rnd(b-a+1);
@@ -6789,6 +6798,14 @@ function padCfgOpen(){
   $('pcclose').onclick=padCfgClose;
   $('pcdrag').onclick=padDragStart;
 }
+function zoomPanel(){
+  padCfgClose();document.body.classList.add('padedit');const box=document.createElement('div');box.id='padcfg';box.className='padcfg';
+  box.innerHTML='<div class="pct">表示倍率</div><label class="pcr"><span>表示倍率</span><input type="range" id="zmr" min="'+ZOOMMIN+'" max="'+ZOOMMAX+'" step="'+ZOOMSTEP+'" value="'+SC+'"><b id="zmv">'+zoomLabel()+'</b></label>'+
+    '<div class="pcb"><button type="button" class="btn2" id="zm1">等倍</button><button type="button" class="btn2" id="zm15">1.5倍</button><button type="button" class="btn2" id="zm2">2倍</button></div>'+
+    '<div class="pcb"><button type="button" class="btn2" id="pcclose">閉じる</button></div>';
+  document.body.appendChild(box);
+  const set=z=>{setZoom(zoomClamp(z));$('zmr').value=SC;$('zmv').textContent=zoomLabel();if(typeof G!=='undefined'&&G)try{render();}catch(e){}};
+  $('zmr').oninput=()=>set($('zmr').value);$('zm1').onclick=()=>set(1);$('zm15').onclick=()=>set(1.5);$('zm2').onclick=()=>set(2);$('pcclose').onclick=padCfgClose;}
 function padCfgClose(){const b=$('padcfg');if(b)b.remove();const t=$('paddragbar');if(t)t.remove();const m=$('mapdrag');if(m)m.remove();document.body.classList.remove('padedit','paddrag');}
 // 指で場所を動かす：十字キー・ボタンのまとまり・地図をずらす。画面の外には出さない（少なくとも 40px は見えるように）
 function padDragStart(){
@@ -6903,7 +6920,8 @@ function updatePad(){
 function padMenu(){
   const it=[];
   if(MODE==='dungeon'){it.push({label:'遊び方',action:()=>{closeAll();sendKey('KeyH');}});}
-  it.push({label:'表示倍率を切り替える（今 '+SC+'倍）',action:()=>{closeAll();sendKey('KeyX');}});
+  // Ver 0.1.149：表示倍率は、つまみで細かく変える（ゲームの画面を見ながら）
+  it.push({label:'表示倍率を変える（今 '+zoomLabel()+'）',action:()=>{closeAll();render();zoomPanel();}});
   it.push({label:'BGM：'+(AU.bgmOn?'オン':'オフ'),action:()=>{closeAll();sendKey('KeyB');}});
   it.push({label:'効果音：'+(AU.sfxOn?'オン':'オフ'),action:()=>{closeAll();sendKey('KeyV');}});
   // Ver 0.1.147：十字キー・ボタン・地図の大きさや位置を変える
@@ -7175,14 +7193,15 @@ function saveDataScreen(note){
   screenKey=e=>{if(e.code==='Escape'){e.preventDefault();settingsScreen();return true;}return false;};
 }
 function settingsScreen(){
-  const rows=[['sbgm','BGM',AU.bgmOn?'オン':'オフ'],['ssfx','効果音',AU.sfxOn?'オン':'オフ'],['szoom','表示倍率',SC===2?'2倍':'等倍']];
+  const rows=[['sbgm','BGM',AU.bgmOn?'オン':'オフ'],['ssfx','効果音',AU.sfxOn?'オン':'オフ'],['szoom','表示倍率',zoomLabel()]];
   showScreen('<div class="scr tset"><h1 style="font-size:30px">設定</h1><div class="sopts">'+
     rows.map(r=>'<button class="btn2 sopt" id="'+r[0]+'"><span class="sl">'+r[1]+'</span><span class="sv">'+r[2]+'</span></button>').join('')+
+    '<label class="szoomr"><span>表示倍率の細かい調整</span><input type="range" id="szoomr" min="'+ZOOMMIN+'" max="'+ZOOMMAX+'" step="'+ZOOMSTEP+'" value="'+SC+'"><b id="szoomv">'+zoomLabel()+'</b></label>'+
     '<button class="btn2 sopt" id="sdata"><span class="sl">セーブの書き出し・読み込み</span><span class="sv">▶</span></button>'+
     '<button class="btn2 sopt" id="sprl"><span class="sl">プロローグをもう一度見る</span><span class="sv">▶</span></button>'+
     (storySeen()?'<button class="btn2 sopt" id="sstory"><span class="sl">導入の物語をもう一度見る</span><span class="sv">▶</span></button>':'')+ // Ver 0.1.24：一度見るまでは出さない（ユーザー指定）
     '<button class="btn2 sopt sback" id="bno">戻る（Esc）</button></div>'+
-    '<div class="rec">'+(MOB?'十字キー・ボタン・地図の大きさや位置は、村や迷宮の「設定」ボタン →「操作画面の調整」で変えられます。<br>':'冒険中も B（BGM）・V（効果音）・X（表示倍率）キーで切り替えられます。<br>')+'表示倍率は、迷宮と村の見え方（2倍／等倍）です。</div></div>'+
+    '<div class="rec">'+(MOB?'十字キー・ボタン・地図の大きさや位置は、村や迷宮の「設定」ボタン →「操作画面の調整」で変えられます。<br>':'冒険中も B（BGM）・V（効果音）・X（表示倍率）キーで切り替えられます。<br>')+'表示倍率は、迷宮と村の見え方（等倍〜2倍）です。</div></div>'+
     '<div class="ver">'+GAMEVER+'</div>',()=>{const b=document.querySelectorAll('.tset .sopt')[SSEL];if(b)b.click();});
   const bs=[...document.querySelectorAll('.tset .sopt')];if(SSEL>=bs.length)SSEL=0;
   const mark=()=>bs.forEach((b,i)=>{b.classList.toggle('sel',i===SSEL);if(i===SSEL)try{b.focus({preventScroll:true});}catch(e){}});
@@ -7190,7 +7209,9 @@ function settingsScreen(){
   const at=id=>bs.indexOf($(id)); // その行が上から何番目か（行の数は見た物語によって変わる）
   $('sbgm').onclick=()=>{SSEL=0;AU.bgmOn=!AU.bgmOn;saveAudio();if(AU.bgmOn){audioInit();bgmStart();}else bgmStop();settingsScreen();};
   $('ssfx').onclick=()=>{SSEL=1;AU.sfxOn=!AU.sfxOn;saveAudio();settingsScreen();};
-  $('szoom').onclick=()=>{SSEL=2;setZoom(SC===2?1:2);settingsScreen();};
+  $('szoom').onclick=()=>{SSEL=2;zoomNext();settingsScreen();};
+  // Ver 0.1.149：表示倍率のつまみ（1.0〜2.0倍）
+  const zr=$('szoomr');if(zr)zr.oninput=()=>{setZoom(zoomClamp(zr.value));const v=document.querySelector('#szoom .sv');if(v)v.textContent=zoomLabel();const b=$('szoomv');if(b)b.textContent=zoomLabel();};
   $('sdata').onclick=()=>{SSEL=at('sdata');saveDataScreen('');};
   $('sprl').onclick=()=>{SSEL=at('sprl');playPrologue(()=>{titleScreen();TSEL=2;titleSel(true);});}; // Ver 0.1.21：終わったらタイトル（設定の行を選んだまま）
   if($('sstory'))$('sstory').onclick=()=>{SSEL=at('sstory');playStory(storyAfterReplay);}; // Ver 0.1.24：もう一度見たあとも、タイトルにもどらずゲームを始める（ユーザー指定）
@@ -8422,7 +8443,7 @@ function villageKey(e){
     case'KeyI':e.preventDefault();if(!e.repeat)openInventory();break;
     case'KeyH':case'Slash':vHelp();break;
     case'KeyB':AU.bgmOn=!AU.bgmOn;saveAudio();if(AU.bgmOn){audioInit();bgmStart();}else bgmStop();msg('BGM '+(AU.bgmOn?'オン':'オフ'),'info');render();break;
-    case'KeyX':setZoom(SC===2?1:2);msg('表示倍率 '+SC+'倍','info');render();break;
+    case'KeyX':zoomNext();msg('表示倍率 '+zoomLabel(),'info');render();break;
     case'KeyV':AU.sfxOn=!AU.sfxOn;saveAudio();msg('効果音 '+(AU.sfxOn?'オン':'オフ'),'info');render();break;
   }
 }
@@ -11486,7 +11507,7 @@ document.addEventListener('keydown',e=>{
     case'KeyH':case'Slash':showHelp();break;
     case'Escape':rMode=false;break;
     case'KeyB':AU.bgmOn=!AU.bgmOn;saveAudio();if(AU.bgmOn){audioInit();bgmStart();}else bgmStop();msg('BGM '+(AU.bgmOn?'オン':'オフ'),'info');render();break;
-    case'KeyX':setZoom(SC===2?1:2);msg('表示倍率 '+SC+'倍','info');render();break;
+    case'KeyX':zoomNext();msg('表示倍率 '+zoomLabel(),'info');render();break;
     case'KeyV':AU.sfxOn=!AU.sfxOn;saveAudio();msg('効果音 '+(AU.sfxOn?'オン':'オフ'),'info');render();break;
   }
 });
