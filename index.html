@@ -485,6 +485,28 @@ body.mob.land .padcfg{bottom:auto;top:50%;transform:translate(-50%,-50%);width:m
 .padcfg .pcb .pcgo{border-color:#ffd24a;color:#ffe08a}
 .padcfg.pcbar{bottom:auto;top:max(8px,env(safe-area-inset-top,0px))}
 body.mob.land .padcfg.pcbar{top:max(8px,env(safe-area-inset-top,0px));transform:translateX(-50%)}
+
+/* ---- Ver 0.1.148：スマホの操作UI（確定デザイン V6）。強い立体感をやめ、ボタンの大きさ・角丸・細い金の枠をそろえる。角丸 6px は仮 ---- */
+:root{--pr:6px;--pgold:#b8913a;--pbg:linear-gradient(#1d1630,#130e20)}
+body.mob.port #acts{grid-template-rows:repeat(var(--rows,3),var(--ah,48px))}
+body.mob.land #acts{grid-template-rows:repeat(var(--rows,3),clamp(38px,8.8vh,46px))}
+#acts button,body.mob.land #acts button:not(.big){border-radius:var(--pr);border:1px solid var(--pgold);background:var(--pbg);box-shadow:0 2px 6px rgba(0,0,0,.45);gap:2px;font-size:11px;letter-spacing:1px}
+#acts button img{width:20px;height:20px}
+#acts button.on{background:linear-gradient(#4a3510,#2a1d08);color:#ffe08a;border-color:#ffd24a;box-shadow:0 0 10px rgba(255,200,60,.35)}
+#acts button.dn{transform:translateY(1px);filter:brightness(1.25);border-color:#ffd24a;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+#acts button.mao.on{background:linear-gradient(#4a1670,#22082e);color:#f4d8ff;border-color:#d890ff;box-shadow:0 0 12px rgba(200,110,255,.55)}
+body.mob #acts #fullbtn{position:static;transform:none;left:auto;right:auto;top:auto;width:100%;height:100%;border-radius:var(--pr)!important;border:1px solid var(--pgold);background:var(--pbg);flex-direction:row;gap:6px;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.45)}
+body.mob #acts #fullbtn.on{color:#ffe079!important;border-color:#f0c542;background:linear-gradient(#4a3510,#2a1d08)}
+#acts .big,body.mob.land #acts .big{justify-self:end;border-radius:50%;border:none;color:#fff2e8;text-shadow:0 1px 0 rgba(0,0,0,.6);
+  background:linear-gradient(#8e1b28,#6c111c);box-shadow:0 0 0 2px #1a0a04,0 0 0 4px #c8a040,0 4px 10px rgba(0,0,0,.5)}
+#acts .big img{width:30px;height:30px}
+#acts .big.ok,body.mob.land #acts .big.ok{color:#2a1a04;text-shadow:0 1px 0 rgba(255,255,255,.35);background:linear-gradient(#d0a238,#a37a1c);box-shadow:0 0 0 2px #1a0a04,0 0 0 4px #c8a040,0 4px 10px rgba(0,0,0,.5)}
+#acts .big.dn{transform:translateY(2px) scale(.98);filter:brightness(1.15);box-shadow:0 0 0 2px #1a0a04,0 0 0 4px #ffd24a,0 2px 6px rgba(0,0,0,.5)}
+#dpad{gap:3px;background:radial-gradient(circle at 50% 45%,#2a2340,#16112a 65%,#0c0916);box-shadow:0 0 0 2px #150d06,0 0 0 4px #b8913a,0 0 0 5px #4a3410,0 6px 14px rgba(0,0,0,.6)}
+#dpad .arm,#dpad .c,#dpad .u,#dpad .d,#dpad .l,#dpad .r{border-radius:var(--pr);background:linear-gradient(#352c52,#271f40);border:1px solid rgba(184,145,58,.45);box-shadow:none}
+#dpad .c{background:#1e1832;color:#c8b8e8;font-size:11px}
+#dpad button.dn{background:linear-gradient(#8a6a24,#5a3e10);border-color:#ffd24a}
+@media (max-width:350px){body.mob.port #acts button{font-size:10px;letter-spacing:0}body.mob.port #acts button img{width:18px;height:18px}}
 </style>
 </head>
 <body>
@@ -510,7 +532,7 @@ body.mob.land .padcfg.pcbar{top:max(8px,env(safe-area-inset-top,0px));transform:
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.147'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.148'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -6707,6 +6729,7 @@ function resizeView(w,h){
   LC=mk(CW,CH);lg=LC.getContext('2d');VIG=mkVig();DPP1=mk(PW,PH);DPP2=mk(PW,PH);VPP1=mk(PW,PH);VPP2=mk(PW,PH);VPP3=mk(PW,PH);
   setZoom(SC);ctx.imageSmoothingEnabled=false;
 }
+// Ver 0.1.148：小さいスマホ（幅320）でも十字キーとボタンが重ならないよう、十字キーのいちばん小さい大きさを 40 → 34 に
 function fitStage(){
   const b=document.body,st=$('stage'),f=$('fit');b.classList.toggle('mob',MOB);
   if(!MOB){ORI='pc';resizeView(1008,624);const s=Math.min(1,(window.innerWidth-16)/1008,(window.innerHeight-70)/624);VSC=s;
@@ -6714,7 +6737,7 @@ function fitStage(){
   const vp=viewportSize(),vw=vp.w,vh=vp.h,port=vh>=vw;ORI=port?'port':'land';b.classList.toggle('port',port);b.classList.toggle('land',!port);
   let sw=vw,sh=vh,s;
   if(port){const ph=Math.round(Math.max(160,Math.min(vh*0.5,Math.min(Math.max(vh*0.34,220),290)*padCfg().ph/100)));sh=vh-ph;s=Math.max(0.72,Math.min(1.25,vw/456));document.documentElement.style.setProperty('--padh',ph+'px');
-    const db=Math.round(Math.max(40,Math.min(60,(ph-40)/3.5,(vw-66)/7.2))),ab=Math.round(db*1.08),ah=Math.round(Math.max(40,Math.min(52,(ph-44)/4)));
+    const db=Math.round(Math.max(34,Math.min(60,(ph-40)/3.5,(vw-66)/7.2))),ab=Math.round(db*1.08),ah=Math.round(Math.max(40,Math.min(52,(ph-44)/4)));
     const R=document.documentElement.style;R.setProperty('--db',db+'px');R.setProperty('--ab',ab+'px');R.setProperty('--ah',ah+'px');PADSIDE=0;}
   else{s=Math.max(0.6,Math.min(1.25,vh/440));PADSIDE=226;}
   VSC=s;resizeView(sw/s,sh/s);
@@ -6851,11 +6874,16 @@ function uiIcon(k){ // 操作ボタン用の小さなドット絵アイコン（
   }
   p.outline();SPR[key]=p.canvas();return key;
 }
+/* Ver 0.1.148：スマホの操作UI（確定デザイン V6・ユーザーの指示書）。補助ボタンは2列×3段、右の列に全画面（上）と大きいボタン（下・2段ぶん）。
+   迷宮で仲間技・魔王・矢が出るときだけ、上に1段増やす（左から 仲間技・魔王・矢）。村・メニューも同じ形（ユーザーの決定）。p＝[列,段]（段は増えた段を数えない） */
 function padBtns(){
-  if(MS.length)return[{l:'決定',ic:uiIcon('ok'),k:'Enter',big:1,ok:1},{l:'戻る',ic:uiIcon('back'),k:'Escape',p:[2,2]},{l:'閉じる',ic:uiIcon('close'),k:'KeyQ',p:[2,3]}];
-  if(MODE==='village')return[{l:'話す',ic:uiIcon('talk'),k:'Enter',big:1,ok:1},{l:'持ち物',ic:'i_bag',k:'KeyI',p:[2,2]},{l:'遊び方',ic:uiIcon('book'),k:'KeyH',p:[2,3]},{l:'設定',ic:uiIcon('gear'),f:padMenu,p:[2,4]}];
-  const a=[{l:'攻撃',ic:'i_sword',k:'KeyF',big:1},{l:'道具',ic:'i_bag',k:'KeyI',p:[2,2]},{l:'足元',ic:uiIcon('foot'),k:'KeyG',p:[2,3]},{l:'仲間技',ic:uiIcon('star'),k:'KeyK',p:[3,1],hide:!allies.length},{l:'矢',ic:varIcon('arrow','#c8b08a'),k:'KeyT',p:[3,4],hide:!(P&&P.arrow)},{l:maouActive()?'あと'+P.maou:'魔王',ic:uiIcon('crown'),k:'KeyY',p:[2,1],hide:!maouOn(),on:maouReady()||maouActive(),cls:'mao'},{l:'地図',ic:uiIcon('map'),k:'KeyM',p:[1,1]},
-    {l:'ダッシュ',ic:uiIcon('dash'),f:()=>{PAD.dash=!PAD.dash;PAD.turn=false;updatePad();},on:PAD.dash,p:[1,2]},{l:'向き',ic:uiIcon('turn'),f:()=>{PAD.turn=!PAD.turn;PAD.dash=false;updatePad();},on:PAD.turn,p:[1,3]},{l:'設定',ic:uiIcon('gear'),f:padMenu,p:[1,4]}];
+  if(MS.length)return[{l:'決定',ic:uiIcon('ok'),k:'Enter',big:1,ok:1},{l:'戻る',ic:uiIcon('back'),k:'Escape',p:[1,1]},{l:'閉じる',ic:uiIcon('close'),k:'KeyQ',p:[2,1]}];
+  if(MODE==='village')return[{l:'話す',ic:uiIcon('talk'),k:'Enter',big:1,ok:1},{l:'持ち物',ic:'i_bag',k:'KeyI',p:[1,1]},{l:'遊び方',ic:uiIcon('book'),k:'KeyH',p:[2,1]},{l:'設定',ic:uiIcon('gear'),f:padMenu,p:[1,2]}];
+  const a=[{l:'攻撃',ic:'i_sword',k:'KeyF',big:1},{l:'地図',ic:uiIcon('map'),k:'KeyM',p:[1,1]},
+    {l:'ダッシュ',ic:uiIcon('dash'),f:()=>{PAD.dash=!PAD.dash;PAD.turn=false;updatePad();},on:PAD.dash,p:[2,1]},
+    {l:'道具',ic:'i_bag',k:'KeyI',p:[1,2]},{l:'向き',ic:uiIcon('turn'),f:()=>{PAD.turn=!PAD.turn;PAD.dash=false;updatePad();},on:PAD.turn,p:[2,2]},
+    {l:'足元',ic:uiIcon('foot'),k:'KeyG',p:[1,3]},{l:'設定',ic:uiIcon('gear'),f:padMenu,p:[2,3]},
+    {l:'仲間技',ic:uiIcon('star'),k:'KeyK',p:[1,0],hide:!allies.length},{l:maouActive()?'あと'+P.maou:'魔王',ic:uiIcon('crown'),k:'KeyY',p:[2,0],hide:!maouOn(),on:maouReady()||maouActive(),cls:'mao'},{l:'矢',ic:varIcon('arrow','#c8b08a'),k:'KeyT',p:[3,0],hide:!(P&&P.arrow)}];
   return a.filter(x=>!x.hide);
 }
 let PADSIG='';
@@ -6863,11 +6891,14 @@ function updatePad(){
   if(!MOB)return;const box=$('acts');if(!box)return;
   const L=padBtns(),sig=L.map(x=>x.l+(x.on?1:0)).join('|')+ORI;$('pad').style.display=screenOn?'none':'';
   const c=document.querySelector('#dpad .c');if(c)c.textContent=MS.length?'決定':MODE==='dungeon'?'足踏':'';
-  if(sig===PADSIG)return;PADSIG=sig;box.innerHTML='';
-  // 並び：大きいボタンを右端の縦2マスに、その他を左から詰める
+  if(sig===PADSIG)return;PADSIG=sig;
+  // 全画面ボタンは、作りなおすときに消さないよう、いったん外して最後にもどす（押したときの動きは buildPad のまま）
+  const fb=$('fullbtn');if(fb&&fb.parentNode===box)box.removeChild(fb);box.innerHTML='';
+  const ex=L.some(x=>x.p&&x.p[1]===0)?1:0;box.style.setProperty('--rows',3+ex);
   for(const x of L){const b=document.createElement('button');b.type='button';b.innerHTML=(x.ic?'<img alt="" src="'+sprURL(x.ic)+'">':'')+'<span>'+x.l+'</span>';if(x.k)b.dataset.k=x.k;else b._act=x.f;
-    if(x.big){b.className='big'+(x.ok?' ok':'');}else{b.style.gridColumn=x.p[0];b.style.gridRow=x.p[1];}
+    if(x.big){b.className='big'+(x.ok?' ok':'');b.style.gridColumn=3;b.style.gridRow=(2+ex)+' / span 2';}else{b.style.gridColumn=x.p[0];b.style.gridRow=x.p[1]===0?1:x.p[1]+ex;}
     if(x.cls)b.classList.add(x.cls);if(x.on)b.classList.add('on');box.appendChild(b);}
+  if(fb){fb.style.gridColumn=3;fb.style.gridRow=1+ex;box.appendChild(fb);}
 }
 function padMenu(){
   const it=[];
