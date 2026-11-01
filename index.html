@@ -522,6 +522,14 @@ body.paddrag #acts button.phid{opacity:.35}
 /* ---- Ver 0.1.156：A ボタン（十字キーのまん中）。赤・金のふち・「A」 ---- */
 #dpad .c.pa,#dpad .c.pa:not(.dn){background:linear-gradient(#8e1b28,#6c111c);border:2px solid #d8b04a;color:#fff2e8;font-size:20px;font-weight:bold;letter-spacing:0;text-shadow:0 1px 0 rgba(0,0,0,.6)}
 #dpad .c.pa.dn{background:linear-gradient(#b02a38,#8a1824);border-color:#ffd24a}
+/* ---- Ver 0.1.157：スマホの仲間の欄を小さく（1人1行・高さ約3分の1。ユーザーの決定）。パソコンは今までどおり ---- */
+body.mob #partyhud{gap:2px}
+body.mob .pc{padding:1px 6px 2px 2px;gap:4px;align-items:center}
+body.mob .pc img{width:18px;height:18px}
+body.mob .pc .nm{font-size:10px;line-height:1.1}
+body.mob .pc .nm .sub{display:none}
+body.mob .pc>div>.sub{font-size:9px;line-height:1.1}
+body.mob .pc .bar{width:70px;height:4px}
 </style>
 </head>
 <body>
@@ -547,7 +555,7 @@ body.paddrag #acts button.phid{opacity:.35}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.156'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.157'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -6385,10 +6393,12 @@ function drawBossDie(t,cpx,cpy){
     ctx.globalCompositeOperation='source-over';}
   ctx.restore();
 }
+// Ver 0.1.157：スマホでは、ボスの体力の帯をログのすぐ上に出す（仲間の欄に隠れないように・ユーザーの決定）。パソコンは今までどおり
+function bossBarY(){if(!MOB)return BOSSY;const lh=$('loghud');const t=lh&&lh.offsetTop;return t>80?t-26:BOSSY;}
 function drawBossBar(){ // 目覚めて見えているボスの体力
   // Ver 0.1.31：戦いを終えたセヴラン（yielded）は出さない
   const b=G.mons.find(m=>m.d&&m.d.boss&&m.hp>0&&!m.yielded&&(m.sleep||0)<900&&G.vis[I(m.x,m.y)]);if(!b)return;
-  const w=Math.min(360,CW-60),x=CW/2-w/2,y=BOSSY,r=Math.max(0,b.hp/b.maxHp);
+  const w=Math.min(360,CW-60),x=CW/2-w/2,y=bossBarY(),r=Math.max(0,b.hp/b.maxHp);
   ctx.fillStyle='rgba(10,4,14,0.8)';ctx.fillRect(x-10,y-24,w+20,42);ctx.fillStyle='rgba(240,197,66,0.5)';ctx.fillRect(x-10,y-24,w+20,2);
   ctx.font='15px DotGothic16, monospace';ctx.textAlign='center';ctx.fillStyle='#ffd0d0';ctx.fillText(b.name,CW/2,y-6);ctx.textAlign='left';
   ctx.fillStyle='#1a0610';ctx.fillRect(x,y,w,9);ctx.fillStyle=r>.5?'#e04858':r>.25?'#f08030':'#ff3030';ctx.fillRect(x,y,Math.round(w*r),9);
