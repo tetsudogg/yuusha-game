@@ -544,7 +544,7 @@ body.paddrag #acts button.phid{opacity:.35}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.154'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.155'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -1300,14 +1300,14 @@ sleepsp:'ときどき相手を眠らせる槍。',haya:'風のように速く振
 wshield:'木で作られた簡素な盾。',bshield:'青銅製の盾。',ishield:'頑丈な鉄の盾。',fullsh:'装備しているとお腹が減りにくい。',
 refl:'受けた打撃の一部を相手に跳ね返す。',scale:'竜のうろこで作られ、炎に強い。',guard:'持ち物を盗まれなくなる。',mithsh:'軽くて丈夫な、ミスリル製の盾。印を多く刻める。',demonsh:'魔界の鉱石で鍛えられた分厚い大盾。',
 herb:'HPを最大HPの25%（少なくとも25）回復。満タンなら最大HPが1上がる。',bigherb:'HPを最大HPの60%（少なくとも100）回復。満タンなら最大HPが2上がる。',power:'ちからの最大値が1上がり、今のちからも1上がる。（ちからは攻撃力に加わる）\n\n毒で下がったちからは、階段を降りるたびや、レベルが上がったときにも1ずつ戻る。',
-life:'最大HPが5上がる。',cure:'火傷・凍え・しびれ・毒・眠り・混乱を、すべて治す。HPも少し回復する。\n仲間に投げて当てれば、仲間の状態異常も治せる。',sleepgr:'飲むと眠ってしまう。投げれば敵を眠らせる。',fire:'前方に炎を吐く。投げても当てた敵が燃える。',
+life:'最大HPが5上がる。',cure:'火傷・凍え・しびれ・毒・眠り・混乱を、すべて治す。HPも少し回復する。\n仲間に投げて当てれば、仲間の状態異常も治せる。',sleepgr:'飲むと眠ってしまう。投げれば約9割で当たり、敵を3ターン眠らせる。強敵には、命中率と効果が半減される。',fire:'前方に炎を吐く。投げても当てた敵が燃える。',
 testherb:'【テスト用】持っていると、倒れても何度でもその場でよみがえる（なくならない）。\n飲むとHPが全回復し、状態異常も治る（なくならない）。\n村の井戸を3回続けて調べると、いつでももらえる。',testshard:'【テスト用】持っているあいだ、魔晶のかけらが99個から減らない（使っても99個に戻る）。\n村の井戸を3回続けて調べると、いつでももらえる。',
 mamizu:'仲間に飲ませると、必殺技の線が最大の50%たまる。\n（きわめて貴重。迷宮の5F以降でごくまれに見つかる）',
-revive:'倒れたときに自動でよみがえる。飲むとHP全回復。\n※とても貴重。力を使えるのは1回の冒険で1個だけ（2個目は、その冒険では効かない）。',confgr:'飲むと混乱する。投げれば敵を混乱させる。',
+revive:'倒れたときに自動でよみがえる。飲むとHP全回復。\n※とても貴重。力を使えるのは1回の冒険で1個だけ（2個目は、その冒険では効かない）。',confgr:'飲むと混乱する。投げれば約8割で当たり、敵を4ターン混乱させる。強敵には、命中率と効果が半減される。',
 ident:'持ち物をひとつ識別する。',map:'フロアの地形とアイテムの場所がわかる。',blast:'見えている敵すべてにダメージ。',
-sleeps:'見えている敵をすべて眠らせる。\n（ゴーレム・亡霊・ウィスプなどには効かない）',wup:'装備中の武器を+1する。',sup:'装備中の盾を+1する。',warp:'フロアのどこかへワープする。',
-thunder:'前方の相手に雷を落とす。深い階ほど威力が上がる。',blow:'前方の相手を遠くまで吹き飛ばす。',sleepst:'前方の相手を眠らせる。',
-swap:'前方の相手と位置を入れ替える。',slowst:'前方の相手の動きを鈍くする。',sealst:'前方の相手の特技を封じる。',
+sleeps:'見えている敵すべてを、約7割で3ターン眠らせる。強敵には、命中率と効果が半減される。\n（ゴーレム・亡霊・ウィスプなどには効かない）',wup:'装備中の武器を+1する。',sup:'装備中の盾を+1する。',warp:'フロアのどこかへワープする。',
+thunder:'前方の相手に雷を落とす。深い階ほど威力が上がる。',blow:'前方の相手を10マス吹き飛ばす。強敵は5マスまで。',sleepst:'約9割で命中し、前方の相手を3ターン眠らせる。強敵には、命中率と効果が半減される。\n（ゴーレム・亡霊・ウィスプなどには効かない）',
+swap:'前方の相手と位置を入れ替える。',slowst:'必ず命中し、4ターンのあいだ前方の相手の動きを鈍くする。強敵には、命中率と効果が半減される。',sealst:'約8割で命中し、4ターンのあいだ前方の相手の特技を封じる。強敵には、命中率と効果が半減される。',
 storeb:'アイテムを入れて持ち運べる袋。入れた分は持ち物の数に数えない。',
 synb:'武器・盾・腕輪を合成できる袋。\n\n【合成のしかた】\n1. 最初に入れた武器（盾）が「ベース」になる\n2. 次に同じ種類の装備を入れると、ベースに合成される（入れた方は消える）\n\n【受け継がれるもの】\n・［ ］の中の文字は「印」。ベースの印の空きがあれば必ず移る\n・強化値（+の数字）は足し算。ただし失敗することがある\n　合成後が+1〜3なら成功率65%、+4〜6なら45%、+7〜9なら30%、+10以上なら15%\n・素材の強化値がベース以上なら、失敗しても素材の強化値は残る\n　（育てた装備の強化値を、強い装備へ乗り換えられる）\n・［ ］のない会心の剣などの性能は移らない\n\n【条件】\n・袋に入るのは2つまで（ベースと、あと1つ）\n・合成できる回数に限りがある（名前の〈合成あと○〉）\n・回数がなくなっても、魔晶のかけらを1つ使えば合成できる\n・腕輪も合成できる（印の空きは1つ。炎よけなど、もともと耐性を持つ腕輪は2つ）\n・草などは合成されず、普通にしまわれる\n・伝説の装備は素材にできない（ベースにはできる）\n・合成する前に確認が出る',
 bread:'満腹度が50回復する。',bigbread:'満腹度が100回復。お腹いっぱいなら最大満腹度が上がる。',hugebread:'満腹度が全回復し、最大満腹度が10上がる。',
@@ -3673,7 +3673,8 @@ function monElemImmune(m,el){const d=m.d||{};return d.el===el||(d.elm&&d.elm[0]=
 function monElem(m,el){ // 属性の武器の効果（敵）：火傷＝毎ターンダメージ、凍え＝半分の確率で動けない、しびれ＝1ターン動けない
   const E=ELEM[el];if(monElemImmune(m,el)){popText(m,'効かない','#b8b0d8');return;}elemFx(m,el,P);
   if(el==='fire'){applySlip(m,3,Math.max(2,Math.round(playerAtk()*0.15)),'火傷','P');msg(m.name+'は火傷した！（3ターン）','good');}
-  else if(el==='ice'){m.frz2=Math.max(m.frz2||0,3);msg(m.name+'は凍えた！（3ターン）','good');popText(m,'凍え',E.col);}
+  // Ver 0.1.155：強敵の凍えは半分（3 → 1ターン。端数は切り捨て）
+  else if(el==='ice'){const ft=m.d&&m.d.boss?1:3;m.frz2=Math.max(m.frz2||0,ft);msg(m.name+'は凍えた！（'+ft+'ターン）','good');popText(m,'凍え',E.col);}
   else if(stunMon(m,1,true))msg(m.name+'はしびれて動けない！','good');}
 /* Ver 0.1.97：しんそくの剣・改など2回攻撃の武器は、状態異常（［眠］の印・炎／氷／雷の印）が入りすぎる（ユーザー）
    → 1回ごとの確率を通常の0.55倍に（2回当たると、1回だけの武器より少し入りやすい程度） */
@@ -4519,6 +4520,8 @@ function endTurn(){
     m.energy+=m.speed*(m.slow>0?0.5:1);
     while(m.energy>=1&&m.hp>0&&!G.over){m.energy-=1;monAct(m);}
     if(m.slow>0)m.slow--;
+    // Ver 0.1.155：封印は決まったターンで解ける（sealT）
+    if(m.sealT>0){m.sealT--;if(!m.sealT&&m.sealed){m.sealed=false;msg(m.name+'の封印が解けた','info');}}
   }
   if(G.over)return;
   skTimers();
@@ -4746,13 +4749,18 @@ function readScroll(it){
     case'map':G.explored.fill(1);G.items.forEach(f=>f.seen=true);msg('フロアの様子がわかった！','info');break;
     case'blast':{const d=20+G.floor*2;fx(foes.map(m=>[m.x,m.y]),'rgba(255,160,40,0.7)');sfx('blaze');shakeA=Math.max(shakeA,10);vfx({k:'flash',c:'255,170,80',dur:360});for(const m of foes){ufxBurst(m,'#ff9a40',26,8);ufxRing(m,'255,150,60',1.4);}if(!foes.length)msg('爆発が起きたが、誰もいなかった');
       for(const m of foes){msg(m.name+'に'+d+'のダメージ');dmgMon(m,d,P);}break;}
-    case'sleeps':sfx('dim');ufxRing(P,'180,150,255',6,{dur:800});for(const m of foes)ufxBurst(m,'#b8a8ff',12,14);if(!foes.length)msg('何も起こらなかった');for(const m of foes)sleepTry(m);break;
+    case'sleeps':sfx('dim');ufxRing(P,'180,150,255',6,{dur:800});for(const m of foes)ufxBurst(m,'#b8a8ff',12,14);if(!foes.length)msg('何も起こらなかった');for(const m of foes)sleepTry(m,null,STAFFFX.sleeps);break;
     case'wup':if(P.weapon){P.weapon.plus++;msg(itemName(P.weapon)+'が強くなった！','good');}else msg('武器を装備していない…');break;
     case'sup':if(P.shield){P.shield.plus++;msg(itemName(P.shield)+'が強くなった！','good');}else msg('盾を装備していない…');break;
     case'warp':teleport(P);msg('どこかへワープした！');break;
   }
   return true;
 }
+/* Ver 0.1.155：杖・巻物・草の命中率と、効く長さ（ユーザーの決定）。強敵（ボス）は命中率が半分、ターンも半分（端数は切り捨て・最低1ターン）。
+   ふつうの敵：封印 80%・4ターン／鈍足 必ず・4ターン／睡眠の杖・眠り草（投げる）90%・3ターン／眠りの巻物 70%・3ターン／混乱草（投げる）80%・4ターン。吹き飛ばしは強敵だけ5マスまで */
+const STAFFFX={seal:{p:0.8,t:4},slow:{p:1,t:4},sleepst:{p:0.9,t:3},sleepgr:{p:0.9,t:3},sleeps:{p:0.7,t:3},conf:{p:0.8,t:4}};
+function bossHalf(e,o){return isBoss(e)?{p:o.p/2,t:Math.max(1,Math.floor(o.t/2))}:{p:o.p,t:o.t};}
+function fxMiss(e){msg(nameOf(e)+'には効かなかった','info');popText(e,'ミス','#b8b0d8');}
 function zapStaff(it){
   if(ITEMS[it.key].legend==='scepter')return zapScepter(it);
   const old=itemName(it);msg(old+'を振った');
@@ -4769,12 +4777,12 @@ function zapStaff(it){
   if(e.kind==='mon')makeHostile(e);
   switch(it.key){
     case'thunder':{sfx('thunder');vfx({k:'flash',c:'255,250,200',dur:260});ufxPillar(e,'255,240,120','#fff0a0',{w:14,h:110,dur:500});ufxBurst(e,'#fff070',20,4);const d=15+G.floor;msg('雷が落ちた！ '+nm+'に'+d+'のダメージ');damageEnt(e,d,P,'雷');break;}
-    case'blow':{let n=0;while(n<10){const nx=e.x+dx,ny=e.y+dy;if(!pass(nx,ny)||!diagOK(e.x,e.y,dx,dy)||entityAt(nx,ny))break;e.x=nx;e.y=ny;n++;}
+    case'blow':{let n=0;const bmax=isBoss(e)?5:10;while(n<bmax){const nx=e.x+dx,ny=e.y+dy;if(!pass(nx,ny)||!diagOK(e.x,e.y,dx,dy)||entityAt(nx,ny))break;e.x=nx;e.y=ny;n++;}
       sfx('leap');ufxRing(e,'230,230,255',1.3);ufxBurst(e,'#d8d0c0',16,4);msg(nm+'は吹き飛ばされた！ 5のダメージ');damageEnt(e,5,P,'吹き飛ばし');break;}
-    case'sleepst':sfx('dim');ufxBurst(e,'#b8a8ff',16,14);sleepTry(e);break;
+    case'sleepst':sfx('dim');ufxBurst(e,'#b8a8ff',16,14);sleepTry(e,null,STAFFFX.sleepst);break;
     case'swap':{sfx('warp');warpFx(P);warpFx(e);const x=e.x,y=e.y;e.x=P.x;e.y=P.y;P.x=x;P.y=y;computeVisible();warpFx(P);msg(nm+'と場所を入れ替えた');break;}
-    case'slowst':sfx('stice');ufxRing(e,'140,200,255',1.2);ufxBurst(e,'#a0d0ff',14,-6);e.slow=20;msg(nm+'の動きが鈍くなった');break;
-    case'sealst':sfx('mc_dark');ufxCircle(e,'150,60,200',0.9,{dur:700});ufxBurst(e,'#a050d0',14,8);e.sealed=true;msg(nm+'の特技が封じられた');break;
+    case'slowst':{sfx('stice');const h=bossHalf(e,STAFFFX.slow);if(!chance(h.p)){fxMiss(e);break;}ufxRing(e,'140,200,255',1.2);ufxBurst(e,'#a0d0ff',14,-6);e.slow=h.t;msg(nm+'の動きが鈍くなった（'+h.t+'ターン）');break;}
+    case'sealst':{sfx('mc_dark');const h=bossHalf(e,STAFFFX.seal);if(!chance(h.p)){fxMiss(e);break;}ufxCircle(e,'150,60,200',0.9,{dur:700});ufxBurst(e,'#a050d0',14,8);e.sealed=true;e.sealT=h.t;msg(nm+'の特技が封じられた（'+h.t+'ターン）');break;}
   }
   return true;
 }
@@ -4800,8 +4808,8 @@ function herbOn(key,e){
   switch(key){
     case'cure':{if(!cureAll(e))msg(nm+'には効果がなかった');if(e.hp<e.maxHp){const h=Math.min(20,e.maxHp-e.hp);e.hp+=h;healFx(e,h);}return;}
     case'herb':case'bigherb':case'revive':{const h=key==='herb'||key==='bigherb'?herbHeal(key,e.maxHp):9999;healFx(e,Math.min(h,e.maxHp-e.hp));e.hp=Math.min(e.maxHp,e.hp+h);msg(nm+'のHPが回復した',e.kind==='ally'?'good':'');return;}
-    case'sleepgr':sleepTry(e);return;
-    case'confgr':e.conf=10;msg(nm+'は混乱した');return;
+    case'sleepgr':sleepTry(e,null,STAFFFX.sleepgr);return;
+    case'confgr':{if(e.kind==='mon'){const h=bossHalf(e,STAFFFX.conf);if(!chance(h.p)){fxMiss(e);return;}e.conf=h.t;msg(nm+'は混乱した（'+h.t+'ターン）');return;}e.conf=10;msg(nm+'は混乱した');return;}
     case'fire':{const d=15+G.floor;msg(nm+'は炎に包まれた！ '+d+'のダメージ');damageEnt(e,d,P,'火炎草');return;}
     case'power':if(e.kind==='ally'){e.atk++;msg(nm+'の攻撃力が上がった！','good');return;}break;
     case'life':if(e.kind==='ally'){e.maxHp+=5;e.hp+=5;msg(nm+'の最大HPが上がった！','good');return;}break;
@@ -4878,10 +4886,12 @@ function sleepImmune(e){return!!(e&&e!==P&&e.kind==='mon'&&e.d&&(NOSLEEP.include
 const SEALSLEEP=0.15; // ［眠］の印（通常攻撃の眠り）の確率。バタフライの必殺技の眠りも同じ
 // Ver 0.1.96：睡眠が強すぎる（ユーザー）→ ボスは1ターン、ほかの敵は2ターン（前はボス2・ほかの敵3）。かかる確率は前のまま
 const SLEEPT={boss:1,mon:2};
-function sleepTry(e,src){ // 眠り：普通の敵80%で SLEEPT.mon ターン、ボス70%で SLEEPT.boss ターン。ゴーレム・亡霊は眠らない（印は15%の判定だけ）
+// Ver 0.1.155：o＝{p:命中率,t:ターン}（杖・巻物・草）。強敵は bossHalf で半分
+function sleepTry(e,src,o){ // 眠り：普通の敵80%で SLEEPT.mon ターン、ボス70%で SLEEPT.boss ターン。ゴーレム・亡霊は眠らない（印は15%の判定だけ）
   const nm=nameOf(e);
   if(e===P||e.kind!=='mon'){e.sleep=4;msg(nm+'は眠ってしまった');return true;}
   if(sleepImmune(e)){msg(nm+'には眠りが効かない','info');popText(e,'効かない','#b8b0d8');return false;}
+  if(o){const h=bossHalf(e,o);if(!chance(h.p)){msg(nm+'は眠らなかった','info');popText(e,'ミス','#b8b0d8');return false;}e.sleep=h.t;msg(nm+'は眠ってしまった');popText(e,'ZZZ','#9fd8ff');return true;}
   const boss=isBoss(e);if(src!=='seal'&&!chance(boss?.7:.8)){msg(nm+'は眠らなかった','info');popText(e,'ミス','#b8b0d8');return false;}
   e.sleep=boss?SLEEPT.boss:SLEEPT.mon;msg(nm+'は眠ってしまった');popText(e,'ZZZ','#9fd8ff');return true;}
 function bagCap(b){return b.key==='synb'?2:b.cap;} // 合成の袋は2つまで（ベースと、あと1つ）
