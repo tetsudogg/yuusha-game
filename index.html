@@ -2,6 +2,181 @@
 <html lang="ja">
 <head>
 <script>
+/* main-official/wtest-context.js */
+/* 井戸から魔法工房をすぐ試す（WELL_WORKSHOP_TEST_INSTRUCTIONS.md・Ver 0.1.201）：「工房テスト」の保存の切りかえ。
+   正式の本編（index.html）と工房（workshop.html）の、ほかのどのスクリプトよりも先に読む（更新の前の控え first-backup・古い呼び名の変換・工房の prelude より前）。
+
+   ■ いつ動くか：ページの名前の後ろに ?mwtest=1 が付いているときだけ（window.__WTEST.on）。付いていなければ、何もしない（ふつうの本編のまま）。
+     window.name や、ふだんの保存の中の印では、テストにしない（「通常の本編へ戻る」で ?mwtest=1 のないページへ移れば、ふだんの本編）。
+   ■ テストのときにすること：このページの localStorage・sessionStorage・Web Locks の名前を、全部 public_game_wtest1__ ＋ 元の名前 につなぎかえる。
+     本編・工房・魔導書・素材・予約・控え・仲間のセットなど、ページの中の全部の読み書きがテストの名前だけを使う（ふだんの記録を読まない・書かない）。
+     ・つなぎかえられない・保存を使えないときは、ページの保存そのものを使えなくする（ふだんの保存へはもどさない）。理由は window.__WTEST.why。
+     ・ページ全体の保存を消す（clear）ことはしない。テストの名前の分だけ。
+     ・リセットの「回」（EPOCH）を持つ。ページを開いたあとで別のタブが「テストを最初から」をしたら、このページからの書きこみ・消しこみは全部止める。
+   ■ テストの村の用意（はじめて開いたときに 1 回）：ふだんの記録は写さない。作りものの村（工房が使える・仲間あり）と、今の錬成で使える素材を 30 個ずつ・かけら 30 個。
+     用意の印 public_game_wtest_init（テストの名前の中）：{v:1, state:'begin'|'done'}。'begin' のまま・知らない形・印がないのに中身がある → 用意は「不明」。
+     そのときは書きこみを止めて（hold）、画面で「テストを最初から」をえらんでもらう（ふだんの記録で埋めない・勝手に消さない）。
+   ■ 本人限定の確認用（保存の名前に別の前置きを付けるページ）では動かない。 */
+(function () {
+  'use strict';
+  var PREFIX = 'public_game_' + 'wtest1__', EPOCH = 'public_game_wtest_epoch', INIT = 'public_game_wtest_init', VID = 'vWTEST1';
+  var on = false;
+  try { on = /(?:^|&)mwtest=1(?:&|$)/.test(String(location.search || '').replace(/^\?/, '')); } catch (e) { on = false; }
+  if (window.__MTRIAL && window.__MTRIAL.check) on = false;
+  var st = { on: on, ok: false, isolated: false, why: null, init: null, hold: false, prefix: on ? PREFIX : null, epoch: null, vid: VID };
+  window.__WTEST = st;
+  // ページの行き先：テストのあいだは ?mwtest=1 を付ける。exit（通常の本編へ戻る）のときだけ付けない
+  window.__wtHref = function (page, exit) { return on && !exit ? String(page).split('?')[0].split('#')[0] + '?mwtest=1' : String(page); };
+  if (!on) return;
+  // リンク（村へもどる など）：テストのあいだは、リンクそのものの行き先（href）に ?mwtest=1 を付けておく。
+  // 押したときだけでなく、画面に出た時点で付いている（長押しで別のタブに開く・リンクをコピーする・中ボタンでも、テストのまま）。
+  // ・作るときに window.__wtHref を通すもの（工房の「村へもどる」など）に加えて、ページに書いてあるリンク・あとから足されるリンクも、ここで直す（DOM の見張り）。
+  // ・直すのは index.html／workshop.html だけ（#… が付いていれば残す）。同じ画面の中の '#…'・外のリンク・ほかの引数つきのリンクは変えない。
+  // ・data-wtest-exit のあるもの（通常の本編へ戻る・保存しないで戻る）は、付けない。
+  var LINK = /^(index|workshop)\.html(#.*)?$/;
+  function fixLink(a) {
+    try {
+      if (!a || !a.getAttribute || a.hasAttribute('data-wtest-exit')) return;
+      var h = a.getAttribute('href');
+      if (typeof h === 'string' && LINK.test(h)) a.setAttribute('href', h.replace(/^(index|workshop)\.html/, '$1.html?mwtest=1'));
+    } catch (e) {}
+  }
+  function fixAll(root) {
+    try {
+      if (!root) return;
+      if (root.nodeType === 1 && root.tagName === 'A') fixLink(root);
+      if (root.querySelectorAll) { var as = root.querySelectorAll('a[href]'); for (var i = 0; i < as.length; i++) fixLink(as[i]); }
+    } catch (e) {}
+  }
+  st.fixLinks = function () { fixAll(document); };
+  try {
+    if (typeof MutationObserver === 'function') {
+      new MutationObserver(function (ms) {
+        for (var i = 0; i < ms.length; i++) {
+          if (ms[i].type === 'attributes') fixLink(ms[i].target);
+          else for (var j = 0; j < ms[i].addedNodes.length; j++) fixAll(ms[i].addedNodes[j]);
+        }
+      }).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['href', 'data-wtest-exit'] });
+    }
+    document.addEventListener('DOMContentLoaded', st.fixLinks);
+    // 念のため：押した瞬間にも確かめる（見張りが使えないブラウザでも、ふつうの移動はテストのまま）
+    document.addEventListener('click', function (ev) { fixLink(ev.target && ev.target.closest ? ev.target.closest('a[href]') : null); }, true);
+    document.addEventListener('auxclick', function (ev) { fixLink(ev.target && ev.target.closest ? ev.target.closest('a[href]') : null); }, true);
+    document.addEventListener('contextmenu', function (ev) { fixLink(ev.target && ev.target.closest ? ev.target.closest('a[href]') : null); }, true);
+    document.addEventListener('touchstart', function (ev) { fixLink(ev.target && ev.target.closest ? ev.target.closest('a[href]') : null); }, true);
+  } catch (e) {}
+  function wrap(real, guard) {
+    // guard：書く・消す前に、このページを開いたときのリセットの回のままか確かめる（localStorage だけ）。hold：用意が不明のあいだは書かない
+    function check() { if (st.hold) throw new Error('workshop test storage on hold'); if (guard && real.getItem(PREFIX + EPOCH) !== st.epoch) { st.reset = true; throw new Error('workshop test reset by another tab'); } }
+    function keys() { var o = []; for (var i = 0; i < real.length; i++) { var k = real.key(i); if (k && k.indexOf(PREFIX) === 0) o.push(k.slice(PREFIX.length)); } return o; }
+    var api = {
+      getItem: function (k) { return real.getItem(PREFIX + String(k)); },
+      setItem: function (k, v) { check(); real.setItem(PREFIX + String(k), String(v)); },
+      removeItem: function (k) { check(); real.removeItem(PREFIX + String(k)); },
+      key: function (i) { var ks = keys(); return i >= 0 && i < ks.length ? ks[i] : null; },
+      // テストの名前の分だけを消す（ほかの保存はさわらない）
+      clear: function () { check(); keys().forEach(function (k) { if (k !== EPOCH) real.removeItem(PREFIX + k); }); },
+      // 「テストを最初から」（ロックの中で呼ぶ）：新しい回にしてから、テストの名前のほかの分を消す。このページの回も新しくする
+      __reset: function (next) { if (guard && real.getItem(PREFIX + EPOCH) !== st.epoch) { st.reset = true; throw new Error('workshop test reset by another tab'); } real.setItem(PREFIX + EPOCH, String(next)); st.epoch = String(next); keys().forEach(function (k) { if (k !== EPOCH) real.removeItem(PREFIX + k); }); }
+    };
+    Object.defineProperty(api, 'length', { get: function () { return keys().length; } });
+    return api;
+  }
+  var ls = null, ss = null;
+  try {
+    ls = window.localStorage; ss = window.sessionStorage;
+    if (!ls || !ss) throw new Error('none');
+    var probe = PREFIX + 'probe';
+    ls.setItem(probe, '1'); if (ls.getItem(probe) !== '1') throw new Error('readback'); ls.removeItem(probe);
+    void ss.length;
+  } catch (e) { st.why = 'storage'; }
+  var L = null;
+  try { L = navigator.locks && typeof navigator.locks.request === 'function' ? navigator.locks : null; } catch (e) { L = null; }
+  if (!L && !st.why) st.why = 'locks';
+  if (st.why !== 'storage') {
+    try {
+      st.epoch = ls.getItem(PREFIX + EPOCH);
+      Object.defineProperty(window, 'localStorage', { value: wrap(ls, true), configurable: true });
+      Object.defineProperty(window, 'sessionStorage', { value: wrap(ss, false), configurable: true });
+      st.isolated = true;
+    } catch (e) { st.why = 'storage'; st.isolated = false; }
+  }
+  if (!st.isolated) {
+    // つなぎかえられないときは、ページの保存そのものを使えなくする（ふだんの保存を読まない・書かない・新しいゲームにしない）
+    var dead = { getItem: function () { throw new Error('workshop test storage unavailable'); }, setItem: function () { throw new Error('workshop test storage unavailable'); }, removeItem: function () { throw new Error('workshop test storage unavailable'); }, key: function () { return null; }, clear: function () {}, length: 0 };
+    try { Object.defineProperty(window, 'localStorage', { value: dead, configurable: true }); Object.defineProperty(window, 'sessionStorage', { value: dead, configurable: true }); st.dead = true; } catch (e) { st.dead = false; }
+    // それもできないときの最後の守り：このページからの保存の読み書きを、全部「何もしない」にする
+    if (!st.dead) {
+      try {
+        var SP = Storage.prototype;
+        SP.setItem = function () {}; SP.removeItem = function () {}; SP.clear = function () {}; SP.getItem = function () { return null; }; SP.key = function () { return null; };
+        try { Object.defineProperty(SP, 'length', { get: function () { return 0; }, configurable: true }); } catch (e2) {}
+        st.dead = true;
+      } catch (e) {}
+    }
+    return;
+  }
+  if (L) {
+    var locks = {
+      request: function (name) { var a = Array.prototype.slice.call(arguments); a[0] = PREFIX + String(name); return L.request.apply(L, a); },
+      query: function () { return L.query(); }
+    };
+    try { Object.defineProperty(navigator, 'locks', { value: locks, configurable: true }); } catch (e) { st.why = st.why || 'locks'; }
+  }
+  // ロックが使えないときは、テストを始めない：テストの名前への書きこみも止める
+  if (st.why) { st.hold = true; return; }
+  st.ok = true;
+  // 別のタブが「テストを最初から」をしたか（このページを開いたときの回とちがうか）。読めないときも「ちがう」として止める
+  st.stale = function () { try { if (ls.getItem(PREFIX + EPOCH) !== st.epoch) { st.reset = true; return true; } return !!st.reset; } catch (e) { return true; } };
+  // ---- テストの村の用意（ふだんの記録は使わない。作りものだけ）
+  // 素材の一覧：ビルドが、今の錬成の表にある核・形・触媒の ID を入れる（build_main_trial.js の wtestContextTag）
+  var MATS = ["core_fire_crystal","core_ice_shard","core_thunder_horn","core_venom_sac","core_frost_lily","core_lullaby_spore","core_seal_ink","core_healing_dew","core_purifying_salt","core_guardian_stone","core_iron_bark","core_storm_coil","form_broken_spear","form_hunting_feather","form_ember_jar","form_fan_plume","form_shield_fragment","form_magic_cloth","form_halo_ring","form_ally_charm","form_wide_banner","form_star_lens","cat_ember_ash","cat_frost_bell","cat_spark_wire","cat_warm_down","cat_fairy_dust","cat_bat_wing","cat_hunter_fang","cat_quiet_moss","cat_lens_focus","cat_scatter_sand","cat_mirror_scale","cat_golem_fragment"];
+  var TARGET = 30;
+  st.target = TARGET; st.materials = MATS;
+  function village() {
+    return { v: 1, storage: [], bank: 0, perm: { str: 0, hp: 0 }, rec: { deep: 100, clear: 1, tclear: 1 }, dev: 1, donated: 0, carry: { inv: [], gold: 0, shard: TARGET, eq: {} }, seen: true, runs: 30,
+      // 村に入ったときの物語のイベント（場面 5〜6・ロアン・初回帰還・覚醒・家具クラフトの解放）は、すんだことにする（すぐ工房を試せるように）
+      intro: 1, trade: 1, sev56: 1, roan: 1, maou: 1, emblem: 1, craft: { unlocked: true }, vid: VID, bossAlly: { sevran: 1, galdin: 1 },
+      seenCharacterIntros: ['raz', 'grigg', 'sevran', 'galdin', 'rizel', 'fina', 'born', 'astel', 'raz_maou'], planNews: [],
+      // テスト用の冒険のはじめの設定（31F・Lv30・リゼル／セヴラン／フィーナ）。変えたら、テストの村の記録にだけ残る
+      testCfg: { f: 31, lv: 30, alv: 30, allies: ['rizel', 'sevran', 'fina'], maou: true }, wtest: 1 };
+  }
+  function put(S, k, v) { S.setItem(k, v); if (S.getItem(k) !== v) throw new Error('readback ' + k); }
+  // 用意する（空のテストの領域へ）。途中で止まれば、印は 'begin' のまま残る（次は「不明」になる）
+  function init() {
+    var LS = window.localStorage, items = {}, i;
+    for (i = 0; i < MATS.length; i++) items[MATS[i]] = TARGET;
+    put(LS, INIT, JSON.stringify({ v: 1, state: 'begin', at: Date.now() }));
+    var vs = JSON.stringify(village()), vilMat = {};
+    vilMat[VID] = { items: items, ledger: {}, pending: null };
+    put(LS, 'public_game_village', vs);
+    put(LS, 'public_game_village_bk', vs);
+    put(LS, 'public_game_prologue', '1');
+    put(LS, 'public_game_mwu', JSON.stringify({ v: 1, vid: VID, state: 'done', at: 1 }));
+    put(LS, 'public_game_magic_v2_materials', JSON.stringify({ v: 1, vil: vilMat }));
+    put(LS, INIT, JSON.stringify({ v: 1, state: 'done', at: Date.now() }));
+  }
+  // 「テストを最初から」のあと（リセットで空にしてから）呼ぶ。失敗したら、また止める
+  st.runInit = function () { st.hold = false; try { init(); st.init = 'done'; } catch (e) { st.hold = true; st.init = 'unknown'; st.initWhy = 'init_failed'; throw e; } };
+  try {
+    var LS2 = window.localStorage, raw = LS2.getItem(INIT), o = null;
+    if (raw !== null) { try { o = JSON.parse(raw); } catch (e) { o = null; } }
+    if (raw === null) {
+      // 印がない：中身が空（リセットの回の印だけ）なら、はじめての用意。何かあるなら「不明」
+      var has = false;
+      for (var j = 0; j < LS2.length; j++) { if (LS2.key(j) !== EPOCH) { has = true; break; } }
+      if (has) { st.init = 'unknown'; st.initWhy = 'no_marker'; }
+      else { try { init(); st.init = 'done'; st.fresh = true; } catch (e) { st.init = 'unknown'; st.initWhy = 'init_failed'; } }
+    } else if (o && o.v === 1 && o.state === 'done') st.init = 'done';
+    else { st.init = 'unknown'; st.initWhy = o && o.v === 1 && o.state === 'begin' ? 'incomplete' : 'unknown_marker'; }
+  } catch (e) { st.init = 'unknown'; st.initWhy = 'read_failed'; }
+  // 用意が不明のあいだは、書きこみを止める（ゲームが、こわれた・途中の記録の上に新しい村を作らないように）
+  if (st.init !== 'done') st.hold = true;
+})();
+
+</script>
+
+<script>
 /* main-official/first-backup.js */
 /* 本編への反映（MAIN_GAME_WORKSHOP_RELEASE_INSTRUCTIONS.md 3 節）と、その補強（MAIN_RELEASE_BACKUP_REVISION_INSTRUCTIONS.md・Ver 0.1.200）：
    今あるセーブの原文を、ゲームが読みこむ・保存するより前に控える。正式の本編（index.html）と工房（workshop.html）の、ほかのどのスクリプトよりも先に読む。
@@ -28,7 +203,7 @@
   'use strict';
   var TO = 'Ver 0.1.200', PRE = 'public_game_backup_', V2 = PRE + 'v2_', LEGACY = PRE + 'pre0199';
   // 試遊・確認用の領域の前置き（ビルドの「試遊の部品が入っていないか」の確かめに掛からないよう、名前は分けて書く）
-  var SKIP = ['public_game_' + 'ocheck1__', 'public_game_' + 'mtrial1__', 'public_game_' + 'ocheck_epoch'];
+  var SKIP = ['public_game_' + 'ocheck1__', 'public_game_' + 'mtrial1__', 'public_game_' + 'ocheck_epoch', 'public_game_' + 'wtest1__'];
   // 前の版（Ver 0.1.157）が使っていた名前（ないものは absent に書く）
   var KNOWN = ['public_game_village', 'public_game_village_bk', 'public_game_save', 'public_game_save_bad', 'public_game_rec', 'public_game_perm', 'public_game_dex', 'public_game_story', 'public_game_prologue',
     'public_game_audio', 'public_game_mob', 'public_game_padcfg', 'public_game_zoom', 'public_game_sttest', 'public_game_evpreview'];
@@ -36,6 +211,9 @@
   var st = { state: 'init', reason: null, how: null, dropped: 0, v: 2 };
   window.__pgBackup = st;
   if (window.__MTRIAL && window.__MTRIAL.check) { st.state = 'skipped_check'; return; }
+  // 工房テスト（?mwtest=1・Ver 0.1.201）：このページはテストの記録だけを使う（ふだんの記録を読まない・書かない）ので、控えは作らない。ふだんの本編を開いたときに、いつもどおり作る
+  // （?mwtest=1 が付いているだけでは、とばさない：テストの名前へのつなぎかえが成り立ったとき（isolated）か、このページの保存を使えなくしたとき（dead）だけ）
+  if (window.__WTEST && window.__WTEST.on && (window.__WTEST.isolated === true || window.__WTEST.dead === true)) { st.state = 'skipped_wtest'; return; }
   var P = Storage.prototype, rawSet = P.setItem, rawRemove = P.removeItem, rawClear = P.clear;
   // 保存の場所を取る（読めないときは null と理由。「ない」とは別）
   function store(name) { try { var s = window[name]; if (!s || typeof s.getItem !== 'function') return null; void s.length; return s; } catch (e) { return null; } }
@@ -823,7 +1001,7 @@ body.mob .pc .bar{width:70px;height:4px}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.200'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.201'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -12576,6 +12754,21 @@ function craftDemonCompleteEvent(){if(!craftExtOn())return;const c=CR();closeAll
     return { ok: true, added: added, got: got, capped: capped, cleaned: cleaned, items: s.items };
   }
   function credit(env, vid, opt) { return withLock(env, function () { return creditLocked(env, vid, opt); }); }
+  // ---- 工房テスト（Ver 0.1.201・WELL_WORKSHOP_TEST）：素材を「少なくとも target 個」まで補充する（もう多いものは減らさない・上限 99）。
+  // gate を通す（未解決の pending があって決められないときは補充しない＝予約をこわさない）。足りない分は、ロックの中で最新を読んでから決める（連打で二重に足さない）。
+  // 呼ぶのは工房テストの画面だけ（ふつうの本編からは呼ばない）
+  async function topUpLocked(env, vid, target, opt) {
+    if (typeof vid !== 'string' || !vid) return fail('NO_VID', { status: 'not_written' });
+    if (!okMap(target)) return fail('BAD_TARGET', { status: 'not_written' });
+    var g = await gateLocked(env, vid, opt); if (!g.ok) return Object.assign(g, { status: g.status || 'not_written' });
+    var st = JSON.parse(JSON.stringify(g.store)), s = section(st, vid), added = {}, n = 0;
+    for (var k in target) { var want = Math.min(CAP, target[k]), have = s.items[k] || 0; if (have < want) { added[k] = want - have; s.items[k] = want; n++; } }
+    if (!n) return { ok: true, status: 'none', added: added, items: s.items };
+    st.vil[vid] = s;
+    var w = await writeRaw(env, KEYS.store, JSON.stringify(st));
+    if (!w.ok) return fail('STORE_' + w.code, { status: w.status, quota: w.quota });
+    return { ok: true, status: 'committed', added: added, items: s.items };
+  }
   // ---- R8B：一度だけの配布（初回の工房の素材）。gate を通し、items と grants[name] を同じ書きこみで確定（上限 99）。
   // もう配布ずみなら何もしない（already）。読めない・知らない版・未解決の pending は止める（配りなおさない）
   async function grantLocked(env, vid, name, mmat, opt) {
@@ -12648,7 +12841,7 @@ function craftDemonCompleteEvent(){if(!craftExtOn())return;const c=CR();closeAll
     return { ok: true, items: s ? s.items : {}, pending: !!(s && s.pending), waiting: waiting, inboxOk: !!pi.ok };
   }
   return { KEYS: KEYS, LOCK: LOCK, CAP: CAP, parseStore: parseStore, parseInbox: parseInbox, handoff: handoff, handoffLocked: handoffLocked,
-    credit: credit, creditLocked: creditLocked, gateLocked: gateLocked, grantLocked: grantLocked, forgeLocked: forgeLocked, read: read, total: total };
+    credit: credit, creditLocked: creditLocked, gateLocked: gateLocked, grantLocked: grantLocked, topUpLocked: topUpLocked, forgeLocked: forgeLocked, read: read, total: total };
 });
 </script>
 <script>
@@ -20262,6 +20455,10 @@ requestAnimationFrame(loop);
   function grantOnce(env, vid, name, mmat, at) {
     return locked(env, function () { return MS.grantLocked(env, vid, name, mmat, { checkBirth: checkBirth(env), at: at }); });
   }
+  // 工房テスト（Ver 0.1.201）：素材を少なくとも target 個まで補充（同じロック・同じ pending の確かめ。material-store.topUpLocked）
+  function topUp(env, vid, target) {
+    return locked(env, function () { return MS.topUpLocked(env, vid, target, { checkBirth: checkBirth(env), recover: recoverOf(env) }); });
+  }
   function creditInbox(env, vid, opt) {
     return locked(env, function () { return MS.creditLocked(env, vid, Object.assign({}, opt || {}, { checkBirth: checkBirth(env) })); });
   }
@@ -20350,7 +20547,7 @@ requestAnimationFrame(loop);
       return { ok: true, resolved: g.resolved, spellId: spellId, choice: used };
     });
   }
-  return { forgeWithMaterials: forgeWithMaterials, forgeNextWithMaterials: forgeNextWithMaterials, grantOnce: grantOnce, creditInbox: creditInbox, resolvePending: resolvePending, resolveBroken: resolveBroken, slotOf: slotOf };
+  return { forgeWithMaterials: forgeWithMaterials, forgeNextWithMaterials: forgeNextWithMaterials, grantOnce: grantOnce, topUp: topUp, creditInbox: creditInbox, resolvePending: resolvePending, resolveBroken: resolveBroken, slotOf: slotOf };
 });
 
 </script>
@@ -24924,10 +25121,289 @@ function mofbGoWorkshop(){
   try{vSave();}catch(e){}
   let ok=false;try{ok=localStorage.getItem(VKEY)===JSON.stringify(VS);}catch(e){ok=false;}
   if(!ok){msg('村の記録を保存できなかったので、魔法工房へは移らなかった（もう一度ためしてほしい）。','bad');render();return;}
-  const go=()=>{location.href='workshop.html';};
+  const go=()=>{location.href=window.__wtHref?window.__wtHref('workshop.html'):'workshop.html';};
   // 魔法の保存の途中なら、終わってから
   if(typeof MB!=='undefined'&&MB.saving)Promise.resolve(MB.saving).then(go,go);else go();
 }
+
+</script>
+<script>
+/* main-official/wtest.js */
+/* 井戸から魔法工房をすぐ試す（WELL_WORKSHOP_TEST_INSTRUCTIONS.md・Ver 0.1.201）：画面の部分。保存の切りかえ（wtest-context.js）のあとに読む。
+   正式の本編（index.html）と工房（workshop.html）の両方に入れる。
+   ・ふつうの本編（?mwtest=1 なし）：井戸の「テスト用の隠し宝箱」に「魔法工房をテストする」を足すだけ。100F・仲間の条件なしでえらべる。
+     説明のあと、ふだんの村の記録をいつもの道で保存して確かめてから、テストの工房（workshop.html?mwtest=1）へ移る。確かめられなければ移らない。
+     ふだんの記録は、テスト用に書きかえない・写さない。
+   ・工房テスト（?mwtest=1）：
+     - 両方のページに、小さく「工房テスト中（通常の記録とは別）」。押すと「通常の本編へ戻る」「テストを最初から」。
+     - 本編のページ：タイトルを出さず、テストの村へ（冒険の途中の記録があれば、その続きへ）。はじめて村に入ったとき、無限の魔水（テスト用）を 1 つ渡す。
+     - 工房のページ：「テスト素材を補充」（素材とかけらを、少なくとも 30 個まで。多いものは減らさない。魔法・名前・セットは変えない）。
+     - 用意が不明（途中で止まった・知らない形）のとき：理由を出し、「テストを最初から」（確かめつき）だけを出す。ふだんの記録では埋めない。
+   ・テストの記録は、次に開いたときも使える（毎回は消さない）。保存の名前などの言葉は、画面に出さない。 */
+(function () {
+  'use strict';
+  var T = window.__WTEST, doc = document;
+  if (!T) return;
+  var GAME = typeof enterVillage === 'function' && typeof testChest === 'function';
+  var WORK = !!(window.MagicWorkshop && doc.getElementById('mtw-lab')) || typeof MOF !== 'undefined';
+  function el(tag, style, text) { var e = doc.createElement(tag); if (style) e.setAttribute('style', style); if (text !== undefined) e.textContent = text; return e; }
+  var NOTE = '通常の記録とは別に、魔法作りを試せます。ここで作った魔法や素材は通常の冒険には持ち帰れません。';
+
+  // ================= ふつうの本編：井戸に入口を足す =================
+  if (!T.on) {
+    // 本人限定の確認用のページ（保存に別の前置きを付ける）では、入口を出さない（そこでは工房テストは動かない）
+    if (!GAME || (window.__MTRIAL && window.__MTRIAL.check)) return;
+    var baseChest = testChest;
+    testChest = function (sel) {
+      // sel==='wt'：足した項目（上から 2 つめ）にカーソルを置く
+      baseChest.call(this, sel === 'wt' ? undefined : sel);
+      var m = MS[MS.length - 1];
+      if (!m || m.title !== 'テスト用の隠し宝箱') return;
+      // 「テスト用の冒険」のすぐ下に入れる（元のカーソルの位置は、1 つ下へずらす）
+      m.items.splice(1, 0, { label: '魔法工房をテストする', col: '#cfa8ff', right: '→', action: function () { closeAll(); wtAsk(); } });
+      if (sel === 'wt') m.sel = 1; else if (m.sel >= 1) m.sel++;
+      drawMenu();
+    };
+    window.wtAsk = function () {
+      openMenu({ title: '魔法工房をテストする', tcol: '#cfa8ff', text: NOTE + '\n\n・100階のクリアや、仲間がいるかに関係なく試せます\n・今の村の記録を保存してから、テストの工房へ移ります\n・「通常の本編へ戻る」で、いつでも今の村にもどれます', items: [
+        { label: 'テストの工房へ行く', col: '#ffd24a', action: function () { closeAll(); wtGo(); } },
+        { label: 'やめる', action: function () { closeAll(); render(); testChest('wt'); } }] });
+    };
+    window.wtGo = function () {
+      var locks = null;
+      try { locks = navigator.locks && typeof navigator.locks.request === 'function' ? navigator.locks : null; } catch (e) { locks = null; }
+      if (!locks) { msg('このブラウザでは、魔法工房のテストを使えない（保存を守る仕組みに対応していない）。ふだんの冒険はそのまま続けられる。', 'bad'); render(); return; }
+      // 今の村の記録を、いつもの道で保存して、読みもどして確かめてから移る（確かめられなければ移らない）
+      try { vSave(); } catch (e) {}
+      var ok = false;
+      try { ok = localStorage.getItem(VKEY) === JSON.stringify(VS); } catch (e) { ok = false; }
+      if (!ok) { msg('村の記録を保存できなかったので、テストの工房へは移らなかった（もう一度ためしてほしい）。', 'bad'); render(); return; }
+      var go = function () { location.href = 'workshop.html?mwtest=1'; };
+      // 魔法の保存の途中なら、終わってから（うまくいかなかったときは移らない）
+      if (typeof MB !== 'undefined' && MB.saving) Promise.resolve(MB.saving).then(go, function () { msg('魔法の記録の保存が終わらなかったので、テストの工房へは移らなかった（もう一度ためしてほしい）。', 'bad'); render(); });
+      else go();
+    };
+    return;
+  }
+
+  // ================= 工房テスト =================
+  var page = GAME ? 'index.html' : 'workshop.html';
+  function overlay(id) {
+    var old = doc.getElementById(id); if (old) old.remove();
+    var box = el('div', 'position:fixed;inset:0;z-index:2147483600;background:rgba(8,5,16,.94);color:#f0e8ff;font:16px/1.7 sans-serif;overflow:auto;padding:18px;box-sizing:border-box');
+    box.id = id; box.setAttribute('role', 'alertdialog'); box.setAttribute('aria-modal', 'true');
+    // 完成の画面（ほかの部品を全部かくす）の上でも出す
+    box.style.setProperty('display', 'block', 'important');
+    var card = el('div', 'max-width:520px;margin:0 auto;background:#1a1228;border:2px solid #c9a24a;border-radius:10px;padding:16px');
+    box.appendChild(card); doc.body.appendChild(box);
+    return { box: box, card: card };
+  }
+  var BTN = 'display:block;width:100%;min-height:48px;margin:10px 0 0;padding:8px 12px;font:inherit;border-radius:8px;border:1px solid #ffd24a;background:#3a2a10;color:#ffe39a;text-align:center;text-decoration:none;box-sizing:border-box';
+  function exitLink(text) { var a = el('a', BTN, text); a.setAttribute('data-wtest-exit', '1'); a.href = 'index.html'; a.id = 'wt-exit-link'; return a; }
+  // ---- 保存を使えない・つなぎかえられない：テストを始めない（ふだんの保存へはもどさない）
+  function showUnavailable() {
+    var o = overlay('wt-unavailable');
+    o.card.appendChild(el('h1', 'font-size:19px;margin:0 0 8px;color:#ffe39a', '工房テストを始められません'));
+    o.card.appendChild(el('p', 'margin:6px 0', T.why === 'locks' ? 'このブラウザは、保存を守る仕組みに対応していないため、工房テストを使えません。' : 'このブラウザでは、テスト用の保存の場所を使えませんでした。'));
+    o.card.appendChild(el('p', 'margin:6px 0', '通常の記録には、何もしていません。'));
+    o.card.appendChild(exitLink('通常の本編へ戻る'));
+  }
+  // ---- 「テストを最初から」：テストの記録だけを消して、作りなおす（確かめつき）。ロックの中で、リセットの回を新しくしてから消す
+  function resetNow(say) {
+    var L = null;
+    try { L = navigator.locks; } catch (e) { L = null; }
+    if (!L || typeof localStorage.__reset !== 'function') { say('テストを最初からにできませんでした。'); return; }
+    L.request('public_game_wtest_reset', async function () {
+      localStorage.__reset(String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36));
+      try { sessionStorage.clear(); } catch (e) {}
+      T.runInit();
+    }).then(function () { say('テストを最初からにしました。読みなおします…'); setTimeout(function () { location.href = window.__wtHref(page); }, 300); },
+      function () { say('テストを最初からにできませんでした（記録はそのまま）。もう一度ためしてください。'); });
+  }
+  function askReset(card, say) {
+    var q = el('div', 'margin-top:10px;padding:10px;border:1px solid #a04a4a;border-radius:8px;background:#2a1418');
+    q.id = 'wt-reset-ask';
+    q.appendChild(el('p', 'margin:0 0 6px', 'テストの記録（テストの村・作った魔法・素材）を、全部消して最初からにします。通常の記録は消えません。よいですか？'));
+    var y = el('button', BTN, 'はい、テストを最初からにする'); y.type = 'button'; y.id = 'wt-reset-yes';
+    var n = el('button', BTN, 'やめる'); n.type = 'button'; n.id = 'wt-reset-no';
+    y.addEventListener('click', function () { y.disabled = true; n.disabled = true; resetNow(say); });
+    n.addEventListener('click', function () { q.remove(); });
+    q.appendChild(y); q.appendChild(n); card.appendChild(q);
+    try { y.focus(); } catch (e) {}
+  }
+  // ---- 用意が不明：理由を出して、最初からにするかをえらんでもらう
+  function showUnknown() {
+    var o = overlay('wt-unknown');
+    o.card.appendChild(el('h1', 'font-size:19px;margin:0 0 8px;color:#ffe39a', '工房テストの記録を確かめられません'));
+    var why = { incomplete: 'テストの記録の用意が、途中で止まっています。', no_marker: 'テストの記録の形が、今の版とちがいます。', unknown_marker: 'テストの記録の形が、今の版とちがいます。', init_failed: 'テストの記録を用意できませんでした（保存の場所がいっぱいかもしれません）。', read_failed: 'テストの記録を読めませんでした。' }[T.initWhy] || 'テストの記録を確かめられませんでした。';
+    var p = el('p', 'margin:6px 0', why + ' このままでは、テストを始めません（テストの記録は消していません・通常の記録にも何もしていません）。');
+    p.id = 'wt-unknown-msg'; o.card.appendChild(p);
+    var say = function (t) { p.textContent = t; };
+    var r = el('button', BTN, 'テストを最初から'); r.type = 'button'; r.id = 'wt-reset';
+    r.addEventListener('click', function () { if (!doc.getElementById('wt-reset-ask')) askReset(o.card, say); });
+    o.card.appendChild(r);
+    o.card.appendChild(exitLink('通常の本編へ戻る'));
+  }
+  // ---- 別のタブで「テストを最初から」をした：このページは古い。書きこみは止まっているので、知らせて読みなおしてもらう
+  function showStale() {
+    if (doc.getElementById('wt-stale')) return;
+    var o = overlay('wt-stale');
+    o.card.appendChild(el('h1', 'font-size:19px;margin:0 0 8px;color:#ffe39a', '工房テストが最初からになりました'));
+    o.card.appendChild(el('p', 'margin:6px 0', '別の画面で「テストを最初から」をしたので、この画面の内容は古くなりました。この画面からは、もう保存されません。読みなおしてください。'));
+    var r = el('button', BTN, '読みなおす'); r.type = 'button'; r.id = 'wt-stale-reload';
+    r.addEventListener('click', function () { location.href = window.__wtHref(page); });
+    o.card.appendChild(r);
+    o.card.appendChild(exitLink('通常の本編へ戻る'));
+  }
+  function staleCheck() { if (T.stale && T.stale()) { showStale(); return true; } return false; }
+  // ---- 通常の本編へ戻る：テストの記録を保存して確かめてから、?mwtest=1 のないページへ
+  function leave(say, card) {
+    // 保存できないとき：理由を出して、「保存しないで戻る」もえらべるようにする（通常の記録には何もしない）
+    var fail = function (t) {
+      say(t + ' 保存しないで戻ることもできます（さっきまでのテストの記録は、前に保存した所まで残ります）。');
+      if (card && !doc.getElementById('wt-exit-link')) { var a = exitLink('保存しないで通常の本編へ戻る'); card.appendChild(a); }
+    };
+    if (GAME) {
+      try {
+        if (typeof MODE !== 'undefined' && MODE === 'village') { vSave(); if (localStorage.getItem(VKEY) !== JSON.stringify(VS)) throw new Error('readback'); }
+        else if (typeof MODE !== 'undefined' && MODE === 'dungeon' && typeof saveGame === 'function' && G && !G.over) { saveGame(); if (localStorage.getItem(SAVEKEY) === null) throw new Error('readback'); }
+      } catch (e) { fail('テストの記録を保存できませんでした。'); return; }
+    }
+    var go = function () { location.href = 'index.html'; };
+    if (typeof MB !== 'undefined' && MB.saving) Promise.resolve(MB.saving).then(go, function () { fail('魔法の記録の保存が終わりませんでした。'); });
+    else go();
+  }
+  // ---- いつも出す小さな印と、メニュー
+  function menu() {
+    var o = overlay('wt-menu');
+    o.card.appendChild(el('h1', 'font-size:19px;margin:0 0 8px;color:#ffe39a', '工房テスト'));
+    var p = el('p', 'margin:6px 0', NOTE); p.id = 'wt-menu-msg'; o.card.appendChild(p);
+    var say = function (t) { p.textContent = t; };
+    var b1 = el('button', BTN, '通常の本編へ戻る'); b1.type = 'button'; b1.id = 'wt-leave';
+    b1.addEventListener('click', function () { leave(say, o.card); });
+    var b2 = el('button', BTN, 'テストを最初から'); b2.type = 'button'; b2.id = 'wt-reset';
+    b2.addEventListener('click', function () { if (!doc.getElementById('wt-reset-ask')) askReset(o.card, say); });
+    var b3 = el('button', BTN, 'とじる'); b3.type = 'button'; b3.id = 'wt-close';
+    b3.addEventListener('click', function () { o.box.remove(); });
+    o.card.appendChild(b1); o.card.appendChild(b2); o.card.appendChild(b3);
+    try { b3.focus(); } catch (e) {}
+  }
+  function banner() {
+    if (doc.getElementById('wt-banner')) return;
+    var b = el('button', 'position:fixed;left:50%;top:0;transform:translateX(-50%);z-index:2147483500;margin:0;padding:2px 10px;min-height:24px;font:12px/1.5 sans-serif;color:#ffe39a;background:rgba(40,22,60,.92);border:1px solid #c9a24a;border-top:0;border-radius:0 0 8px 8px;white-space:nowrap;cursor:pointer', '工房テスト中（通常の記録とは別）');
+    b.type = 'button'; b.id = 'wt-banner'; b.setAttribute('aria-haspopup', 'dialog');
+    // スマホ縦の工房：見出し「魔法工房」（左上）に重ならないよう、右上に寄せる
+    if (!GAME) {
+      b.className = 'wt-shop';
+      var css = doc.createElement('style');
+      css.textContent = '@media(max-width:699px){#wt-banner.wt-shop{left:auto!important;right:0!important;transform:none!important;border-radius:0 0 0 8px!important;border-right:0!important}}';
+      doc.head.appendChild(css);
+    }
+    // 完成の画面（ほかの部品を全部かくす）でも、印は出したまま
+    b.style.setProperty('display', 'block', 'important');
+    b.addEventListener('click', function (ev) { ev.stopPropagation(); if (!doc.getElementById('wt-menu')) menu(); });
+    doc.body.appendChild(b);
+  }
+  // ---- 工房のページ：テスト素材を補充（素材は素材庫の同じロックと同じ確かめ。かけらはテストの村の記録へ）
+  function shardTopUp(env) {
+    var IO = window.MagicWorkshop.mainBridge.storeIo, SR = window.MagicWorkshop.mainBridge.syncRetry;
+    return IO.withLocks(env, [IO.LOCKS.snapshot, IO.LOCKS.growth], async function () {
+      var rv = await IO.readRaw(env, 'public_game_village'), rd = await IO.readRaw(env, 'public_game_magic_v2_shard_debits');
+      if (!rv.ok || !rd.ok || rv.raw === null) return { ok: false };
+      var v, d = { v: 1, vil: {} };
+      try { v = JSON.parse(rv.raw); if (rd.raw !== null) d = JSON.parse(rd.raw); } catch (e) { return { ok: false }; }
+      if (!v || typeof v !== 'object' || v.wtest !== 1 || !d || typeof d.vil !== 'object') return { ok: false };
+      // 使えるかけら＝村のかけら −（まだ差し引いていない支払い）。少なくとも target になるように、村のかけらを増やす
+      var have = v.carry && Number.isInteger(v.carry.shard) ? v.carry.shard : 0, applied = v.shardApplied && typeof v.shardApplied === 'object' ? v.shardApplied : {}, mine = d.vil[T.vid] || {}, un = 0;
+      for (var id in mine) if (!applied[id]) un += (mine[id] && mine[id].n) || 0;
+      var usable = Math.max(0, have - un);
+      if (usable >= T.target) return { ok: true, added: 0 };
+      v.carry = v.carry || { inv: [], gold: 0, shard: 0, eq: {} };
+      v.carry.shard = have + (T.target - usable);
+      var text = JSON.stringify(v), w = await IO.writeRaw(env, 'public_game_village', text);
+      if (!w.ok) return { ok: false };
+      await IO.writeRaw(env, 'public_game_village_bk', text);
+      try { sessionStorage.setItem('public_game_village', text); } catch (e) {}
+      return { ok: true, added: T.target - usable };
+    }).then(function (r) { return r && r.ok !== undefined ? r : { ok: false }; }, function () { return { ok: false }; });
+  }
+  var RF = { busy: false };
+  function refillBar() {
+    var main = doc.getElementById('main');
+    if (!main || doc.getElementById('wt-refill-bar')) return;
+    var bar = el('div', 'margin:8px 0;padding:8px 10px;border:1px solid #c9a24a;border-radius:8px;background:rgba(40,22,60,.72);display:flex;flex-wrap:wrap;gap:8px;align-items:center');
+    bar.id = 'wt-refill-bar';
+    var b = el('button', 'min-height:44px;padding:6px 14px;font:inherit;border-radius:8px;border:1px solid #ffd24a;background:#3a2a10;color:#ffe39a', 'テスト素材を補充');
+    b.type = 'button'; b.id = 'wt-refill'; b.className = 'btn';
+    var s = el('span', 'flex:1 1 200px;font-size:.9rem;color:#f0e8ff', 'テスト用：素材とかけらを、それぞれ ' + T.target + ' 個まで補充できます（多いものは減りません）。');
+    s.id = 'wt-refill-status'; s.setAttribute('role', 'status');
+    b.addEventListener('click', function () {
+      if (RF.busy) return;
+      if (staleCheck()) return;
+      RF.busy = true; b.disabled = true; s.textContent = '補充しています…';
+      var env = typeof mofEnv === 'function' ? mofEnv() : { storage: window.localStorage, locks: navigator.locks }, target = {}, MF = window.MagicWorkshop.mainBridge.materialForge;
+      T.materials.forEach(function (id) { target[id] = T.target; });
+      MF.topUp(env, T.vid, target).then(function (r) {
+        if (!r || !r.ok) return { mat: r, sh: null };
+        return shardTopUp(env).then(function (sh) { return { mat: r, sh: sh }; });
+      }, function () { return { mat: { ok: false }, sh: null }; }).then(function (x) {
+        RF.busy = false; b.disabled = false;
+        if (!x.mat || !x.mat.ok) s.textContent = x.mat && /PENDING/.test(String(x.mat.code)) ? '前の錬成の確かめが終わっていないので、補充しませんでした（素材と魔法はそのまま）。上の「前の錬成を確かめる」を先に押してください。' : '補充できませんでした（素材はそのまま）。少し待ってから、もう一度お試しください。';
+        else {
+          var n = Object.keys(x.mat.added || {}).length;
+          s.textContent = (n ? n + ' 種類の素材を ' + T.target + ' 個まで補充しました。' : '素材は、もう ' + T.target + ' 個以上あります。') + (x.sh && x.sh.ok ? (x.sh.added ? 'かけらも ' + T.target + ' 個まで補充しました。' : 'かけらも足りています。') : 'かけらは補充できませんでした（もう一度お試しください）。');
+        }
+        try { if (typeof mofRefresh === 'function') mofRefresh().then(function () { if (typeof mofRerender === 'function') mofRerender(); }); } catch (e) {}
+      });
+    });
+    bar.appendChild(b); bar.appendChild(s);
+    main.insertBefore(bar, main.firstChild);
+  }
+  // ---- 本編のページ：タイトルを出さずに、テストの村へ（冒険の途中があれば続きへ）。はじめての村で、無限の魔水（テスト用）を渡す
+  function startGame() {
+    // 本編のはじまり（main-official/boot.js）は、魔法の読みこみを待ってから村に入るので、村に入ったのを見てから渡す
+    var gift = setInterval(function () {
+      try {
+        if (typeof MODE === 'undefined' || MODE !== 'village' || !VS || VS.wtest !== 1 || MS.length) return;
+        if (VS.wtGift) { clearInterval(gift); return; }
+        if (!P || !P.inv) return;
+        if (!P.inv.some(function (i) { return i.key === 'testmamizu'; }) && !testGive('testmamizu')) { clearInterval(gift); return; }
+        VS.wtGift = 1; vSave(); clearInterval(gift);
+        msg('工房テスト：井戸の「テスト用の冒険」で、作った魔法を試せる。', 'gold');
+        render();
+      } catch (e) {}
+    }, 300);
+    // 井戸：テストの村では「テストの魔法工房へ行く」
+    if (typeof testChest === 'function') {
+      var baseChest2 = testChest;
+      testChest = function () {
+        baseChest2.apply(this, arguments);
+        var m = MS[MS.length - 1];
+        if (!m || m.title !== 'テスト用の隠し宝箱') return;
+        if (m.sel >= 1) m.sel++;
+        m.items.splice(1, 0, { label: 'テストの魔法工房へ行く', col: '#cfa8ff', right: '→', action: function () { closeAll(); if (typeof mofbGoWorkshop === 'function') mofbGoWorkshop(); } });
+        drawMenu();
+      };
+    }
+    var begin = function () {
+      try { if (typeof hideScreen === 'function') hideScreen(); } catch (e) {}
+      try { if (typeof hasSave === 'function' && hasSave()) continueGame(); else enterVillage('title'); } catch (e) {}
+    };
+    setTimeout(begin, 0);
+  }
+  function boot() {
+    if (!T.ok || !T.isolated) { showUnavailable(); return; }
+    if (T.init !== 'done') { showUnknown(); return; }
+    banner();
+    // 古くなっていないかを、ときどき・画面にもどったときに確かめる
+    setInterval(staleCheck, 2000);
+    window.addEventListener('focus', staleCheck);
+    doc.addEventListener('visibilitychange', staleCheck);
+    if (GAME) startGame();
+    else refillBar();
+  }
+  if (doc.body) boot(); else doc.addEventListener('DOMContentLoaded', boot);
+})();
 
 </script>
 </body>
