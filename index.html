@@ -1001,7 +1001,7 @@ body.mob .pc .bar{width:70px;height:4px}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.202'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.203'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -20340,13 +20340,13 @@ requestAnimationFrame(loop);
     return !!(samples && typeof samples.has === 'function' && typeof id === 'string' && samples.has(id));
   }
   // birth：出生レコード（なければ null）。id：魔法の ID の全部。opt.samples：見本の ID の集まり（has）
-  // 新方式（nextFormat）の魔法：改名した名前か、「錬成：届き方・効果 #終わり 4 文字」
+  // 新方式（nextFormat）の魔法：改名した名前か、「届き方・効果 #終わり 4 文字」（Ver 0.1.203 で前の「錬成：」を外した。ユーザーの決定）
   var NX_EFF = { damage: '攻撃', heal: '回復', regen: '継続回復', barrier: '守り', def_up: '防御アップ', wall: '壁', cure: '状態を治す', revive: '蘇生', sleep: '眠り', chill: '凍え', shock: 'しびれ', confuse: '混乱', seal: '封印', slow: '鈍足', atk_down: '攻撃力ダウン', poison: '毒', burn: '火傷', ensho: '炎焼', toxic: '猛毒' };
   function labelNext(rec) {
     if (typeof rec.name === 'string' && rec.name.trim()) return rec.name.trim();
     var sp = rec.spell || {}, seen = [], effs = [];
     (sp.effects || []).forEach(function (e) { var n = e && (e.kind === 'status' ? NX_EFF[e.status] : NX_EFF[e.kind]); if (n && seen.indexOf(n) < 0) { seen.push(n); effs.push(n); } });
-    return '錬成：' + (own(DEL, sp.delivery) ? DEL[sp.delivery] : '') + '・' + effs.join('＋') + ' #' + tail(rec.id);
+    return (own(DEL, sp.delivery) ? DEL[sp.delivery] : '') + '・' + effs.join('＋') + ' #' + tail(rec.id);
   }
   function label(birth, id, opt) {
     if (birth && birth.nextFormat === 'magic-spell-next') return labelNext(birth);
@@ -20356,7 +20356,7 @@ requestAnimationFrame(loop);
     if (typeof birth.nickname === 'string' && birth.nickname.trim()) return birth.nickname.trim();
     var del = own(DEL, birth.delivery.kind) ? DEL[birth.delivery.kind] : '';
     var effs = birth.effects.map(function (e) { return e && own(EFF, e.effect) ? EFF[e.effect] : (e && e.effect); }).join('＋');
-    return '錬成：' + del + '・' + effs + ' #' + tail(key) + (isSample(key, opt && opt.samples) ? '（見本）' : '');
+    return del + '・' + effs + ' #' + tail(key) + (isSample(key, opt && opt.samples) ? '（見本）' : '');
   }
   return { EFF: EFF, DEL: DEL, label: label, isSample: isSample, tail: tail };
 });
@@ -24175,7 +24175,8 @@ function mbDrawIns(cpx,cpy,t){
     if (typeof rec.name === 'string' && rec.name.trim()) return rec.name.trim();
     var sp = rec.spell || {};
     var effs = uniq((sp.effects || []).map(effName)).join('＋');
-    return '錬成：' + (DEL[sp.delivery] || '') + '・' + effs + ' #' + tail(rec.id);
+    // Ver 0.1.203：前の「錬成：」を外した（完成の画面で「魔法名：」を付けるため。ユーザーの決定）
+    return (DEL[sp.delivery] || '') + '・' + effs + ' #' + tail(rec.id);
   }
   // 威力の評価（POWER_RANK_COMPLETION_SPEC・採用ずみ 2026-11-22）。効果ごと・15 段階（表示は S〜D の 5 文字）。
   // ・比べる帯は、その魔法の最終の必要たまりの帯（同じ消費帯の標準を B）。同調・術者のシンクロ・装備の前の固有の値（誰にセットしても同じ）。
@@ -24245,7 +24246,7 @@ function mbDrawIns(cpx,cpy,t){
     out.push(['魔法の種類', uniq(sp.effects.map(function (e) { return e.kind === 'damage' ? '攻撃' : e.kind === 'status' ? '状態' : (e.kind === 'barrier' || e.kind === 'def_up' || e.kind === 'wall') ? '防御' : '回復'; })).join('・')]);
     out.push(['届き方', SHAPE[sp.shape] || sp.shape]);
     out.push(['範囲', AREA[sp.area] || sp.area]);
-    out.push(['必要なたまり', String(sp.finalNeed)]);
+    out.push(['必要な魔力', String(sp.finalNeed)]);
     sp.effects.forEach(function (e, i) {
       var head = (i === 0 ? '主の効果' : '追加の効果') + '：' + effName(e), v = '';
       if (e.kind === 'damage') v = (ELEM[e.element] || '') + 'の攻撃';
@@ -25331,7 +25332,7 @@ function mofbGoWorkshop(){
   function refillBar() {
     var main = doc.getElementById('main');
     if (!main || doc.getElementById('wt-refill-bar')) return;
-    var bar = el('div', 'margin:8px 0;padding:8px 10px;border:1px solid #c9a24a;border-radius:8px;background:rgba(40,22,60,.72);display:flex;flex-wrap:wrap;gap:8px;align-items:center');
+    var bar = el('div', 'margin:8px 0;padding:8px 10px;border:1px solid #c9a24a;border-radius:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center');
     bar.id = 'wt-refill-bar';
     var b = el('button', 'min-height:44px;padding:6px 14px;font:inherit;border-radius:8px;border:1px solid #ffd24a;background:#3a2a10;color:#ffe39a', 'テスト素材を補充');
     b.type = 'button'; b.id = 'wt-refill'; b.className = 'btn';
