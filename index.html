@@ -1001,7 +1001,7 @@ body.mob .pc .bar{width:70px;height:4px}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.204'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.205'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -24261,8 +24261,7 @@ function mbDrawIns(cpx,cpy,t){
       out.push([head, v + (pr ? '・威力 ' + pr.letter + '（' + gradeText(pr.grade) + '）' : e.kind === 'cure' || e.kind === 'revive' ? '・威力 —' : '')]);
     });
     if (sp.wall) out.push(['壁の性質', (sp.wall.reflect ? '反射' : '') + (sp.wall.resist ? (sp.wall.reflect ? '・' : '') + (sp.wall.resist.kind === 'element' ? ELEM[sp.wall.resist.element] + '耐性' : sp.wall.resist.kind === 'magic' ? '魔法耐性' : '物理耐性') : '') || 'なし']);
-    var ms = rec.birth && rec.birth.manaSync;
-    out.push(['魔力同調', ms >= 4 ? '効果 +' + (ms === 5 ? 2 : 1) + '%' : '補正なし']);
+    // Ver 0.1.205（ユーザーの決定）：魔力同調の結果は画面に出さない（効果の補正は、中ではそのまま足す）
     return out;
   }
   // 短い説明（同じ効果は 1 回）
@@ -24704,6 +24703,58 @@ function mnCommit(a,sp,choice){
   try{mnApply(a,sp,pl,rv);}finally{a._sk=0;}
   return true;
 }
+/* ---------- 演出（Ver 0.1.205：ユーザーの依頼「生成した魔法にも、当たるときのエフェクトを」） ----------
+   本編の技の演出の部品（vfx の魔法陣・柱・輪・落雷・光線・経文・渦・光）と効果音だけを使う。数値・当たり判定・保存は変えない（見た目と音だけ）。
+   主の効果と属性で選ぶ：炎＝フレイムバーストの火柱・氷＝氷の柱・雷＝落雷・無属性の攻撃＝光の衝撃・毒／猛毒＝紫の渦・眠り／混乱／封印／鈍足／攻撃力ダウン＝色の輪・
+   回復／継続回復＝翠緑の柱と経文・守り／防御アップ＝金の柱と輪・壁＝青い輪と柱・霧＝場所に色の輪。弾の魔法は、唱えた仲間から光線が飛ぶ。
+   試験場の部屋（工房）には vfx がないので、そこでは何もしない。 */
+const MNFX={
+  fire:{c:'255,90,20',c2:'255,240,160',pc:'#ffb040',ring:'255,160,60',fl:'255,140,40',s:'hit_fire',sh:9},
+  ice:{c:'110,200,255',c2:'235,250,255',pc:'#bfefff',ring:'190,240,255',fl:'170,230,255',s:'hit_ice',sh:7},
+  thunder:{bolt:1,ring:'255,240,120',fl:'255,250,190',s:'hit_bolt',sh:12},
+  none:{c:'230,210,255',c2:'255,255,255',pc:'#efe2ff',ring:'225,200,255',fl:'235,220,255',s:'crit',sh:6},
+  poison:{spiral:1,ring:'190,120,255',dark:'40,0,50',s:'hit_poison',sh:0},
+  sleep:{ring:'170,170,255',s:'mcircle'},confuse:{spiral:1,ring:'255,150,220',s:'mcircle'},seal:{ring:'150,110,200',dark:'20,0,30',s:'mc_dark'},
+  slow:{ring:'140,230,255',s:'stice'},atk_down:{ring:'200,160,255',s:'mc_dark'},chill:{ring:'170,230,255',s:'stice'},shock:{bolt:1,ring:'255,240,120',s:'stbolt'},
+  burn:{c:'255,90,20',c2:'255,240,160',pc:'#ffb040',ring:'255,140,60',s:'stfire'},
+  heal:{c:'140,255,170',c2:'255,250,200',pc:'#c8ffb0',ring:'140,255,170',sutra:1,s:'hit_heal'},
+  guard:{c:'255,210,100',c2:'255,250,220',pc:'#ffe08a',ring:'255,220,120',sutra:1,s:'hit_barrier'},
+  wall:{c:'150,200,255',c2:'235,250,255',pc:'#cfe8ff',ring:'170,220,255',s:'hit_barrier'}
+};
+function mnFxKey(sp){
+  const m=sp.effects[0];if(!m)return'none';
+  if(sp.delivery==='wall')return'wall';
+  if(m.kind==='damage')return MNFX[m.element]?m.element:'none';
+  if(m.kind==='heal'||m.kind==='regen'||m.kind==='cure'||m.kind==='revive')return'heal';
+  if(m.kind==='barrier'||m.kind==='def_up')return'guard';
+  if(m.kind==='status'){const st=m.status;if(st==='poison'||st==='toxic')return'poison';if(st==='burn'||st==='ensho')return'burn';return MNFX[st]?st:'sleep';}
+  return'none';
+}
+function mnFx(a,sp,pl){
+  try{
+    if(typeof vfx!=='function'||typeof tileC!=='function'||typeof ctr!=='function'||!G)return;
+    const k=mnFxKey(sp),F=MNFX[k]||MNFX.none,[x,y]=ctr(a),col=F.c||F.ring||'255,255,255';
+    // 唱えた仲間の足元の魔法陣
+    vfx({k:'circle',x,y:y+8,r:1.6,c:F.ring||col,spin:1.4,star:true,dur:1100});
+    let tg=[];
+    if(sp.delivery==='wall'&&pl.center)tg=[{x:pl.center[0],y:pl.center[1]}];
+    else if(sp.delivery==='mist')tg=(pl.cells||[]).filter((c,i)=>i%3===0).slice(0,12).map(c=>({x:c[0],y:c[1]}));
+    else tg=(mnFriendly(sp)?pl.mates:pl.foes)||[];
+    tg.forEach((t,i)=>{
+      const [mx,my]=tileC(t),d=260+i*70;
+      if(sp.delivery==='bolt')vfx({k:'beam',x,y,x1:mx,y1:my,w:10,c:F.ring||col,pc:F.pc||'#ffffff',dur:420,delay:120+i*60});
+      if(F.bolt)vfx({k:'bolt',x:mx,y:my+8,r:1,h:120,dur:600,delay:d});
+      if(F.spiral)vfx({k:'spiral',x:mx,y:my,r:2.2,dur:900,delay:d-60});
+      if(F.sutra)vfx({k:'sutra',x:mx,y:my+8,r:1.2,dur:1100,delay:d-80});
+      if(F.c)vfx({k:'pillar',x:mx,y:my+10,w:18,h:sp.delivery==='mist'?50:90,c:F.c,c2:F.c2,pc:F.pc,dur:750,delay:d});
+      vfx({k:'ring',x:mx,y:my+8,r:1,c:F.ring||col,dur:520,delay:d+30});
+    });
+    if(F.dark)vfx({k:'dark',c:F.dark,dur:800});
+    if(F.fl)vfx({k:'flash',c:F.fl,dur:360,delay:300});
+    const G0=G;
+    setTimeout(()=>{if(G===G0&&G&&!G.over){if(typeof sfx==='function')sfx(F.s);if(F.sh&&typeof shakeA!=='undefined')shakeA=Math.max(shakeA,F.sh);}},300);
+  }catch(e){}
+}
 function mnApply(a,sp,pl,rv){
   const R=mnRT(),lv=a.lv||1,band=sp.genBand,ef=sp.effects,main=ef[0],added=ef.slice(1);
   const crc=R.cureReviveChance(a.key).chance;
@@ -24713,6 +24764,7 @@ function mnApply(a,sp,pl,rv){
     if(mnRoll(crc))mnRevive(rv,R.REVIVE_HP.added);else msg(rv.name+'はよみがえらなかった…','bad');
   };
   msg(a.name+'の「'+sp.name+'」！','good');
+  mnFx(a,sp,pl);
   if(sp.delivery==='wall'){
     const c=pl.center,hp=R.wallHp(sp,a.key,a.maxHp);
     const w={v:1,kind:'wall',id:'w'+G.mnCasts,run:G.mnRun,floor:G.floor,castTurn:G.turn,x:c[0],y:c[1],hp:hp.hp,maxHp:hp.hp,turns:R.WALL.turns,reflect:!!sp.wall.reflect,resist:sp.wall.resist?R.clone(sp.wall.resist):null,caster:a.key,name:sp.name};
