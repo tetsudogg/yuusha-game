@@ -1,72 +1,145 @@
 <!doctype html><html lang="ja"><head>
 <script>
 /* main-official/first-backup.js */
-/* 本編への反映（MAIN_GAME_WORKSHOP_RELEASE_INSTRUCTIONS.md 3 節・Ver 0.1.199）：更新のあと、はじめて開いたときに、今あるセーブの原文を 1 回だけ控える。
-   正式の本編（index.html）と工房（workshop.html）の、ほかのどのスクリプトよりも先に読む（ゲームの読みこみ・初期化・自動保存より前）。
-   ・控えるもの：このページの localStorage のうち、名前が public_game_ で始まるもの全部の原文（読めない・こわれた中身も、そのままの文字で）。
-     村の記録の同じタブの予備（sessionStorage の public_game_village）も。前の版にあった名前のうち、今ない名前（absent）も書く。
-     控え自身・試遊の領域・本人限定の確認用の領域（それぞれの前置きつきの名前）は入れない。ほかの名前（ほかのゲーム・個人版）は読まない。
-   ・しまう所：localStorage の public_game_backup_pre0199（1 回だけ。もうあれば何もしない・上書きしない・自動では消さない）。
-     書いたあと読みもどして、同じ文字か確かめる。そのあと、もう一度元の記録を読み、控えたときと変わっていないか確かめる（ほかのタブが書いていないか）。
-   ・控えを確かめられないとき（容量・読めない・書けない・読みもどしがちがう・ほかのタブが変えた）：
-     ゲームの書きこみ・消しこみを止め（元の記録を変えない・新しいゲームにしない）、知らせを出す。「もう一度ためす」か、
-     「控えをファイルに書き出す」（冒険の途中もふくむ・この端末の中だけ。どこにも送らない）で守ってから進む。進むときはページを読みなおす。
-   ・元にもどす（復元）は自動ではしない（更新のあとの進みを消さないため）。ページの名前の後ろに #hikae を付けて開くと、控えをファイルに書き出せる。
-   ・本人限定の確認用（保存の名前に前置きを付けるページ）では何もしない。 */
+/* 本編への反映（MAIN_GAME_WORKSHOP_RELEASE_INSTRUCTIONS.md 3 節）と、その補強（MAIN_RELEASE_BACKUP_REVISION_INSTRUCTIONS.md・Ver 0.1.200）：
+   今あるセーブの原文を、ゲームが読みこむ・保存するより前に控える。正式の本編（index.html）と工房（workshop.html）の、ほかのどのスクリプトよりも先に読む。
+
+   ■ 控えの形（Ver 0.1.200 から。確かめが終わったものだけを「控えあり」とみなす）
+     ・控えの本体  public_game_backup_v2_c_<番号>  ＝ {v:2, kind:'raw-backup', id, at, to, note, ls:{名前:原文}, ss:{名前:原文}, absent:[…], legacy0199:'present'|'absent'}
+     ・完了の記録  public_game_backup_v2_d_<番号>  ＝ {v:2, kind:'backup-done', id, key（本体の名前）, len（本体の文字数）, hash（本体の文字の印）, at}
+       完了の記録は、次の全部が済んでから書く：本体を書く → 読みもどして同じ文字か → 元の記録をもう一度読んで、控えたときと同じか（ほかのタブが書いていないか）。
+       起動のたびに、完了の記録と本体が合うか（名前・文字数・印・形）を確かめる。合う組が 1 つでもあれば「控えあり」。
+       こわれた・途中の・知らない形のものは、そのまま残す（直さない・上書きしない・消さない）。成功とはみなさない。
+     ・途中で止まった本体（完了の記録がない）は、中身が今の記録と同じなら、その本体で続きの確かめをして完了の記録を書く。ちがえば残したまま、新しい番号で作る。
+     ・Ver 0.1.199 の控え（public_game_backup_pre0199）は、完了の印がなく、古い呼び名の変換で文字が変わった可能性もあるので、「控えあり」の理由にしない。
+       さわらない（直さない・消さない）。新しい控えは「今の時点」の記録で、0.1.199 の公開の前の原文ではない（note に書く）。
+   ■ 控えるもの：localStorage の、名前が public_game_ で始まるもの全部の原文（こわれた中身も、そのままの文字で）。村の同じタブの予備（sessionStorage）も。
+     入れないもの：控えの鍵ぜんぶ（public_game_backup_ で始まる名前＝控えの控えにしない）・試遊と本人限定の確認用の領域。ほかの名前（ほかのゲーム・個人版）は読まない。
+     localStorage か sessionStorage を読めないときは、「ない」とはみなさない（空の控えを作らない）。理由を出して止める。
+   ■ 控えを確かめられないとき：ゲームの書きこみ・消しこみを止め（元の記録を変えない・新しいゲームにしない）、知らせを出す。
+     「もう一度ためす」か、「控えを書き出す」（読めた範囲・冒険の途中もふくむ・この端末の中だけ）→ 保管できたのを本人が確かめてから進む。進むときはページを読みなおす。
+     書き出しで進んだ印は、書き出した中身の印つきで残す（public_game_backup_v2_x_<番号>）。入らないときは、このタブの中だけの印（window.name に、今の記録の印つき）で 1 回だけ進む。
+     どちらも「控えあり（確かめずみ）」とはちがう扱い（state は 'ok'・how は 'user_exported'）。
+   ■ 元にもどす（復元）は自動ではしない。ページの名前の後ろに #hikae を付けて開くと、今の記録・新しい控え・0.1.199 の控えを、まとめてファイルに書き出せる。
+   ■ 本人限定の確認用（保存の名前に前置きを付けるページ）では何もしない。 */
 (function () {
   'use strict';
-  var KEY = 'public_game_backup_pre0199', TO = 'Ver 0.1.199', NAME = 'pgbk0199ok';
+  var TO = 'Ver 0.1.200', PRE = 'public_game_backup_', V2 = PRE + 'v2_', LEGACY = PRE + 'pre0199';
   // 試遊・確認用の領域の前置き（ビルドの「試遊の部品が入っていないか」の確かめに掛からないよう、名前は分けて書く）
   var SKIP = ['public_game_' + 'ocheck1__', 'public_game_' + 'mtrial1__', 'public_game_' + 'ocheck_epoch'];
   // 前の版（Ver 0.1.157）が使っていた名前（ないものは absent に書く）
   var KNOWN = ['public_game_village', 'public_game_village_bk', 'public_game_save', 'public_game_save_bad', 'public_game_rec', 'public_game_perm', 'public_game_dex', 'public_game_story', 'public_game_prologue',
     'public_game_audio', 'public_game_mob', 'public_game_padcfg', 'public_game_zoom', 'public_game_sttest', 'public_game_evpreview'];
-  var st = { state: 'init', reason: null, dropped: 0, key: KEY };
+  var NOTE = 'この控えは、Ver 0.1.200 が最初に開いた時点の記録です（Ver 0.1.199 の公開の前の原文とは限りません）。';
+  var st = { state: 'init', reason: null, how: null, dropped: 0, v: 2 };
   window.__pgBackup = st;
   if (window.__MTRIAL && window.__MTRIAL.check) { st.state = 'skipped_check'; return; }
-  var LS, SS, P = Storage.prototype, rawSet = P.setItem, rawRemove = P.removeItem, rawClear = P.clear;
-  try { LS = window.localStorage; } catch (e) { LS = null; }
-  try { SS = window.sessionStorage; } catch (e) { SS = null; }
-  function skip(k) { if (k === KEY) return true; for (var i = 0; i < SKIP.length; i++) if (k.indexOf(SKIP[i]) === 0) return true; return false; }
-  function grab(S) {
-    var o = {}, ks = [];
-    if (!S) return o;
-    for (var i = 0; i < S.length; i++) { var k = S.key(i); if (typeof k === 'string' && k.indexOf('public_game_') === 0 && !skip(k)) ks.push(k); }
-    ks.sort();
-    for (var j = 0; j < ks.length; j++) { var v = S.getItem(ks[j]); if (v !== null) o[ks[j]] = v; }
-    return o;
+  var P = Storage.prototype, rawSet = P.setItem, rawRemove = P.removeItem, rawClear = P.clear;
+  // 保存の場所を取る（読めないときは null と理由。「ない」とは別）
+  function store(name) { try { var s = window[name]; if (!s || typeof s.getItem !== 'function') return null; void s.length; return s; } catch (e) { return null; } }
+  // 文字の印（控えの本体と完了の記録を結びつける。暗号ではない・取りちがえを見つけるため）
+  function hash(str) {
+    var h1 = 0xdeadbeef ^ str.length, h2 = 0x41c6ce57 ^ str.length;
+    for (var i = 0; i < str.length; i++) { var c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (h2 >>> 0).toString(16) + '-' + (h1 >>> 0).toString(16) + '-' + str.length;
   }
-  function collect() { return { ls: grab(LS), ss: grab(SS) }; }
-  function record(a) {
-    var absent = [];
-    for (var i = 0; i < KNOWN.length; i++) if (!Object.prototype.hasOwnProperty.call(a.ls, KNOWN[i])) absent.push(KNOWN[i]);
-    return { v: 1, kind: 'pre-update-raw-backup', to: TO, at: new Date().toISOString(), page: String(location.pathname || ''), ls: a.ls, ss: a.ss, absent: absent };
+  function skip(k) { if (k.indexOf(PRE) === 0) return true; for (var i = 0; i < SKIP.length; i++) if (k.indexOf(SKIP[i]) === 0) return true; return false; }
+  function keysOf(S, pred) { var ks = []; for (var i = 0; i < S.length; i++) { var k = S.key(i); if (typeof k === 'string' && pred(k)) ks.push(k); } ks.sort(); return ks; }
+  function grab(S) { var o = {}, ks = keysOf(S, function (k) { return k.indexOf('public_game_') === 0 && !skip(k); }); for (var j = 0; j < ks.length; j++) { var v = S.getItem(ks[j]); if (v !== null) o[ks[j]] = v; } return o; }
+  // 今の記録を読む。{ok:true, ls, ss, sig} か {ok:false, why:'lsread'|'ssread'}（読めない所を「ない」にしない）
+  function collect() {
+    var LS = store('localStorage'), SS = store('sessionStorage'), ls, ss;
+    if (!LS) return { ok: false, why: 'lsread' };
+    try { ls = grab(LS); } catch (e) { return { ok: false, why: 'lsread' }; }
+    if (!SS) return { ok: false, why: 'ssread', ls: ls };
+    try { ss = grab(SS); } catch (e) { return { ok: false, why: 'ssread', ls: ls }; }
+    return { ok: true, ls: ls, ss: ss, sig: hash(JSON.stringify([ls, ss])) };
   }
-  // 控えを作る。返す値：'ok' か、失敗の理由（read・quota・write・readback・mismatch・changed・nostorage）
-  function make() {
-    if (!LS) return 'nostorage';
-    var cur;
-    try { cur = LS.getItem(KEY); } catch (e) { return 'read'; }
-    // もうある控えは上書きしない（中身が読めなくても、そのまま残す）
-    if (cur !== null) { st.how = 'exists'; return 'ok'; }
-    try { if (String(window.name || '').indexOf(NAME) >= 0) { st.how = 'exported_tab'; return 'ok'; } } catch (e) {}
-    var a, text;
-    try { a = collect(); text = JSON.stringify(record(a)); } catch (e) { return 'read'; }
-    try { rawSet.call(LS, KEY, text); } catch (e) {
-      try { rawRemove.call(LS, KEY); } catch (e2) {}
-      return e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014) ? 'quota' : 'write';
+  function parse(t) { try { var o = JSON.parse(t); return o && typeof o === 'object' && !Array.isArray(o) ? o : null; } catch (e) { return null; } }
+  function isMap(o) { if (!o || typeof o !== 'object' || Array.isArray(o)) return false; for (var k in o) if (typeof o[k] !== 'string') return false; return true; }
+  function bodyOk(o, id) { return !!(o && o.v === 2 && o.kind === 'raw-backup' && o.id === id && isMap(o.ls) && isMap(o.ss) && Array.isArray(o.absent)); }
+  function idOf(k, head) { var id = k.slice(head.length); return /^[a-z0-9]{6,24}$/.test(id) ? id : null; }
+  // 確かめずみの控えがあるか：完了の記録と本体が合う組を探す（合わないものは、そのまま残す）
+  function verified(LS) {
+    var ds = keysOf(LS, function (k) { return k.indexOf(V2 + 'd_') === 0; });
+    for (var i = 0; i < ds.length; i++) {
+      var id = idOf(ds[i], V2 + 'd_'); if (!id) continue;
+      var d = parse(LS.getItem(ds[i]));
+      if (!d || d.v !== 2 || d.kind !== 'backup-done' || d.id !== id || d.key !== V2 + 'c_' + id || typeof d.hash !== 'string' || typeof d.len !== 'number') continue;
+      var body = LS.getItem(d.key);
+      if (typeof body !== 'string' || body.length !== d.len || hash(body) !== d.hash) continue;
+      if (!bodyOk(parse(body), id)) continue;
+      return { id: id, key: d.key };
     }
-    var back;
-    try { back = LS.getItem(KEY); } catch (e) { return 'readback'; }
-    if (back !== text) { try { rawRemove.call(LS, KEY); } catch (e) {} return 'mismatch'; }
-    // ほかのタブが、控えているあいだに書いていないか（書いていたら、古い控えを残さない）
-    var b;
-    try { b = collect(); } catch (e) { try { rawRemove.call(LS, KEY); } catch (e2) {} return 'read'; }
-    if (JSON.stringify(b) !== JSON.stringify(a)) { try { rawRemove.call(LS, KEY); } catch (e) {} return 'changed'; }
-    st.how = 'created'; st.count = Object.keys(a.ls).length;
+    return null;
+  }
+  // 書き出しで進んだ印（本人が保管を確かめた）。中身の印つきの形だけを受けつける
+  function exportedMark(LS) {
+    var xs = keysOf(LS, function (k) { return k.indexOf(V2 + 'x_') === 0; });
+    for (var i = 0; i < xs.length; i++) {
+      var id = idOf(xs[i], V2 + 'x_'), x = id && parse(LS.getItem(xs[i]));
+      if (x && x.v === 2 && x.kind === 'user-exported' && x.id === id && /^[0-9a-f]+-[0-9a-f]+-\d+$/.test(String(x.sig)) && typeof x.at === 'string') return x;
+    }
+    return null;
+  }
+  function newId() { var r = ''; try { var a = new Uint32Array(2); crypto.getRandomValues(a); r = a[0].toString(36) + a[1].toString(36); } catch (e) { r = Math.floor(Math.random() * 1e15).toString(36) + Date.now().toString(36); } return (r + 'aaaaaa').replace(/[^a-z0-9]/g, '').slice(0, 14); }
+  function quota(e) { return !!(e && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.code === 22 || e.code === 1014)); }
+  // 控えを作る・確かめる。返す値：'ok' か、失敗の理由（lsread・ssread・quota・write・readback・mismatch・changed・done_write・done_readback）
+  function make() {
+    var LS = store('localStorage');
+    if (!LS) return 'lsread';
+    var v;
+    try { v = verified(LS); } catch (e) { return 'lsread'; }
+    if (v) { st.how = 'verified'; st.id = v.id; return 'ok'; }
+    var a = collect();
+    if (!a.ok) return a.why;
+    st.sig = a.sig;
+    // 途中で止まった本体のうち、中身が今の記録と同じものがあれば、それで続きをする（同じ控えを増やさない）
+    var id = null, text = null, cs;
+    try {
+      cs = keysOf(LS, function (k) { return k.indexOf(V2 + 'c_') === 0; });
+      for (var i = 0; i < cs.length && !id; i++) {
+        var cid = idOf(cs[i], V2 + 'c_'); if (!cid || LS.getItem(V2 + 'd_' + cid) !== null) continue;
+        var t = LS.getItem(cs[i]), o = parse(t);
+        if (bodyOk(o, cid) && hash(JSON.stringify([o.ls, o.ss])) === a.sig) { id = cid; text = t; }
+      }
+    } catch (e) { return 'lsread'; }
+    var fresh = !id;
+    if (fresh) {
+      id = newId();
+      var absent = [], legacy;
+      for (var j = 0; j < KNOWN.length; j++) if (!Object.prototype.hasOwnProperty.call(a.ls, KNOWN[j])) absent.push(KNOWN[j]);
+      try { legacy = LS.getItem(LEGACY) !== null ? 'present' : 'absent'; } catch (e) { return 'lsread'; }
+      text = JSON.stringify({ v: 2, kind: 'raw-backup', id: id, at: new Date().toISOString(), to: TO, note: NOTE, page: String(location.pathname || ''), ls: a.ls, ss: a.ss, absent: absent, legacy0199: legacy });
+      try { rawSet.call(LS, V2 + 'c_' + id, text); } catch (e) { return quota(e) ? 'quota' : 'write'; }
+    }
+    var key = V2 + 'c_' + id, back;
+    // 読みもどし：読めないとき（不明）は、本体をそのまま残して止まる（次の起動でも、完了の記録がないので「控えあり」にはならない）
+    try { back = LS.getItem(key); } catch (e) { return 'readback'; }
+    if (back !== text) { if (fresh) { try { rawRemove.call(LS, key); } catch (e) {} } return 'mismatch'; }
+    // 元の記録が、控えたときと同じか（ほかのタブが書いていないか）。変わっていたら、今回作った本体は残さない
+    var b = collect();
+    if (!b.ok) return b.why;
+    if (b.sig !== a.sig) { if (fresh) { try { rawRemove.call(LS, key); } catch (e) {} } return 'changed'; }
+    // ここまで済んで、はじめて完了の記録を書く
+    var done = JSON.stringify({ v: 2, kind: 'backup-done', id: id, key: key, len: text.length, hash: hash(text), at: new Date().toISOString(), to: TO }), dk = V2 + 'd_' + id, dback;
+    try { rawSet.call(LS, dk, done); } catch (e) { return quota(e) ? 'quota' : 'done_write'; }
+    try { dback = LS.getItem(dk); } catch (e) { return 'done_readback'; }
+    if (dback !== done) { try { rawRemove.call(LS, dk); } catch (e) {} return 'done_readback'; }
+    st.how = fresh ? 'created' : 'completed'; st.id = id; st.count = Object.keys(a.ls).length;
     return 'ok';
   }
-  // ---- 失敗のとき：書きこみ・消しこみを止める（元の記録を変えない）
+  // 控えは作れないが、本人が書き出して保管を確かめたとき（確かめずみの控えとは別の扱い）
+  function exportedOk() {
+    var LS = store('localStorage');
+    try { if (LS && exportedMark(LS)) { st.how = 'user_exported'; return true; } } catch (e) {}
+    // このタブの中だけの印：今の記録の印と同じときだけ（書き出したあと、何も変わっていないとき＝読みなおしの直後）
+    try { if (st.sig && (' ' + String(window.name || '') + ' ').indexOf(' pgbk2:' + st.sig + ' ') >= 0) { st.how = 'user_exported_tab'; return true; } } catch (e) {}
+    return false;
+  }
+  // ---- 失敗のとき：書きこみ・消しこみを止める（元の記録を変えない）。読みなおしが終わるまで止めたまま
   function block() {
     if (st.blocked) return;
     st.blocked = true;
@@ -74,51 +147,59 @@
     P.removeItem = function () { if (st.state === 'blocked') { st.dropped++; return; } return rawRemove.apply(this, arguments); };
     P.clear = function () { if (st.state === 'blocked') { st.dropped++; return; } return rawClear.apply(this, arguments); };
   }
+  // 書き出す文字：読めた範囲の今の記録と、控えの鍵ぜんぶ（新しい控え・0.1.199 の控え）の原文。読めなかった所は、読めなかったと書く
   function fileText() {
-    var a = collect(), o = record(a);
-    o.kind = 'manual-export';
-    try { var bk = LS && LS.getItem(KEY); if (bk !== null && bk !== undefined) o.firstBackupRaw = bk; } catch (e) {}
+    var LS = store('localStorage'), a = collect(), o = { v: 2, kind: 'manual-export', at: new Date().toISOString(), to: TO, page: String(location.pathname || '') };
+    o.ls = a.ls || null; o.ss = a.ok ? a.ss : null;
+    o.unreadable = a.ok ? [] : (a.why === 'lsread' ? ['localStorage', 'sessionStorage'] : ['sessionStorage']);
+    o.backups = {};
+    if (LS) { try { var ks = keysOf(LS, function (k) { return k.indexOf(PRE) === 0; }); for (var i = 0; i < ks.length; i++) o.backups[ks[i]] = LS.getItem(ks[i]); } catch (e) { o.unreadable.push('backups'); } }
+    if (o.ls === null && !Object.keys(o.backups).length) return null;
+    o.sig = a.ok ? a.sig : hash(JSON.stringify([o.ls, null]));
     return JSON.stringify(o);
   }
   function el(tag, style, text) { var e = document.createElement(tag); if (style) e.setAttribute('style', style); if (text !== undefined) e.textContent = text; return e; }
   var WHY = {
     quota: 'このブラウザの保存の場所がいっぱいで、控えを入れられませんでした。',
     changed: 'ほかのタブで、このゲームが動いているようです。このゲームのほかのタブを閉じてから、「もう一度ためす」を押してください。',
-    nostorage: 'このブラウザでは、保存の場所を使えませんでした。',
-    read: '今のセーブを読めませんでした。', write: '控えを書きこめませんでした。', readback: '控えを確かめられませんでした。', mismatch: '控えを確かめられませんでした。'
+    lsread: 'このブラウザの保存の場所を読めませんでした。',
+    ssread: 'このタブの中の予備の記録を読めませんでした（読めないものを「ない」とはしません）。',
+    write: '控えを書きこめませんでした。', readback: '控えを確かめられませんでした。', mismatch: '控えを確かめられませんでした。',
+    done_write: '控えの確かめの記録を書きこめませんでした。', done_readback: '控えの確かめの記録を確かめられませんでした。'
   };
   function show(mode) {
     var old = document.getElementById('pgbk'); if (old) old.remove();
     var box = el('div', 'position:fixed;inset:0;z-index:2147483647;background:rgba(8,5,16,.96);color:#f0e8ff;font:16px/1.7 sans-serif;overflow:auto;padding:18px;box-sizing:border-box');
     box.id = 'pgbk'; box.setAttribute('role', 'alertdialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'pgbk-h');
     var card = el('div', 'max-width:560px;margin:0 auto;background:#1a1228;border:2px solid #c9a24a;border-radius:10px;padding:16px');
-    var h = el('h1', 'font-size:19px;margin:0 0 8px;color:#ffe39a', mode === 'export' ? 'セーブの控えを書き出す' : 'セーブの控えを作れませんでした');
+    var h = el('h1', 'font-size:19px;margin:0 0 8px;color:#ffe39a', mode === 'export' ? 'セーブの控えを書き出す' : 'セーブの控えを確かめられませんでした');
     h.id = 'pgbk-h'; card.appendChild(h);
     var msg = el('p', 'margin:6px 0', '');
     msg.id = 'pgbk-msg'; card.appendChild(msg);
     function say(t) { msg.textContent = t; }
-    if (mode === 'export') say('今のセーブ（村・冒険の途中もふくむ）と、更新の前の控えを、この端末にファイルで書き出します。どこにも送りません。');
+    if (mode === 'export') say('今のセーブ（村・冒険の途中もふくむ）と、これまでの控えを、この端末に書き出します。どこにも送りません。');
     else {
-      say((WHY[st.reason] || '控えを確かめられませんでした。') + ' ゲームの更新の前に、今のセーブの控えを作るところです。セーブは変えていません。');
-      card.appendChild(el('p', 'margin:6px 0;color:#ffd0a0', 'セーブを守るため、控えができるまでゲームを始めません（このままでは、何も保存されません）。'));
+      say((WHY[st.reason] || '控えを確かめられませんでした。') + ' ゲームを始める前に、今のセーブの控えを作るところです。セーブは変えていません。');
+      card.appendChild(el('p', 'margin:6px 0;color:#ffd0a0', 'セーブを守るため、控えを確かめられるまでゲームを始めません（このままでは、何も保存されません）。'));
     }
     var btn = 'display:block;width:100%;min-height:48px;margin:10px 0 0;padding:8px 12px;font:inherit;border-radius:8px;border:1px solid #ffd24a;background:#3a2a10;color:#ffe39a';
     if (mode !== 'export') {
       var retry = el('button', btn, 'もう一度ためす'); retry.type = 'button'; retry.id = 'pgbk-retry';
       retry.addEventListener('click', function () {
-        var r = make();
+        var r; try { r = make(); } catch (e) { r = 'lsread'; }
         // 読みなおしが終わるまで、書きこみは止めたまま（止めていたあいだのゲームの中身を、読みなおしの直前に保存させない）
-        if (r === 'ok') { st.done = true; say('控えができました。ゲームを読みなおします…'); setTimeout(function () { location.reload(); }, 300); }
+        if (r === 'ok') { st.done = true; say('控えを確かめました。ゲームを読みなおします…'); setTimeout(function () { location.reload(); }, 300); }
         else { st.reason = r; say((WHY[r] || '控えを確かめられませんでした。') + ' セーブは変えていません。'); }
       });
       card.appendChild(retry);
     }
-    var go = null;
-    var ex = el('button', btn, '控えをファイルに書き出す'); ex.type = 'button'; ex.id = 'pgbk-export';
+    var go = null, lastSig = null;
+    var ex = el('button', btn, '控えを書き出す（ファイルと文字）'); ex.type = 'button'; ex.id = 'pgbk-export';
     ex.addEventListener('click', function () {
       var text;
-      try { text = fileText(); } catch (e) { say('セーブを読めなかったので、書き出せませんでした。セーブは変えていません。'); return; }
-      st.exported = text.length;
+      try { text = fileText(); } catch (e) { text = null; }
+      if (text === null) { say('セーブを読めなかったので、書き出せませんでした。セーブは変えていません。'); return; }
+      st.exported = text.length; lastSig = parse(text).sig;
       try {
         var a = document.createElement('a'), url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
         a.href = url; a.download = 'yuusha-save-hikae-' + new Date().toISOString().slice(0, 10) + '.json';
@@ -129,19 +210,19 @@
       var ta = document.getElementById('pgbk-text');
       if (!ta) { ta = el('textarea', 'display:block;width:100%;height:110px;margin-top:10px;box-sizing:border-box;font:12px/1.4 monospace;background:#0e0a18;color:#d8d0f0;border:1px solid #5a4a80;border-radius:6px'); ta.id = 'pgbk-text'; ta.readOnly = true; ta.setAttribute('aria-label', '控えの文字（コピー用）'); card.insertBefore(ta, ex.nextSibling); }
       ta.value = text;
-      say('控えを書き出しました（ファイルが保存されないときは、下の文字を全部コピーして、メモなどに残してください）。');
+      var part = parse(text).unreadable.length ? '（読めなかった所があります。読めた範囲だけです）' : '';
+      // ファイルが保存できたかは、プログラムからは分からない。本人に確かめてもらう
+      say('書き出しを始めました' + part + '。ファイルが保存されたか、または下の文字を全部コピーしてメモなどに残せたかを、ご自分で確かめてください。');
       if (go) go.style.display = 'block';
     });
     card.appendChild(ex);
     if (mode !== 'export') {
-      go = el('button', btn + ';display:none', '書き出したので、ゲームをはじめる'); go.type = 'button'; go.id = 'pgbk-go';
+      go = el('button', btn + ';display:none', '保管できたのを確かめたので、ゲームをはじめる'); go.type = 'button'; go.id = 'pgbk-go';
       go.addEventListener('click', function () {
-        // 書き出しで守ったしるし（小さい）。入らなければ、このタブの中だけのしるしで進む
-        var mark = JSON.stringify({ v: 1, kind: 'exported-by-user', to: TO, at: new Date().toISOString(), exported: true });
-        var okm = false;
-        try { rawSet.call(LS, KEY, mark); okm = LS.getItem(KEY) === mark; } catch (e) { okm = false; }
-        if (!okm) { try { rawRemove.call(LS, KEY); } catch (e) {} try { window.name = String(window.name || '') + ' ' + NAME; } catch (e) {} }
-        // ここでも、読みなおしが終わるまで書きこみは止めたまま
+        // 書き出しで進んだ印（書き出した中身の印つき）。入らなければ、このタブの中だけの印（今の記録の印つき）で 1 回だけ進む
+        var LS = store('localStorage'), id = newId(), mark = JSON.stringify({ v: 2, kind: 'user-exported', id: id, sig: String(lastSig), at: new Date().toISOString(), to: TO, reason: st.reason }), okm = false;
+        try { rawSet.call(LS, V2 + 'x_' + id, mark); okm = LS.getItem(V2 + 'x_' + id) === mark; } catch (e) { okm = false; }
+        if (!okm) { try { rawRemove.call(LS, V2 + 'x_' + id); } catch (e) {} try { window.name = (String(window.name || '').replace(/(^| )pgbk2:\S+/g, '') + ' pgbk2:' + String(lastSig)).trim(); } catch (e) {} }
         st.done = true;
         say('ゲームを読みなおします…');
         setTimeout(function () { location.reload(); }, 300);
@@ -158,11 +239,14 @@
   }
   function whenBody(fn) { if (document.body) fn(); else document.addEventListener('DOMContentLoaded', fn); }
   var r;
-  try { r = make(); } catch (e) { r = 'read'; }
+  try { r = make(); } catch (e) { r = 'lsread'; }
+  if (r !== 'ok' && exportedOk()) { st.failed = r; r = 'ok'; }
   if (r === 'ok') {
     st.state = 'ok';
     // 控えの書き出し（復旧のとき用）：ページの名前の後ろに #hikae
     try { if (location.hash === '#hikae') whenBody(function () { show('export'); }); } catch (e) {}
+    // 開いたまま #hikae を付けたときも出す
+    try { window.addEventListener('hashchange', function () { if (location.hash === '#hikae' && st.state === 'ok' && !document.getElementById('pgbk')) show('export'); }); } catch (e) {}
     return;
   }
   st.state = 'blocked'; st.reason = r;
@@ -2015,7 +2099,7 @@ body.mtw #mtw-book .mbv-more h4 { margin: 12px 0 6px; }
 <span id="creator-wrap"><label>作成者 <select id="creator"><option value="rizel">リゼル</option><option value="sevran">セヴラン</option></select></label></span>
 <div id="trial" data-active="core"></div>
 </main>
-<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.199" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
+<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.200" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
 <script>
 'use strict';
 // 魔法錬成 Stage 0：乱数・ハッシュ・正規化 JSON
