@@ -1001,7 +1001,7 @@ body.mob .pc .bar{width:70px;height:4px}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.212'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.213'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -4328,6 +4328,33 @@ function inflict(c,el,src,rate){ // 状態異常にする（src＝攻撃した�
   c.est=c.est||{};const was=c.est[el];c.est[el]={t:E.turns,d:Math.max(d,was?was.d:0)};if(was&&was.mo)c.est[el].mo=1;if(el==='ice')c.frz=chance(.5);
   msg(nameOf(c)+'は'+E.st+'になった！（'+E.turns+'ターン）','bad');popText(c,E.st,E.col);stFx(c,el);return true;}
 function estOn(c){if(!c||!c.est)return null;for(const el of ELORDER)if(c.est[el]&&c.est[el].t>0)return el;return null;}
+// Ver 0.1.213（ユーザーの依頼）：頭の上の状態ドット。今かかっている状態を、決まった順番（悪い状態が先・よい状態があと）で返す。表示だけ（強さ・保存は変えない）
+// 並びは Codex の承認ずみのスプライト（status-dots-v1 の status-sprites-8-v3.png）と同じ
+const STDOT=['poison','toxic','burn','ensho','chill','shock','sleep','confuse','seal','slow','atk_down','def_up','atk_up','regen','barrier','taunt'];
+function statusKeys(e){
+  if(!e||!(e.hp>0)||e.down>0)return[];
+  const S=e.est||{},on=el=>!!(S[el]&&S[el].t>0),nm=e.slip&&e.slip.t>0?String(e.slip.nm||''):'',mon=e.kind==='mon',team=e===P||e.kind==='ally',K={};
+  // 継続ダメージ（slip）の名前：猛毒・冥府の毒＝猛毒、炎焼＝炎焼、ほかの「毒」「火傷」（「火傷・毒」は両方）
+  if(nm==='猛毒'||nm==='冥府の毒')K.toxic=1;else if(nm.includes('毒'))K.poison=1;
+  if(nm==='炎焼')K.ensho=1;else if(nm.includes('火傷'))K.burn=1;
+  if(on('poison'))K.poison=1;
+  if(on('fire'))K.burn=1;
+  if(on('ice')||(mon&&e.frz2>0))K.chill=1;
+  if(on('bolt')||(mon&&e.stun>0))K.shock=1;
+  if(e.sleep>0&&!(mon&&typeof bossWaits==='function'&&bossWaits(e)))K.sleep=1;
+  if(e.conf>0)K.confuse=1;
+  if(mon&&(e.sealed||e.sealT>0))K.seal=1;
+  if(e.slow>0)K.slow=1;
+  if(mon&&e.adn>0&&e.adnT>0)K.atk_down=1;
+  if(team){
+    if((G&&G.gb&&G.gb.t>0)||e.gdT>0||e.guardT>0||(typeof mnGuardMax==='function'&&mnGuardMax(e,'def_up')>1))K.def_up=1;
+    if(e.bsk>0||e.berserk>0)K.atk_up=1;
+    if(e.rgT>0||(e.mnRegen&&e.mnRegen.left>0))K.regen=1;
+    if(typeof mnGuardMax==='function'&&mnGuardMax(e,'barrier')>0)K.barrier=1;
+    if(e.taunt>0||e.cvT>0)K.taunt=1;
+  }
+  return STDOT.filter(k=>K[k]);
+}
 function cureOne(c){ // Ver 0.1.9：かかっている状態異常から、ランダムに1つだけ治す（浄化の息吹）
   const L=[];if(c.est)for(const el of ELORDER)if(c.est[el]&&c.est[el].t>0)L.push('e:'+el);if(c.slip&&c.slip.t>0)L.push('slip');if(c.sleep>0)L.push('sleep');if(c.conf>0)L.push('conf');
   if(!L.length)return false;const k=pick(L);if(k==='slip')delete c.slip;else if(k==='sleep')c.sleep=0;else if(k==='conf')c.conf=0;else{const el=k.slice(2);delete c.est[el];if(el==='ice')c.frz=false;}
@@ -6953,6 +6980,18 @@ function drawFrame(t,dt){
 /* ---- 必殺技・魔王化の演出（Ver 2.1.1）：魔法陣・火柱・斬撃の輪・光線・カットイン ---- */
 function vfx(o){if(!G)return;(G.vfx||(G.vfx=[])).push(Object.assign({t0:now()},o));}
 function tileC(e){return[(e.x+.5)*TS,(e.y+.5)*TS];}
+// Ver 0.1.213（ユーザーの依頼）：頭の上の状態ドット。絵は Codex の承認ずみの 8×8 のスプライト（status-dots-v1/status-sprites-8-v3.png・128×8・sha256 063beaed…acd946afd6）をそのまま入れる
+const STDOT_SRC='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAAAICAYAAAAx3fd+AAAE4ElEQVR42qVXbUhbVxh+rq3rVJrVgnTuz2qWbeSOjcTBxIHDjZVpkaKMCoJbkVWokwnWWifiV4c/srYruOoKVkozS4v+mEhZHLPdJP2K3UxwmCwuaoXhJyRZRO1s3NmP23Ny7lc024HLfe95z3nfc9/nfZ9zjoAdtqwMM5ld8QlKWW9MInO19PFsAQCvo320xZunNyaeXqnbzo+yn0TcmvMFg1XQizcJu4iwL0fgbdDxvKzlR6nj/QsGq8DP371TAE8UtuKSo50AAJWVQfrtk3y83gtVf9u7JrT9BAIAVOYBP+/1ok4UCQBQmb6VtmYmC4DHLhjfjCXKmW+8CDyKrddu05j31U0gsMrGGLvLZGu4fOMiFhYWmL65toPZv2IrwOKUSwVSY69Z7edqPozHwJKURNyk7UcLxh9pgKwHZNhFlpPfYklAIm7SvuFhQFKZn0sibhLaY8HmljpZMG8H/nKB/6ZjkvjFX6t/qJvtAPB26kcyWWus+41kzf5yMiuT+UquE0Wc93qZvmbcizpRhD74IaabXfEJLVUi7DYRpoOA3SbKqpYH39hdBmN3GWDai5lPr6vW2VzbgebaDmRmZsqqvKJhGM+/koPG3hAae0NM1gIff94FAMxczVfZH6r0YKjSg+yD2hXPg3/mhpsB1r7hgXvjDxQHB1AcHGAyTQgefABY2m1Rs465C3guB/BVs2RQMQAAXPjgPmp/yJVVx4nCVkyMzjDgqays/ujDu3G3kXIyi8DtWU0dTYK5x0BntqiyT8EHgJlf0zUZoKVKBM8GdptIuIoHS4STRZKsqP4vLjQBAJMpC0hJAMYEFQ3DuuAbm54g0UbCLhJynpKBf/HDJ6DVH3cuB/6BqAcAENpjwRIUSeCrjiXCvB3wVYNE3CSJr/7liWjCi9cCX4sF+oQsmN47pGIBugXUjEvgUwaoGffKWML42jDwbI4Epg4DUJkygXI7M54sAkx7df9FiwF28v985dPqp9+CwSq0HZKq/kiPBUd6pO1gqNLD9mphX46QnncOIecpJN9+h4FP57emWGBNeVnmd3D/UdlefyAq2RMMViH9bw+e2bXNws1dEAxWISkrw0zqc/vguePHfGQa85Fp1Of2yYJ/ydGO1WgQq9Eg7q1/y2Tafh8dRWA9Knv4NjZyC4e35jA2cgvBf5LYw28BK4EpdGZLbyrzLOToT4N/0ikDn6dpygZFFYNoqZIziP/BJBylNjhKbVISPO1jCTvuweLCEgCg+vRx2Tf1X1OSBvcDJxaCm6gpSZMn57Gf4V+Msur3/zIK/6I8BnfGprC+HHuUDHCt+HOk552D3mGxNcWCtekw1qbDKvB93inGBrTqaZ9gsAp44WP45zal6gfgn3DGbNMfrM/tY51n75frnpJpoPlTcFaGmQyYYsOPBoiKIg9vzcl+6vtdLzJbZf2DuF5aDACgMt/n6E8DABSWrmmevHk/RRWD7PvmlWLmw1Fqk40t7G9guurTxzXtdX15WWKkkjRNfed3a7IYAIDjs9jyCr+OxYFE3OT9jlQAwEjTOgOQhF0k6KzH/ryzEuUrTv/bnfJJxE3uTadqn9le4vw8PfSRiJv4hyvxakGPxBhaV514QY4X/P96DdvuGqh19Ut0Hf/nmpfoNVBPr3tNiwP6js4QCV4z+RvEv3jUyiXf0ENnAAAAAElFTkSuQmCC';
+let STDOT_IM=null;
+function stdotImg(){if(typeof Image==='undefined')return null;if(!STDOT_IM){STDOT_IM=new Image();STDOT_IM.src=STDOT_SRC;}return STDOT_IM.complete&&STDOT_IM.naturalWidth?STDOT_IM:null;}
+// x＝HP バーの左はし・y＝HP バーの上の辺。バーにくっつけて、左から最大 4 つ（1 ドットのすき間）。5 つ以上は「＋」
+function drawStDots(e,x,y){
+  const ks=statusKeys(e);if(!ks.length)return;
+  const im=stdotImg();if(!im)return;
+  const n=Math.min(4,ks.length);
+  for(let i=0;i<n;i++)ctx.drawImage(im,STDOT.indexOf(ks[i])*8,0,8,8,x+i*9,y-8,8,8);
+  if(ks.length>4){const px=x+n*9,py=y-6;ctx.fillStyle='#0a0610';ctx.fillRect(px+1,py-1,3,5);ctx.fillRect(px,py,5,3);ctx.fillStyle='#ffffff';ctx.fillRect(px+2,py,1,3);ctx.fillRect(px+1,py+1,3,1);}
+}
 function cutin(key,name,sub,col,o){if(!G)return;G.cutin=Object.assign({t0:now(),key,name,sub,col,dur:1150},o||{});}
 function drawVfx(t,cpx,cpy){
   const L=G.vfx;if(!L||!L.length)return;G.vfx=L.filter(v=>t-v.t0<(v.delay||0)+v.dur);
@@ -7176,6 +7215,8 @@ function drawEnt(e,t,cpx,cpy,lights){
   if(hurt&&t-e.hurtT<110){ctx.globalAlpha=0.85;drawSpr(whiteOf(img),sx,sy,w,fl,h);ctx.globalAlpha=1;}
   if(e.kind==='mon'&&e.hp<e.maxHp&&!e.yielded){const bw=Math.round(18*sc),x=bx+12-Math.round(bw/2),y=sy-3;ctx.fillStyle='#0a0610';ctx.fillRect(x-1,y-1,bw+2,4);const r=e.hp/e.maxHp;ctx.fillStyle=r>.5?'#6ae070':r>.25?'#f0b030':'#f04848';ctx.fillRect(x,y,Math.max(1,Math.round(bw*r)),2);}
   if(e.kind==='ally'){const r=e.hp/e.maxHp,x=bx+3,y=sy-2;ctx.fillStyle='#0a0610';ctx.fillRect(x-1,y-1,20,4);ctx.fillStyle=r>.5?'#6ae070':r>.25?'#f0b030':'#f04848';ctx.fillRect(x,y,Math.max(1,Math.round(18*r)),2);}
+  // Ver 0.1.213：頭の上の状態ドット（HP バーの上。ラズは HP バーがないので頭のすぐ上）。盗んだ物の印が出ている敵は、その上に重ねない
+  if((e===P||e.kind==='ally'||(e.kind==='mon'&&!e.yielded&&!e.stolen)))drawStDots(e,e.kind==='mon'?bx+12-Math.round(Math.round(18*sc)/2)-1:bx+2,e.kind==='mon'?sy-4:sy-3);
   if(e.kind==='mon'&&e.stolen){const b=Math.round(Math.sin(t/180)*1.5),ix=bx+5,iy=sy-17+b,ic=SPR[iconKey(e.stolen)];
     ctx.fillStyle='#f0c542';ctx.fillRect(ix-1,iy-1,16,16);ctx.fillStyle='#2a1030';ctx.fillRect(ix,iy,14,14);if(ic)ctx.drawImage(ic,ix+1,iy+1,12,12);
     ctx.fillStyle='#f0c542';ctx.fillRect(ix+6,iy+15,2,2);lights.push({x:bx+12,y:sy-10,r:1.4,a:0.6,col:[255,210,90]});}
