@@ -1001,7 +1001,7 @@ body.mob .pc .bar{width:70px;height:4px}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.213'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.214'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -4349,7 +4349,7 @@ function statusKeys(e){
   if(team){
     if((G&&G.gb&&G.gb.t>0)||e.gdT>0||e.guardT>0||(typeof mnGuardMax==='function'&&mnGuardMax(e,'def_up')>1))K.def_up=1;
     if(e.bsk>0||e.berserk>0)K.atk_up=1;
-    if(e.rgT>0||(e.mnRegen&&e.mnRegen.left>0))K.regen=1;
+    if(e.rgT>0||(e.mnRegen&&e.mnRegen.left>0)||(e.mnAfter&&e.mnAfter.left>0))K.regen=1;
     if(typeof mnGuardMax==='function'&&mnGuardMax(e,'barrier')>0)K.barrier=1;
     if(e.taunt>0||e.cvT>0)K.taunt=1;
   }
@@ -23597,6 +23597,35 @@ function mbDrawIns(cpx,cpy,t){
   // ---- 2 契約の確かめ（保存から読んだ写しにも使う）
   // 上位の継続（炎焼 ensho・猛毒 toxic）も、第 2A の DOT の決まりで動かす（親の火傷・毒と同じボスの決まり。名前と生成率は未決のまま）
   var STATUS_NAMES = ['sleep', 'chill', 'shock', 'confuse', 'seal', 'slow', 'atk_down', 'poison', 'burn', 'ensho', 'toxic'];
+  // ---- ユニークスキル（突然変異）：Ver 0.1.214（ユーザーの決定 2026-11-23・codex/design UNIQUE_SKILL_SPEC_DRAFT.md）
+  // 生成でレジェンドになったとき、1/3 で 1 つ付く。名前はユーザーの決定。数値：rate＝発動率（%）・ほかは表のとおり。
+  // subjects＝付く魔法の種類。wall＝壁の魔法だけ（壁でない防御には付かない）。色＝壁の色（rgb）
+  var UNIQUE_RATE = 1 / 3;
+  var UNIQUE = {
+    echo: { name: '魔力反響', subjects: ['attack', 'heal'], rate: 30, desc: 'たまに、構築した魔法が空間に反響し、同じ効果がもう一度発動する。' },
+    drain: { name: '魔導吸収', subjects: ['attack'], rate: 100, needPct: 10, desc: '魔法が着弾すると同時に、相手の魔力を強制的に吸い取る。' },
+    resonance: { name: '魔導共鳴', subjects: ['attack'], rate: 25, mul: 2.5, desc: 'たまに術者と魔法が共鳴し、威力が大きく増幅して約2.5倍のダメージを与える。' },
+    explosion: { name: '爆発', subjects: ['status'], rate: 50, lvMin: 1.0, lvMax: 1.5, desc: '時々化学反応を起こし、見えている敵すべてに無属性の爆発ダメージを与える。' },
+    contagion: { name: '伝染', subjects: ['status'], rate: 100, desc: '強い感染力で、隣にいる敵1体にも同じ状態を感染させる。' },
+    erosion: { name: '侵食', subjects: ['status'], rate: 50, pool: ['poison', 'burn', 'chill', 'shock', 'sleep', 'confuse', 'slow'], desc: '体をむしばみ、時々別の状態異常がもう1つ現れる。' },
+    afterglow: { name: '生命の余韻', subjects: ['heal'], rate: 100, pct: 10, turns: 3, desc: '回復魔法の余韻が残り、回復量の約10%ずつを3ターンのあいだ回復し続ける。' },
+    balance: { name: '祝福の天秤', subjects: ['heal'], rate: 50, desc: '時々、生命への祝福が反転し、回復量と同じ値のダメージを敵に与える。' },
+    wall_spring: { name: '癒しの泉', subjects: ['defense'], wall: true, healPct: 10, color: '90,220,130', desc: '壁から癒しの力が湧き出し、まわりの味方のHPを毎ターン回復する。' },
+    wall_hellfire: { name: '地獄の炎', subjects: ['defense'], wall: true, status: 'ensho', color: '240,80,60', desc: '壁が地獄の炎をまとい、まわりの敵を毎ターン焼き焦がす。' },
+    wall_venom: { name: '流れる劇薬', subjects: ['defense'], wall: true, status: 'toxic', color: '190,100,240', desc: '壁から劇薬がしみ出し、まわりの敵を毎ターン猛毒でむしばむ。' },
+    wall_frost: { name: '魔氷の呪い', subjects: ['defense'], wall: true, status: 'chill', color: '150,225,255', desc: '壁に宿る魔氷の呪いが、まわりの敵を毎ターン凍えさせる。' },
+    wall_thunder: { name: '雷鳴の響', subjects: ['defense'], wall: true, status: 'shock', color: '255,225,80', desc: '壁に雷鳴が響き、まわりの敵を毎ターンしびれさせる。' },
+    wall_stench: { name: '猛毒の激臭', subjects: ['defense'], wall: true, status: 'toxic', all: true, color: '110,60,130', desc: '壁から強烈な毒の臭いがあふれ、敵も味方も関係なく、まわりの全員を猛毒にする。' }
+  };
+  var UNIQUE_ORDER = ['echo', 'drain', 'resonance', 'explosion', 'contagion', 'erosion', 'afterglow', 'balance', 'wall_spring', 'wall_hellfire', 'wall_venom', 'wall_frost', 'wall_thunder', 'wall_stench'];
+  // その魔法に付けられるユニークスキル（決まった順）。防御は壁だけ。壁の魔法には、壁のユニークだけ
+  function uniqueFor(subject, delivery) {
+    return UNIQUE_ORDER.filter(function (k) {
+      var u = UNIQUE[k];
+      if (u.subjects.indexOf(subject) < 0) return false;
+      return u.wall ? delivery === 'wall' : delivery !== 'wall';
+    });
+  }
   function validate(sp) {
     if (!sp || typeof sp !== 'object' || sp.format !== FORMAT || sp.version !== VERSION || !(sp.fixture === true || (sp.fixture === false && typeof sp.birthId === 'string'))) return fail('FORMAT');
     if (typeof sp.fixtureId !== 'string' || !own(SHAPE_TARGET, sp.shape)) return fail('SHAPE');
@@ -23614,6 +23643,8 @@ function mbDrawIns(cpx,cpy,t){
       if (e.kind === 'cure' && (!Number.isInteger(e.count) || e.count < 1)) return fail('CURE_VALUE', i);
       if (e.kind === 'revive' && (!num(e.hpRate) || e.hpRate <= 0 || e.hpRate > 100)) return fail('REVIVE_VALUE', i);
     }
+    // ユニークスキル：ない（前の記録）か、その種類に付けられるものだけ
+    if (own(sp, 'unique') && sp.unique !== null && sp.unique !== undefined && (typeof sp.unique !== 'string' || uniqueFor(sp.subject, sp.delivery).indexOf(sp.unique) < 0)) return fail('UNIQUE', sp.unique);
     return { ok: true };
   }
 
@@ -23731,7 +23762,8 @@ function mbDrawIns(cpx,cpy,t){
     FORMAT: FORMAT, VERSION: VERSION, CASTERS: CASTERS, SHAPE_TARGET: SHAPE_TARGET, WALL: WALL, MIST: MIST, REGEN: REGEN, REVIVE_HP: REVIVE_HP, ATTACK_SYNC: ATTACK_SYNC,
     toRuntime: toRuntime, fromGenerated: fromGenerated, SYNC_MUL: SYNC_MUL, validate: validate, supportOf: supportOf, AREA_RADIUS: AREA_RADIUS, needOf: needOf, attackPower: attackPower, damageTo: damageTo, statusRoll: statusRoll, dotAmount: dotAmount,
     healAmount: healAmount, defUpValue: defUpValue, barrierValue: barrierValue, wallHp: wallHp, cureReviveChance: cureReviveChance,
-    wallDamage: wallDamage, wallReflect: wallReflect, clone: clone, calc: K
+    wallDamage: wallDamage, wallReflect: wallReflect, clone: clone, calc: K,
+    UNIQUE: UNIQUE, UNIQUE_ORDER: UNIQUE_ORDER, UNIQUE_RATE: UNIQUE_RATE, uniqueFor: uniqueFor
   };
 });
 
@@ -23835,9 +23867,25 @@ function mbDrawIns(cpx,cpy,t){
       var v = RT.validate(sp);
       if (v.ok) out.push(sp); else errors.push({ id: d.id, code: v.code });
     });
+    // ユニークスキルの確かめ用（Ver 0.1.214）：上の試験用の魔法に、ユニークスキルだけを足したもの（テスト用の冒険の「新方式の魔法の試験」から唱える）
+    UNIQUE_FIX.forEach(function (d) {
+      var base = out.filter(function (x) { return x.fixtureId === d[1]; })[0];
+      if (!base || !RT.UNIQUE || !RT.UNIQUE[d[0]]) { errors.push({ id: 'uq_' + d[0], code: 'UNIQUE_BASE' }); return; }
+      var sp = RT.clone(base);
+      sp.fixtureId = 'uq_' + d[0] + (d[2] || ''); sp.name = '【ユニーク確認】' + RT.UNIQUE[d[0]].name + '（' + base.name.replace('【試験】', '') + '）'; sp.unique = d[0];
+      var v = RT.validate(sp);
+      if (v.ok) out.push(sp); else errors.push({ id: sp.fixtureId, code: v.code });
+    });
     return { ok: errors.length === 0, spells: out, errors: errors };
   }
-  return { LIST: LIST, build: build };
+  // [ユニークスキル, 元にする試験用の魔法, ID の終わり]
+  var UNIQUE_FIX = [
+    ['echo', 'atk_fire_r1_sleep_cure'], ['echo', 'heal_r1_revive_cure', '_heal'], ['drain', 'atk_ice_bolt_chill'], ['resonance', 'atk_fire_spread_r2'],
+    ['explosion', 'status_sleep_r1'], ['contagion', 'status_burn_single'], ['erosion', 'status_sleep_r1'],
+    ['afterglow', 'heal_r1_revive_cure'], ['balance', 'heal_r1_revive_cure'],
+    ['wall_spring', 'wall_physical_heal'], ['wall_hellfire', 'wall_physical_heal'], ['wall_venom', 'wall_physical_heal'], ['wall_frost', 'wall_physical_heal'], ['wall_thunder', 'wall_physical_heal'], ['wall_stench', 'wall_physical_heal']
+  ];
+  return { LIST: LIST, build: build, UNIQUE_FIX: UNIQUE_FIX };
 });
 
 </script>
@@ -24005,6 +24053,13 @@ function mbDrawIns(cpx,cpy,t){
     // 4 珍しさ：点数のとおり。Ver 0.1.211（ユーザーの決定 2026-11-23）でレジェンドを解禁した（前はエピックにとどめ、legendCapped の印を付けていた）
     // legendCapped は記録の形をそろえるため残す（新しく作る魔法はいつも false。前に作った「エピック（解禁の前）」の記録はそのまま）
     var rarity = pv.score && pv.score.rarity, capped = false;
+    // 5 ユニークスキル（突然変異）：Ver 0.1.214。レジェンドのときだけ、1/3 で 1 つ（その種類に付けられるものから同じ重みで）。
+    // 抽選は別の seed つきの列（'uq|'）。前の列（gen・pv）の値は動かさないので、ほかの結果・ID は前の版と同じ
+    var unique = null;
+    if (rarity === 'legendary') {
+      var ucand = RT.uniqueFor(pv.steps.main.subject, pv.steps.shape.delivery);
+      if (ucand.length) { var uq = RNG.createSeededRng('uq|' + base); if (uq.next() < RT.UNIQUE_RATE) unique = ucand[Math.min(ucand.length - 1, Math.floor(uq.next() * ucand.length))]; }
+    }
     var gen = {
       genBand: band, needPref: pref, baseNeed: baseNeed, finalNeed: pv.finalNeed, scoreBand: K.bandOfNeed(pv.finalNeed).band,
       mainKey: pv.steps.main.key, fromSub: pv.steps.main.fromSub, subject: pv.steps.main.subject, shape: pv.steps.shape.key, delivery: pv.steps.shape.delivery,
@@ -24016,6 +24071,8 @@ function mbDrawIns(cpx,cpy,t){
       rarityBreakdown: pv.score ? { effects: pv.score.effects.map(function (r) { return { index: r.index, kind: r.kind, points: r.points, grade: r.grade || null }; }), range: clone(pv.score.range), traits: clone(pv.score.traits), efficiency: pv.score.efficiency } : null,
       legendCapped: capped, effects: clone(pv.effects)
     };
+    // ユニークスキルが付いたときだけキーを足す（付かない記録の形は前の版と同じ）
+    if (unique) gen.unique = unique;
     return { ok: true, preview: pv, gen: gen, materials: mats, maker: maker, needPref: pref, traces: traces, base: base };
   }
   // 出生の記録（保存する形）。manaSync は工房の魔力同調の最高の判定（1〜5。なければ 3＝補正なし）
@@ -24026,6 +24083,8 @@ function mbDrawIns(cpx,cpy,t){
     var birth = { seed: input.seed, createdAt: input.createdAt === undefined ? null : input.createdAt, creatorId: generated.maker, materials: generated.materials.slice(), needPref: generated.needPref, manaSync: ms };
     var spell = RT.fromGenerated(generated.preview, { birthId: id, name: null, manaSync: ms });
     if (!spell.ok) return spell;
+    // ユニークスキルは、実行の契約（spell）にも入れる（本編は spell だけを読む）
+    if (generated.gen.unique) spell.spell.unique = generated.gen.unique;
     var rec = { nextFormat: FORMAT_ID, nextVersion: FORMAT_VERSION, id: id, birth: birth, gen: clone(generated.gen), spell: spell.spell };
     rec.digest = birthDigest(rec);
     return { ok: true, record: rec };
@@ -24283,6 +24342,14 @@ function mbDrawIns(cpx,cpy,t){
     };
   }
   // 表示だけの丸め（％は小数 1 桁・倍は 2 桁まで）。記録の値は丸めない（本編の magicnext の mnFmt と同じ）
+  // ユニークスキルの表（runtime.js）。使うときに読む（読みこみの順番に左右されないように）
+  function MWRT() {
+    try {
+      if (typeof module === 'object' && module.exports) return require('../generation-next/runtime/runtime.js');
+      var G0 = typeof globalThis !== 'undefined' ? globalThis : window;
+      return G0.MagicWorkshop.generationNext.runtime || null;
+    } catch (e) { return null; }
+  }
   function fmt(v, d) { var k = Math.pow(10, d || 1); return String(Math.round(v * k) / k); }
   // Ver 0.1.209（ユーザーの決定）：かかる確率は言葉で。pct は 0〜100（本編の chanceWord と同じ区切り）
   // 100＝確定で・70〜99＝高確率で・40〜69＝時々・1〜39＝たまに・0＝効かない
@@ -24309,6 +24376,8 @@ function mbDrawIns(cpx,cpy,t){
       out.push([head, v + (pr ? '・威力 ' + pr.letter + '（' + gradeText(pr.grade) + '）' : e.kind === 'cure' || e.kind === 'revive' ? '・威力 —' : '')]);
     });
     if (sp.wall) out.push(['壁の性質', (sp.wall.reflect ? '反射' : '') + (sp.wall.resist ? (sp.wall.reflect ? '・' : '') + (sp.wall.resist.kind === 'element' ? ELEM[sp.wall.resist.element] + '耐性' : sp.wall.resist.kind === 'magic' ? '魔法耐性' : '物理耐性') : '') || 'なし']);
+    // Ver 0.1.214：ユニークスキル（突然変異）
+    if (sp.unique && MWRT() && MWRT().UNIQUE[sp.unique]) out.push(['ユニークスキル', MWRT().UNIQUE[sp.unique].name + '：' + MWRT().UNIQUE[sp.unique].desc]);
     // Ver 0.1.205（ユーザーの決定）：魔力同調の結果は画面に出さない（効果の補正は、中ではそのまま足す）
     return out;
   }
@@ -24478,7 +24547,7 @@ function mnDowned(){return allies.filter(c=>c.down>0);}
 /* ---------- 効果の適用（確定の中だけ） ---------- */
 function mnRoll(pct){return Math.random()*100<pct;}
 // 状態：本編のしくみで付ける（無効・耐性・ミスを分ける）。返す値：'applied'|'miss'|'immune'|'resist'
-function mnStatus(t,e,a,refPower){
+function mnStatus(t,e,a,refPower,force){
   const R=mnRT();
   if(!t||!G.mons.includes(t)||!(t.hp>0)||t.absG||t.yielded)return'immune';
   const boss=isBoss(t),r=R.statusRoll(e,a.key,boss);
@@ -24488,7 +24557,9 @@ function mnStatus(t,e,a,refPower){
   if(imm){popText(t,'効かない','#b8b0d8');msg(nm+'には効かなかった','info');return'immune';}
   if(s==='shock'&&boss&&t.stunImm>0){popText(t,'耐性','#c8c0e8');msg(nm+'には、しびれへの耐性がついている','info');return'resist';}
   if(s==='seal'&&typeof sealResist==='function'&&sealResist(t)){popText(t,'耐性','#c8c0e8');msg(nm+'には、封印への耐性がついている','info');return'resist';}
-  if(!mnRoll(r.chance)){popText(t,'ミス','#b8b0d8');return'miss';}
+  // force＝ユニークスキル（伝染・侵食・壁）から：確率の判定は呼ぶ側で済んでいる（無効・耐性はここで見る）
+  if(!force&&!mnRoll(r.chance)){popText(t,'ミス','#b8b0d8');return'miss';}
+  if(mnX&&!force)mnX.st.push([t,e]);
   if(s==='sleep'){if((t.sleep||0)<900)t.sleep=Math.max(t.sleep||0,r.turns);popText(t,'眠り','#b8a8ff');msg(nm+'は眠った（'+r.turns+'ターン）','good');}
   else if(s==='chill'){t.frz2=Math.max(t.frz2||0,r.turns);popText(t,'凍え',ELEM.ice.col);msg(nm+'は凍えた（'+r.turns+'ターン）','good');}
   else if(s==='shock'){stunMon(t,r.turns,true,r.turns);msg(nm+'はしびれた（'+r.turns+'ターン）','good');}
@@ -24657,6 +24728,7 @@ function mnMistOn(e,x){
         if(!G.mons.includes(e))return;
         const dmg=R.damageTo(x.power,e.def);
         msg('魔法の霧が'+e.name+'をむしばむ（'+dmg+'）');
+        if(mnX)mnX.hit++;
         if(a)a._sk=1;
         try{noWake(()=>damageEnt(e,dmg,a||P,'魔法'));}finally{if(a)a._sk=0;}
       }else if(ef.kind==='status'){
@@ -24668,7 +24740,7 @@ function mnMistOn(e,x){
       if((ef.kind==='heal'||ef.kind==='regen')){
         if(x.noHeal&&x.noHeal.indexOf(id)>=0)return;
         const pct=x.pcts?x.pcts[i]:x.healPct;
-        if(typeof pct==='number')mnHealUnit(e,Math.max(0,Math.round(e.maxHp*pct/100)));
+        if(typeof pct==='number'){const hv=Math.max(0,Math.round(e.maxHp*pct/100));mnHealUnit(e,hv);if(mnX&&i===0)mnX.heal.push([e,hv]);}
       }else if(ef.kind==='cure'){
         if(k in x.ledger)return;
         const hit=mnRoll(x.cureChance);
@@ -24705,7 +24777,7 @@ function mnInsEndTurn(){
   if(!G||!G.mnIns)return;
   for(const x of mnInsList()){
     if(x.castTurn>=G.turn)continue;
-    if(x.kind==='wall'){x.turns--;if(x.turns<=0)msg('魔法の壁が消えた','info');}
+    if(x.kind==='wall'){if(x.unique)mnWallAura(x);x.turns--;if(x.turns<=0)msg('魔法の壁が消えた','info');}
     else{x.hitsLeft--;if(x.hitsLeft<=0)msg('魔法の霧が晴れた','info');}
   }
   mnInsList();
@@ -24713,6 +24785,7 @@ function mnInsEndTurn(){
 // ラズと仲間の継続回復（tickPlayer の中）
 function mnTickParty(){
   if(!G)return;
+  mnAfterTick();
   for(const e of [P].concat(allies)){
     const r=e&&e.mnRegen;if(!r)continue;
     if(!(r.left>0)){delete e.mnRegen;continue;}
@@ -24733,6 +24806,135 @@ function mnEndTurn(){
   }
 }
 
+/* ---------- ユニークスキル（突然変異）：Ver 0.1.214（ユーザーの決定 2026-11-23） ----------
+   表（名前・発動率・数値）は runtime.js の UNIQUE。ここは本編の効果だけ。唱えている最中の記録は mnX（当たった数・付いた状態・回復の量）。
+   ・魔力反響：30% で、同じ魔法をもう一度（1 回まで・たまりは使わない・反響したぶんでは、ほかの判定をしない）
+   ・魔導吸収：敵にダメージが当たったら、必要な魔力の 10%（切り上げ・最低 1）だけ、たまりが戻る（当たった数によらず 1 回）
+   ・魔導共鳴：25% で、この発動のダメージ 2.5 倍（霧は、その霧のダメージ全部。仮）
+   ・爆発：50% で、見えている敵すべてに無属性のダメージ（唱えた仲間のレベル ×（1.0〜1.5 の乱数）。防御で減らない）
+   ・伝染：状態が付いた敵ごとに、となりの敵 1 体へ、同じ状態を全部うつす（無効・耐性は本編どおり）
+   ・侵食：状態が付いた敵ごとに 50% で、別の状態（毒・火傷・凍え・しびれ・眠り・混乱・鈍足のうち、今かかっていないもの）を 1 つ
+   ・生命の余韻：回復した味方に、魔法の回復量の 10% を 3 ターン（毎ターン）
+   ・祝福の天秤：50% で、回復した味方 1 人ごとに、魔法の回復量（満タンでも同じ値）と同じダメージを、見えている敵のだれか 1 体へ
+   ・壁の 6 つ：壁のまわり 1 マス（3×3）へ、毎ターン（mnWallAura） */
+let mnX=null;
+function mnUq(sp){const R=mnRT();return sp&&typeof sp.unique==='string'&&R&&R.UNIQUE&&R.UNIQUE[sp.unique]?sp.unique:null;}
+function mnUqName(sp){const k=mnUq(sp);return k?mnRT().UNIQUE[k].name:'';}
+function mnUqSay(a,sp,text){msg('〈'+mnUqName(sp)+'〉'+text,'r4');popText(a,mnUqName(sp),'#ffe39a');}
+function mnVisFoes(){return G.mons.filter(m=>isHostile(m)&&m.hp>0&&G.vis[I(m.x,m.y)]&&!(typeof mhDormant==='function'&&mhDormant(m))&&!m.yielded);}
+// 今かかっている状態（侵食で「別の状態」をえらぶため）
+function mnHasSt(t,s){const k=typeof statusKeys==='function'?statusKeys(t):[];const map={poison:['poison','toxic'],burn:['burn','ensho'],chill:['chill'],shock:['shock'],sleep:['sleep'],confuse:['confuse'],slow:['slow'],toxic:['toxic'],ensho:['ensho']};return(map[s]||[s]).some(q=>k.indexOf(q)>=0);}
+function mnStdRate(s){const T=mnRT().calc.TABLES;return(T.DOT[s]||T.STATUS[s]||{rate:0}).rate;}
+// 爆発の演出：本編の部品（光・輪・柱・画面のゆれ）と、炎の効果音
+function mnBoomFx(foes){
+  if(typeof vfx!=='function')return;
+  vfx({k:'flash',c:'255,170,60',dur:320});
+  for(const m of foes){const[mx,my]=tileC(m);vfx({k:'ring',x:mx,y:my+8,r:1.6,c:'255,150,50',dur:520});vfx({k:'pillar',x:mx,y:my+8,r:0.9,h:70,c:'255,120,40',dur:520,delay:60});vfx({k:'ring',x:mx,y:my+8,r:0.9,c:'255,230,150',dur:360,delay:140});}
+  shakeA=Math.max(shakeA,9);sfx('blaze');
+}
+// 唱えたあと（mnApply のあと）のユニークスキル
+function mnUqAfter(a,sp,X){
+  const k=mnUq(sp);if(!k||G.over)return;
+  const U=mnRT().UNIQUE[k],lv=a.lv||1;
+  const perTarget=()=>{const L=[];for(const[t,e]of X.st){let r=L.find(q=>q.t===t);if(!r){r={t,es:[]};L.push(r);}if(r.es.indexOf(e)<0)r.es.push(e);}return L;};
+  if(k==='drain'){
+    if(!(X.hit>0))return;
+    const gain=Math.max(1,Math.ceil(mnNeed(sp)*U.needPct/100)),cap=typeof skillNeed==='function'?skillNeed(a):999;
+    a.sp=Math.min(cap,(a.sp||0)+gain);
+    mnUqSay(a,sp,'相手の魔力を吸い取った（たまり +'+gain+'）');
+  }else if(k==='explosion'){
+    if(!mnRoll(U.rate))return;
+    const foes=mnVisFoes();if(!foes.length)return;
+    const dmg=Math.max(1,Math.round(lv*(U.lvMin+Math.random()*(U.lvMax-U.lvMin))));
+    mnUqSay(a,sp,'化学反応が起こった！　見えている敵すべてに '+dmg+' のダメージ');
+    mnBoomFx(foes);
+    for(const t of foes){if(G.over)break;if(!G.mons.includes(t)||!(t.hp>0))continue;damageEnt(t,dmg,a,'魔法');}
+  }else if(k==='contagion'){
+    const used=[];let n=0;
+    for(const r of perTarget()){
+      if(G.over)break;
+      const nb=G.mons.filter(m=>m!==r.t&&isHostile(m)&&m.hp>0&&!m.yielded&&used.indexOf(m)<0&&cheb(m,r.t)===1);
+      if(!nb.length)continue;
+      const m=pick(nb);used.push(m);
+      for(const e of r.es)if(G.mons.includes(m)&&m.hp>0&&mnStatus(m,e,a,X.ref,true)==='applied')n++;
+    }
+    if(n)mnUqSay(a,sp,'となりの敵にも状態がうつった');
+  }else if(k==='erosion'){
+    for(const r of perTarget()){
+      if(G.over)break;
+      if(!G.mons.includes(r.t)||!(r.t.hp>0)||!mnRoll(U.rate))continue;
+      const pool=U.pool.filter(s=>!mnHasSt(r.t,s));
+      if(!pool.length)continue;
+      const s=pick(pool);
+      if(mnStatus(r.t,{kind:'status',status:s,slot:'added',rate:mnStdRate(s)},a,X.ref,true)==='applied')mnUqSay(a,sp,r.t.name+'の体をむしばみ、別の状態が現れた');
+    }
+  }else if(k==='afterglow'){
+    let n=0;
+    for(const[e,amt]of X.heal){
+      if(!e||!(e.hp>0)||e.down>0||!(amt>0))continue;
+      const per=Math.max(1,Math.round(amt*U.pct/100));
+      // 同じ余韻は、強いほう・長いほうだけ
+      if(e.mnAfter&&e.mnAfter.left>0&&e.mnAfter.amt>per)continue;
+      e.mnAfter={amt:per,left:U.turns,last:G.turn};n++;popText(e,'余韻','#9affb0');
+    }
+    if(n)mnUqSay(a,sp,'回復の余韻が残った（'+U.turns+'ターン）');
+  }else if(k==='balance'){
+    const L=X.heal.filter(q=>q[1]>0);
+    if(!L.length||!mnRoll(U.rate))return;
+    if(!mnVisFoes().length)return;
+    mnUqSay(a,sp,'祝福が反転した！');
+    for(const[,amt]of L){
+      if(G.over)break;
+      const foes=mnVisFoes();if(!foes.length)break;
+      const t=pick(foes);
+      if(typeof vfx==='function'){const[mx,my]=tileC(t);vfx({k:'pillar',x:mx,y:my+8,r:0.8,h:70,c:'255,120,120',dur:480});vfx({k:'ring',x:mx,y:my+8,r:1.1,c:'255,220,160',dur:420});}
+      msg(t.name+'に'+amt+'のダメージ');
+      damageEnt(t,amt,a,'魔法');
+    }
+    sfx('holy');
+  }
+}
+// 生命の余韻の毎ターンの回復（tickPlayer の中・mnTickParty から）
+function mnAfterTick(){
+  for(const e of [P].concat(allies)){
+    const r=e&&e.mnAfter;if(!r)continue;
+    if(!(r.left>0)){delete e.mnAfter;continue;}
+    if(r.last>=G.turn)continue;
+    r.last=G.turn;r.left--;
+    if(e.hp>0&&!(e.down>0))mnHealUnit(e,r.amt);
+    if(r.left<=0)delete e.mnAfter;
+  }
+}
+// 壁のユニークスキル：壁のまわり 1 マス（3×3）へ、毎ターン（唱えたターンのあと・壁があるあいだ）
+function mnWallAura(w){
+  const R=mnRT(),U=w&&w.unique&&R.UNIQUE[w.unique];
+  if(!U||!U.wall||G.over)return;
+  const near=e=>Math.max(Math.abs(e.x-w.x),Math.abs(e.y-w.y))<=1;
+  const a=allies.find(q=>q.key===w.caster)||{key:w.caster,name:''};
+  if(w.unique==='wall_spring'){
+    for(const e of [P].concat(allies)){if(!e||!(e.hp>0)||e.down>0||!near(e))continue;mnHealUnit(e,Math.max(1,Math.round(e.maxHp*U.healPct/100)));}
+    return;
+  }
+  const s=U.status,rate=mnStdRate(s);
+  // 敵：その状態にかかっていない敵だけ、ふつうの確率（仲間の補正なし・ボスは半分）で判定
+  for(const m of G.mons.slice()){
+    if(G.over)return;
+    if(!isHostile(m)||!(m.hp>0)||m.yielded||!near(m)||mnHasSt(m,s))continue;
+    if(!mnRoll(isBoss(m)?rate/2:rate)){continue;}
+    if(a)a._sk=1;
+    try{mnStatus(m,{kind:'status',status:s,slot:'main',rate},a,w.ref||0,true);}finally{if(a)a._sk=0;}
+  }
+  // 猛毒の激臭：味方も（敵と同じ猛毒：毎ターン最大 HP の 2%・上限 60・5 ターン）
+  if(U.all)for(const e of [P].concat(allies)){
+    if(G.over)return;
+    if(!e||!(e.hp>0)||e.down>0||!near(e)||(e.slip&&e.slip.t>0&&e.slip.nm==='猛毒'))continue;
+    if(!mnRoll(rate))continue;
+    const d=R.dotAmount({status:s,slot:'main'},w.ref||0,e.maxHp);if(!d.ok)continue;
+    applySlip(e,d.ticks,d.perTick,'猛毒',w.caster);
+    msg(nameOf(e)+'は、壁の激臭で猛毒になった（'+d.ticks+'ターン・毎ターン'+d.perTick+'）','bad');
+  }
+}
+
 /* ---------- 確定（act の中。払う → 適用） ---------- */
 function mnCommit(a,sp,choice){
   const R=mnRT();
@@ -24748,7 +24950,24 @@ function mnCommit(a,sp,choice){
   // ここから消費（唱えた仲間のたまりを 0 に）。自分の魔法の撃破でたまらないように a._sk
   a.sp=0;a._sk=1;
   G.mnCasts=(G.mnCasts||0)+1;
-  try{mnApply(a,sp,pl,rv);}finally{a._sk=0;}
+  const uq=mnUq(sp);
+  try{
+    // ユニークスキル：唱えている最中の記録（当たった数・付いた状態・回復の量）
+    const X={hit:0,st:[],heal:[],ref:0,mul:1};
+    if(uq==='resonance'&&mnRoll(mnRT().UNIQUE.resonance.rate)){X.mul=mnRT().UNIQUE.resonance.mul;mnUqSay(a,sp,'術者と魔法が共鳴した！　威力 '+X.mul+' 倍');if(typeof vfx==='function'){const[cx,cy]=ctr(a);vfx({k:'ring',x:cx,y:cy+8,r:1.6,c:'255,225,140',dur:520});vfx({k:'flash',c:'255,235,170',dur:260});}}
+    mnX=X;
+    try{mnApply(a,sp,pl,rv);}finally{mnX=null;}
+    if(uq&&uq!=='echo'&&uq!=='resonance')mnUqAfter(a,sp,X);
+    // 魔力反響：もう一度（1 回まで・たまりは使わない）。場所や相手は、今の画面で作りなおす（もう唱えられないときは何もしない）
+    if(uq==='echo'&&!G.over&&mnRoll(mnRT().UNIQUE.echo.rate)){
+      const pl2=mnPlan(a,sp,choice);
+      if(pl2.ok){
+        mnUqSay(a,sp,'魔法が空間に反響した！');
+        G.mnCasts++;
+        mnApply(a,sp,pl2,rv&&rv.down>0?rv:null);
+      }
+    }
+  }finally{a._sk=0;mnX=null;}
   return true;
 }
 /* ---------- 演出（Ver 0.1.205：ユーザーの依頼「生成した魔法にも、当たるときのエフェクトを」） ----------
@@ -24816,6 +25035,8 @@ function mnApply(a,sp,pl,rv){
   if(sp.delivery==='wall'){
     const c=pl.center,hp=R.wallHp(sp,a.key,a.maxHp);
     const w={v:1,kind:'wall',id:'w'+G.mnCasts,run:G.mnRun,floor:G.floor,castTurn:G.turn,x:c[0],y:c[1],hp:hp.hp,maxHp:hp.hp,turns:R.WALL.turns,reflect:!!sp.wall.reflect,resist:sp.wall.resist?R.clone(sp.wall.resist):null,caster:a.key,name:sp.name};
+    // ユニークスキルつきの壁：印と、継続ダメージの基準の威力（唱えたときのレベルの標準）を持たせる
+    if(mnUq(sp)){w.unique=sp.unique;const sr=window.MagicWorkshop.generationNext.calc.attackPower({band,growthType:'standard',area:'single',level:lv});w.ref=sr.ok&&!sr.partial?Math.round(sr.power):0;msg('〈'+mnUqName(sp)+'〉壁が力を帯びた','r4');}
     (G.mnIns=G.mnIns||[]).push(w);
     fx([[c[0],c[1]]],'rgba(160,200,255,0.7)');
     msg('魔法の壁ができた（HP '+hp.hp+'・'+R.WALL.turns+'ターン）','good');
@@ -24829,7 +25050,7 @@ function mnApply(a,sp,pl,rv){
   }
   if(sp.delivery==='mist'){
     const x={v:1,kind:'mist',id:'m'+G.mnCasts,run:G.mnRun,floor:G.floor,castTurn:G.turn,cells:pl.cells.map(c=>[c[0],c[1]]),hitsLeft:2,applied:{},ledger:{},caster:a.key,name:sp.name,effects:R.clone(ef),noHeal:[]};
-    if(main.kind==='damage'){const p=R.attackPower(main,a.key,lv,{band,mist:true});x.power=p.power;x.refPower=p.raw;}
+    if(main.kind==='damage'){const p=R.attackPower(main,a.key,lv,{band,mist:true});x.power=p.power*(mnX?mnX.mul:1);x.refPower=p.raw;}
     else{const sr=window.MagicWorkshop.generationNext.calc.attackPower({band,growthType:'standard',area:sp.area,level:lv});x.refPower=sr.ok&&!sr.partial?sr.power:0;}
     // 回復・継続回復は、効果ごとの 1 回量（即時の 40%）。主でも追加でも同じ（霧 40% × 継続 40% にはしない）
     x.pcts={};ef.forEach((e,i)=>{if(e.kind==='heal'||e.kind==='regen'){const h=R.healAmount(e,a.key,100,{mist:true});x.pcts[i]=h.pct;}});
@@ -24838,6 +25059,7 @@ function mnApply(a,sp,pl,rv){
     fx(x.cells,'rgba(200,160,255,0.5)');
     msg('魔法の霧が広がった（3回）','good');
     // 蘇生は置いたときだけ（えらんだ 1 人）。よみがえった人には、この霧の回復を重ねない
+    if(mnX)mnX.ref=x.refPower||0;
     for(const e of mnMistUnits(x)){mnMistOn(e,x);if(G.over)return;}
     if(rv&&mnHasAdded(sp,'revive')){doRevive();if(!(rv.down>0))x.noHeal.push(mnUid(rv));}
     return;
@@ -24845,8 +25067,9 @@ function mnApply(a,sp,pl,rv){
   if(!mnFriendly(sp)){
     // 敵へ：ダメージ → 同じ相手の状態（ダメージで起きた眠りのあとに付ける）
     let ap=null,ref=null;
-    if(main.kind==='damage'){ap=R.attackPower(main,a.key,lv,{band});ref=ap.raw;}
+    if(main.kind==='damage'){ap=R.attackPower(main,a.key,lv,{band});ref=ap.raw;if(mnX&&mnX.mul!==1)ap=Object.assign({},ap,{power:ap.power*mnX.mul});}
     else{const sr=window.MagicWorkshop.generationNext.calc.attackPower({band,growthType:'standard',area:main.area,level:lv});ref=sr.ok&&!sr.partial?sr.power:0;}
+    if(mnX)mnX.ref=ref||0;
     for(const w of pl.walls){if(ap)mnWallHit(w,Math.round(ap.power),{physical:false,magic:true,element:main.element});}
     for(const t of pl.foes){
       if(G.over)break;
@@ -24855,6 +25078,7 @@ function mnApply(a,sp,pl,rv){
         const dmg=R.damageTo(ap.power,t.def);
         fx([[t.x,t.y]],'rgba(255,220,160,0.6)');
         msg(t.name+'に'+dmg+'のダメージ');
+        if(mnX)mnX.hit++;
         damageEnt(t,dmg,a,'魔法');
       }else mnStatus(t,main,a,ref);
       for(const e of added)if(e.kind==='status'&&G.mons.includes(t)&&t.hp>0&&!G.over)mnStatus(t,e,a,ref);
@@ -24871,8 +25095,8 @@ function mnApply(a,sp,pl,rv){
   // 味方へ：回復・継続回復・守り・防御アップ → 追加の解除（その味方へ）→ 蘇生（よみがえった人には、この発動の回復を重ねない）
   for(const e of pl.mates){
     if(G.over)break;
-    if(main.kind==='heal'){const h=R.healAmount(main,a.key,e.maxHp);if(h.ok)mnHealUnit(e,h.amount);}
-    else if(main.kind==='regen'){const h=R.healAmount(main,a.key,e.maxHp,{regen:true});if(h.ok){mnHealUnit(e,h.amount);if(mnSetRegen(e,h.amount,sp.fixtureId+'|'+a.key))popText(e,'継続回復','#9affb0');}}
+    if(main.kind==='heal'){const h=R.healAmount(main,a.key,e.maxHp);if(h.ok){mnHealUnit(e,h.amount);if(mnX)mnX.heal.push([e,h.amount]);}}
+    else if(main.kind==='regen'){const h=R.healAmount(main,a.key,e.maxHp,{regen:true});if(h.ok){mnHealUnit(e,h.amount);if(mnX)mnX.heal.push([e,h.amount]);if(mnSetRegen(e,h.amount,sp.fixtureId+'|'+a.key))popText(e,'継続回復','#9affb0');}}
     else if(main.kind==='barrier'){const b=R.barrierValue(main,a.key);if(b.ok){mnAddGuard(e,'barrier',b.rate,b.turns,sp.fixtureId+'|'+a.key);popText(e,'守り','#ffe08a');msg(nameOf(e)+'に守り（受けるダメージ '+mnFmt(b.rate)+'%減・'+b.turns+'ターン）','good');}}
     else if(main.kind==='def_up'){const d=R.defUpValue(main,a.key);if(d.ok){mnAddGuard(e,'def_up',d.multiplier,d.turns,sp.fixtureId+'|'+a.key);popText(e,'防御↑','#ffe08a');msg(nameOf(e)+'の防御力が'+mnFmt(d.multiplier,2)+'倍（'+d.turns+'ターン）','good');}}
     // 追加の回復・継続回復（契約の量で、主の効果と同じ相手へ）・解除
@@ -24993,6 +25217,8 @@ function mnConfirm(a,sp,choice){
   for(const e of sp.effects)if(e.slot==='added'&&(e.kind==='heal'||e.kind==='regen')){const h=R.healAmount(e,a.key,100,{mist:sp.delivery==='mist',regen:e.kind==='regen'});lines.push('追加：回復 最大HPの'+mnFmt(h.pct)+'%'+(e.kind==='regen'||sp.delivery==='mist'?'（3回まで）':''));}
   if(mnHasAdded(sp,'cure'))lines.push('追加：解除（'+chanceWord(R.cureReviveChance(a.key).chance,'成功')+'）'+(mnFriendly(sp)?'':'（'+a.name+'へ）'));
   if(mnHasAdded(sp,'revive'))lines.push('追加：蘇生（'+chanceWord(R.cureReviveChance(a.key).chance,'成功')+'）'+(choice.revive?'（'+ALLY[choice.revive].name+'）':'（気絶した仲間がいない）'));
+  // Ver 0.1.214：ユニークスキル（突然変異）の名前と説明
+  if(mnUq(sp))lines.push('〈'+mnUqName(sp)+'〉'+mnRT().UNIQUE[sp.unique].desc);
   const who=mnFriendly(sp)?'味方 '+pl.mates.length+'人':sp.delivery==='wall'?'':'敵 '+pl.foes.length+(pl.walls.length?'・壁 '+pl.walls.length:'');
   openMenu({title:a.name+'「'+sp.name+'」',tcol:'#9fe8ff',text:(who?'当たる：'+who+'\n':'')+lines.join('\n')+'\nたまり '+mnNeed(sp)+'（使うと 0）・1ターン',bottom:true,skp:true,items:[
     {label:'使う',col:'#ffd24a',action:()=>{G.skPrev=null;closeAll();mnCast(a,sp,choice);}},
@@ -25024,8 +25250,10 @@ function mnDrawIns(cpx,cpy,t){
     if(x.kind==='wall'){
       if(!(x.hp>0)||!(x.turns>0)||!G.vis[I(x.x,x.y)])continue;
       const sx=x.x*TS-cpx,sy=x.y*TS-cpy;if(sx<-TS||sy<-TS||sx>NW||sy>NH)continue;
-      ctx.fillStyle='rgba(150,200,255,'+(0.30*pu).toFixed(3)+')';ctx.fillRect(sx+1,sy+1,TS-2,TS-2);
-      ctx.fillStyle='rgba(200,235,255,0.9)';ctx.fillRect(sx+1,sy+1,TS-2,2);ctx.fillRect(sx+1,sy+TS-3,TS-2,2);ctx.fillRect(sx+1,sy+1,2,TS-2);ctx.fillRect(sx+TS-3,sy+1,2,TS-2);
+      // ユニークスキルつきの壁は、その色（癒しの泉＝緑・地獄の炎＝赤・流れる劇薬＝紫・魔氷の呪い＝氷・雷鳴の響＝黄・猛毒の激臭＝黒っぽい紫）
+      const UC=x.unique&&mnRT()&&mnRT().UNIQUE[x.unique]?mnRT().UNIQUE[x.unique].color:null;
+      ctx.fillStyle='rgba('+(UC||'150,200,255')+','+((UC?0.5:0.30)*pu).toFixed(3)+')';ctx.fillRect(sx+1,sy+1,TS-2,TS-2);
+      ctx.fillStyle=UC?'rgba('+UC+',0.95)':'rgba(200,235,255,0.9)';ctx.fillRect(sx+1,sy+1,TS-2,2);ctx.fillRect(sx+1,sy+TS-3,TS-2,2);ctx.fillRect(sx+1,sy+1,2,TS-2);ctx.fillRect(sx+TS-3,sy+1,2,TS-2);
       ctx.fillStyle='rgba(200,235,255,0.55)';ctx.fillRect(sx+3,sy+Math.floor(TS/2),TS-6,1);ctx.fillRect(sx+Math.floor(TS/2),sy+3,1,Math.floor(TS/2)-3);
       // のこりの HP（細い帯）
       ctx.fillStyle='#120818';ctx.fillRect(sx+3,sy+TS-6,TS-6,3);
