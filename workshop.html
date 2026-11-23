@@ -2568,7 +2568,7 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
 <span id="creator-wrap"><label>作成者 <select id="creator"><option value="rizel">リゼル</option><option value="sevran">セヴラン</option></select></label></span>
 <div id="trial" data-active="core"></div>
 </main>
-<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.216" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
+<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.217" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
 <script>
 'use strict';
 // 魔法錬成 Stage 0：乱数・ハッシュ・正規化 JSON
@@ -12925,6 +12925,13 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
   var REGEN = { ratio: 0.4, hits: 3 };
   var REVIVE_HP = { added: 0.3 };
   var BOND = 0.6;
+  // Ver 0.1.217（ユーザーの決定 2026-11-23）：状態異常が主の魔法は、魔力の帯が中・大なら、ダメージも与える。
+  // 量：同じ帯・同じ範囲の攻撃魔法の標準（成長は標準・固有 1.0）の、中 20%・大 40%（どちらも仮）。
+  // 攻撃魔法と同じ「魔力と強さの交換率」になるように出した値。珍しさの点には入れない（珍しさは帯に対しての強さのまま）。
+  // この版より前に作った魔法には付かない（記録に statusDamage がないものは今のまま）
+  var STATUS_DAMAGE = { 2: 20, 3: 40 };
+  // ダメージの属性（状態ごと）。ほかの状態は無属性
+  var STATUS_ELEMENT = { shock: 'thunder', chill: 'ice', burn: 'fire', ensho: 'fire', poison: 'poison', toxic: 'poison' };
 
   // ---- 1 契約：preview の結果 → 実行の契約
   // meta：{ fixtureId（試験用の名前・必須）, name（表示の名前・仮）, caster（その試験の唱える仲間。省略可） }
@@ -13003,6 +13010,8 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
       out.wall = w;
     }
     if (birthMeta) { out.birthId = birthMeta.birthId; if (ms !== 1) out.manaSync = birthMeta.manaSync; }
+    // 状態異常の主の魔法（出生だけ）：中・大の帯ならダメージの割合（%）を持つ
+    if (birthMeta && main.kind === 'status' && own(STATUS_DAMAGE, pv.genBand)) out.statusDamage = STATUS_DAMAGE[pv.genBand];
     var chk = validate(out);
     return chk.ok ? { ok: true, spell: out } : chk;
   }
@@ -13056,6 +13065,8 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
       if (e.kind === 'cure' && (!Number.isInteger(e.count) || e.count < 1)) return fail('CURE_VALUE', i);
       if (e.kind === 'revive' && (!num(e.hpRate) || e.hpRate <= 0 || e.hpRate > 100)) return fail('REVIVE_VALUE', i);
     }
+    // 状態異常の魔法のダメージ：ない（前の記録・小の帯）か、状態が主で、帯に合った割合だけ
+    if (own(sp, 'statusDamage') && (sp.effects[0].kind !== 'status' || !own(STATUS_DAMAGE, sp.genBand) || sp.statusDamage !== STATUS_DAMAGE[sp.genBand])) return fail('STATUS_DAMAGE', sp.statusDamage);
     // ユニークスキル：ない（前の記録）か、その種類に付けられるものだけ
     if (own(sp, 'unique') && sp.unique !== null && sp.unique !== undefined && (typeof sp.unique !== 'string' || uniqueFor(sp.subject, sp.delivery).indexOf(sp.unique) < 0)) return fail('UNIQUE', sp.unique);
     return { ok: true };
@@ -13112,6 +13123,20 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
     var pw = clean(p.power * s / 100 * (e.ms || 1));
     if (opt.mist) pw = clean(pw * MIST.ratio);
     return { ok: true, power: pw, raw: p.power, sync: s };
+  }
+  // 状態異常の魔法のダメージ（1 体あたり）：帯・範囲の標準の威力 × 割合 × 攻撃のシンクロ × 魔力同調。霧は 40%。付かない魔法は null
+  function statusDamagePower(sp, caster, level, opt) {
+    if (!sp || !own(sp, 'statusDamage') || !num(sp.statusDamage)) return null;
+    var s = attackSync(caster);
+    if (s === null) return fail('CASTER', caster);
+    var main = sp.effects[0];
+    var p = K.attackPower({ band: sp.genBand, growthType: 'standard', intrinsic: 1.0, area: main.area, level: level });
+    if (!p.ok) return p;
+    if (p.partial) return fail('ATTACK_AREA_UNDECIDED', p.undecided);
+    var raw = clean(p.power * sp.statusDamage / 100);
+    var pw = clean(raw * s / 100 * (main.ms || 1));
+    if (opt && opt.mist) pw = clean(pw * MIST.ratio);
+    return { ok: true, power: pw, raw: raw, sync: s, pct: sp.statusDamage, element: own(STATUS_ELEMENT, main.status) ? STATUS_ELEMENT[main.status] : null };
   }
   // 本編へのダメージ：魔法は相手の防御の半分を引く（本編の仲間の魔法の技と同じ形）。壁の防御は 0。最低 1
   function damageTo(power, def) { return Math.max(1, Math.round(power) - Math.floor((def || 0) / 2)); }
@@ -13173,7 +13198,7 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
 
   return {
     FORMAT: FORMAT, VERSION: VERSION, CASTERS: CASTERS, SHAPE_TARGET: SHAPE_TARGET, WALL: WALL, MIST: MIST, REGEN: REGEN, REVIVE_HP: REVIVE_HP, ATTACK_SYNC: ATTACK_SYNC,
-    toRuntime: toRuntime, fromGenerated: fromGenerated, SYNC_MUL: SYNC_MUL, validate: validate, supportOf: supportOf, AREA_RADIUS: AREA_RADIUS, needOf: needOf, attackPower: attackPower, damageTo: damageTo, statusRoll: statusRoll, dotAmount: dotAmount,
+    toRuntime: toRuntime, fromGenerated: fromGenerated, SYNC_MUL: SYNC_MUL, validate: validate, supportOf: supportOf, AREA_RADIUS: AREA_RADIUS, needOf: needOf, attackPower: attackPower, statusDamagePower: statusDamagePower, STATUS_DAMAGE: STATUS_DAMAGE, STATUS_ELEMENT: STATUS_ELEMENT, damageTo: damageTo, statusRoll: statusRoll, dotAmount: dotAmount,
     healAmount: healAmount, defUpValue: defUpValue, barrierValue: barrierValue, wallHp: wallHp, cureReviveChance: cureReviveChance,
     wallDamage: wallDamage, wallReflect: wallReflect, clone: clone, calc: K,
     UNIQUE: UNIQUE, UNIQUE_ORDER: UNIQUE_ORDER, UNIQUE_RATE: UNIQUE_RATE, uniqueFor: uniqueFor
@@ -13788,6 +13813,8 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
       var pr = powerRank(sp, e);
       out.push([head, v + (pr ? '・威力 ' + pr.letter + '（' + gradeText(pr.grade) + '）' : e.kind === 'cure' || e.kind === 'revive' ? '・威力 —' : '')]);
     });
+    // Ver 0.1.217：状態異常の魔法のダメージ（中・大の帯）。Lv30・リゼル（攻撃のシンクロ 100%）の 1 体あたりの目安
+    if (MWRT() && sp.statusDamage) { var sd = MWRT().statusDamagePower(sp, 'rizel', 30, { mist: sp.delivery === 'mist' }); if (sd && sd.ok) out.push(['ダメージ', '同じ魔力の攻撃魔法の ' + sp.statusDamage + '%（Lv30 で 1 体に約 ' + Math.round(sd.power) + (sp.delivery === 'mist' ? '・霧は 3 回まで' : '') + '）']); }
     if (sp.wall) out.push(['壁の性質', (sp.wall.reflect ? '反射' : '') + (sp.wall.resist ? (sp.wall.reflect ? '・' : '') + (sp.wall.resist.kind === 'element' ? ELEM[sp.wall.resist.element] + '耐性' : sp.wall.resist.kind === 'magic' ? '魔法耐性' : '物理耐性') : '') || 'なし']);
     // Ver 0.1.214：ユニークスキル（突然変異）
     if (sp.unique && MWRT() && MWRT().UNIQUE[sp.unique]) out.push(['突然変異', MWRT().UNIQUE[sp.unique].name + '：' + MWRT().UNIQUE[sp.unique].desc]);
@@ -13798,7 +13825,7 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
   function desc(rec) {
     var sp = rec.spell;
     if (sp.shape === 'wall_point') return '通れない壁を 1 マス作ります。敵の攻撃を受け止めます。' + (sp.wall && sp.wall.reflect ? '敵の通常攻撃を少し返します。' : '');
-    return uniq(sp.effects.map(effName)).join('・') + 'の魔法です。';
+    return uniq(sp.effects.map(effName)).join('・') + 'の魔法です。' + (sp.statusDamage ? '魔力が大きいぶん、ダメージも与えます。' : '');
   }
   return { EFF: EFF, SHAPE: SHAPE, AREA: AREA, RARITY: RARITY, SUBJECT: SUBJECT, isNext: isNext, label: label, powerOf: powerOf, iconKeys: iconKeys, rows: rows, desc: desc, fmt: fmt, chanceWord: chanceWord, powerRank: powerRank, powers: powers, gradeText: gradeText };
 });
@@ -17513,7 +17540,7 @@ function mnInsOk(x){
   if(!x||typeof x!=='object'||x.v!==1)return false;
   if(x.run!==G.mnRun||!int(x.floor,1,100000)||!int(x.castTurn,0,1e9))return false;
   if(x.kind==='wall')return int(x.x,0,MW-1)&&int(x.y,0,MH-1)&&int(x.hp,0,1e7)&&int(x.maxHp,1,1e7)&&x.hp<=x.maxHp&&int(x.turns,0,5)&&typeof x.reflect==='boolean'&&(x.resist===null||(x.resist&&['element','magic','physical'].indexOf(x.resist.kind)>=0));
-  if(x.kind==='mist')return Array.isArray(x.cells)&&x.cells.length>0&&x.cells.length<=81&&x.cells.every(c=>Array.isArray(c)&&int(c[0],0,MW-1)&&int(c[1],0,MH-1))&&int(x.hitsLeft,0,2)&&x.applied&&typeof x.applied==='object'&&x.ledger&&typeof x.ledger==='object';
+  if(x.kind==='mist')return Array.isArray(x.cells)&&x.cells.length>0&&x.cells.length<=81&&x.cells.every(c=>Array.isArray(c)&&int(c[0],0,MW-1)&&int(c[1],0,MH-1))&&int(x.hitsLeft,0,2)&&x.applied&&typeof x.applied==='object'&&x.ledger&&typeof x.ledger==='object'&&(x.sdPower===undefined||(typeof x.sdPower==='number'&&isFinite(x.sdPower)&&x.sdPower>=0&&x.sdPower<=1e7));
   return false;
 }
 function mnInsList(){
@@ -17618,6 +17645,14 @@ function mnMistOn(e,x){
         if(a)a._sk=1;
         try{noWake(()=>damageEnt(e,dmg,a||P,'魔法'));}finally{if(a)a._sk=0;}
       }else if(ef.kind==='status'){
+        // Ver 0.1.217：状態異常の魔法のダメージ（中・大の帯）。霧は毎回 40%（攻撃の霧と同じ・眠りを起こさない）
+        if(i===0&&x.sdPower>0&&G.mons.includes(e)){
+          const dmg=R.damageTo(x.sdPower,e.def);
+          msg('魔法の霧が'+e.name+'をむしばむ（'+dmg+'）');
+          if(a)a._sk=1;
+          try{noWake(()=>damageEnt(e,dmg,a||P,'魔法'));}finally{if(a)a._sk=0;}
+          if(G.over||!G.mons.includes(e)||!(e.hp>0))return;
+        }
         if(k in x.ledger||!G.mons.includes(e))return;
         const r=mnStatus(e,ef,{key:x.caster},x.refPower);
         x.ledger[k]=r==='applied';
@@ -17938,6 +17973,8 @@ function mnApply(a,sp,pl,rv){
     const x={v:1,kind:'mist',id:'m'+G.mnCasts,run:G.mnRun,floor:G.floor,castTurn:G.turn,cells:pl.cells.map(c=>[c[0],c[1]]),hitsLeft:2,applied:{},ledger:{},caster:a.key,name:sp.name,effects:R.clone(ef),noHeal:[]};
     if(main.kind==='damage'){const p=R.attackPower(main,a.key,lv,{band,mist:true});x.power=p.power*(mnX?mnX.mul:1);x.refPower=p.raw;}
     else{const sr=window.MagicWorkshop.generationNext.calc.attackPower({band,growthType:'standard',area:sp.area,level:lv});x.refPower=sr.ok&&!sr.partial?sr.power:0;}
+    // Ver 0.1.217：状態異常の魔法のダメージ（中・大の帯）
+    {const sd=R.statusDamagePower(sp,a.key,lv,{mist:true});if(sd&&sd.ok)x.sdPower=sd.power;}
     // 回復・継続回復は、効果ごとの 1 回量（即時の 40%）。主でも追加でも同じ（霧 40% × 継続 40% にはしない）
     x.pcts={};ef.forEach((e,i)=>{if(e.kind==='heal'||e.kind==='regen'){const h=R.healAmount(e,a.key,100,{mist:true});x.pcts[i]=h.pct;}});
     x.cureChance=crc;
@@ -17956,6 +17993,8 @@ function mnApply(a,sp,pl,rv){
     if(main.kind==='damage'){ap=R.attackPower(main,a.key,lv,{band});ref=ap.raw;if(mnX&&mnX.mul!==1)ap=Object.assign({},ap,{power:ap.power*mnX.mul});}
     else{const sr=window.MagicWorkshop.generationNext.calc.attackPower({band,growthType:'standard',area:main.area,level:lv});ref=sr.ok&&!sr.partial?sr.power:0;}
     if(mnX)mnX.ref=ref||0;
+    // Ver 0.1.217（ユーザーの決定）：状態異常が主の魔法は、中・大の帯ならダメージも与える（ダメージ → 状態の順）
+    const sdp=main.kind==='status'?R.statusDamagePower(sp,a.key,lv,{}):null;
     for(const w of pl.walls){if(ap)mnWallHit(w,Math.round(ap.power),{physical:false,magic:true,element:main.element});}
     for(const t of pl.foes){
       if(G.over)break;
@@ -17966,7 +18005,15 @@ function mnApply(a,sp,pl,rv){
         msg(t.name+'に'+dmg+'のダメージ');
         if(mnX)mnX.hit++;
         damageEnt(t,dmg,a,'魔法');
-      }else mnStatus(t,main,a,ref);
+      }else{
+        if(sdp&&sdp.ok){
+          const dmg=R.damageTo(sdp.power,t.def);
+          fx([[t.x,t.y]],'rgba(255,220,160,0.6)');
+          msg(t.name+'に'+dmg+'のダメージ');
+          damageEnt(t,dmg,a,'魔法');
+        }
+        if(G.mons.includes(t)&&t.hp>0&&!G.over)mnStatus(t,main,a,ref);
+      }
       for(const e of added)if(e.kind==='status'&&G.mons.includes(t)&&t.hp>0&&!G.over)mnStatus(t,e,a,ref);
     }
     // 敵へ向ける魔法の追加の解除・回復・継続回復は、唱えた仲間自身へ（えらぶ画面は出さない。敵は回復しない）
@@ -18094,6 +18141,7 @@ function mnConfirm(a,sp,choice){
   // 威力の評価（効果ごと・工房と同じ nextLabel.powerRank。試験用の魔法にも同じ式）
   try{const NL=window.MagicWorkshop.mainBridge&&window.MagicWorkshop.mainBridge.nextLabel;if(NL){const seen={},pw=[];for(const e of sp.effects){const r=NL.powerRank(sp,e),nm=e.kind==='status'?({sleep:'眠り',chill:'凍え',shock:'しびれ',confuse:'混乱',seal:'封印',slow:'鈍足',atk_down:'攻撃力ダウン',burn:'火傷',poison:'毒',ensho:'炎焼',toxic:'猛毒'}[e.status]||e.status):NL.EFF[e.kind]||e.kind;if(seen[nm])continue;seen[nm]=1;pw.push(nm+' '+(r?r.letter:'—'));}lines.push('威力：'+pw.join('・'));}}catch(e){}
   if(main.kind==='damage'){const p=R.attackPower(main,a.key,a.lv||1,{band:sp.genBand,mist:sp.delivery==='mist'});lines.push('威力 '+Math.round(p.power)+(sp.delivery==='mist'?'（霧：3回まで）':''));}
+  if(main.kind==='status'){const sd=R.statusDamagePower(sp,a.key,a.lv||1,{mist:sp.delivery==='mist'});if(sd&&sd.ok)lines.push('ダメージ '+Math.round(sd.power)+(sp.delivery==='mist'?'（霧：3回まで）':''));}
   if(main.kind==='heal'||main.kind==='regen'){const h=R.healAmount(main,a.key,100,{mist:sp.delivery==='mist',regen:main.kind==='regen'});lines.push('回復 最大HPの'+mnFmt(h.pct)+'%'+(sp.delivery==='mist'||main.kind==='regen'?'（3回まで）':''));}
   if(main.kind==='barrier'){const b=R.barrierValue(main,a.key);lines.push('守り '+mnFmt(b.rate)+'%減（3ターン）');}
   if(main.kind==='def_up'){const d=R.defUpValue(main,a.key);lines.push('防御力 '+mnFmt(d.multiplier,2)+'倍（3ターン）');}
@@ -18364,7 +18412,7 @@ function mnMonShoot(m,t){
     sp.effects.forEach(function (e, i) {
       var h = (i === 0 ? '主' : '追加') + '：' + (e.kind === 'status' ? EF[e.status] : EF[e.kind]) + ' ';
       if (e.kind === 'damage') { var a = RT.attackPower(e, caster, 1, { band: sp.genBand, mist: sp.delivery === 'mist' }); lines.push(h + (a.ok ? '1 体あたり ' + Math.round(a.power) + (sp.delivery === 'mist' ? '（霧：3 回まで）' : '') : '—')); }
-      else if (e.kind === 'status') { var n = RT.statusRoll(e, caster, false), b = RT.statusRoll(e, caster, true); lines.push(h + CW(n.chance, 'かかる') + (n.turns ? '・' + n.turns + 'ターン' : n.ticks ? '・' + n.ticks + '回' : '') + '（ボスには' + CW(b.chance) + (b.turns ? '・' + b.turns + 'ターン' : '') + '）'); }
+      else if (e.kind === 'status') { var sdp = i === 0 && RT.statusDamagePower ? RT.statusDamagePower(sp, caster, 1, { mist: sp.delivery === 'mist' }) : null; if (sdp && sdp.ok) lines.push('ダメージ：1 体あたり ' + Math.round(sdp.power) + (sp.delivery === 'mist' ? '（霧：3 回まで）' : '')); var n = RT.statusRoll(e, caster, false), b = RT.statusRoll(e, caster, true); lines.push(h + CW(n.chance, 'かかる') + (n.turns ? '・' + n.turns + 'ターン' : n.ticks ? '・' + n.ticks + '回' : '') + '（ボスには' + CW(b.chance) + (b.turns ? '・' + b.turns + 'ターン' : '') + '）'); }
       else if (e.kind === 'heal' || e.kind === 'regen') { var hh = RT.healAmount(e, caster, 100, { mist: sp.delivery === 'mist', regen: e.kind === 'regen' }); lines.push(h + '最大 HP の ' + F(hh.pct) + '%' + (e.kind === 'regen' || sp.delivery === 'mist' ? '（3 回まで）' : '')); }
       else if (e.kind === 'barrier') { var bb = RT.barrierValue(e, caster); lines.push(h + F(bb.rate) + '% 減・3 ターン'); }
       else if (e.kind === 'def_up') { var dd = RT.defUpValue(e, caster); lines.push(h + F(dd.multiplier, 2) + ' 倍・3 ターン'); }
