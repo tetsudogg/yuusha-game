@@ -2460,7 +2460,7 @@ body.mtw #trial .mwi-matcard.mtw-picked .v2-mat-count { color: #fff6d6; }
 <span id="creator-wrap"><label>作成者 <select id="creator"><option value="rizel">リゼル</option><option value="sevran">セヴラン</option></select></label></span>
 <div id="trial" data-active="core"></div>
 </main>
-<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.208" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
+<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.209" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
 <script>
 'use strict';
 // 魔法錬成 Stage 0：乱数・ハッシュ・正規化 JSON
@@ -13589,6 +13589,9 @@ body.mtw #trial .mwi-matcard.mtw-picked .v2-mat-count { color: #fff6d6; }
   }
   // 表示だけの丸め（％は小数 1 桁・倍は 2 桁まで）。記録の値は丸めない（本編の magicnext の mnFmt と同じ）
   function fmt(v, d) { var k = Math.pow(10, d || 1); return String(Math.round(v * k) / k); }
+  // Ver 0.1.209（ユーザーの決定）：かかる確率は言葉で。pct は 0〜100（本編の chanceWord と同じ区切り）
+  // 100＝確定で・70〜99＝高確率で・40〜69＝時々・1〜39＝たまに・0＝効かない
+  function chanceWord(pct, verb) { var v = Math.round(+pct || 0); if (v < 1) return '効かない'; return (v >= 100 ? '確定で' : v >= 70 ? '高確率で' : v >= 40 ? '時々' : 'たまに') + (verb || ''); }
   // 詳しく見る：行（見出し・文）。数値は作成時の性能（術者のシンクロの前）
   function rows(rec) {
     var sp = rec.spell, g = rec.gen || {}, out = [];
@@ -13600,7 +13603,7 @@ body.mtw #trial .mwi-matcard.mtw-picked .v2-mat-count { color: #fff6d6; }
     sp.effects.forEach(function (e, i) {
       var head = (i === 0 ? '主の効果' : '追加の効果') + '：' + effName(e), v = '';
       if (e.kind === 'damage') v = (ELEM[e.element] || '') + 'の攻撃';
-      else if (e.kind === 'status') v = '付与率 ' + fmt(e.rate) + '%（作成時・仲間の補正の前）';
+      else if (e.kind === 'status') v = chanceWord(e.rate, 'かかる') + '（作成時・仲間の補正の前）';
       else if (e.kind === 'heal' || e.kind === 'regen') v = '最大 HP の ' + fmt(e.instant) + '%' + (e.kind === 'regen' || sp.delivery === 'mist' ? '（の 40% を 3 回）' : '');
       else if (e.kind === 'barrier') v = '受けるダメージ ' + fmt(e.rate) + '% 減（3 ターン）';
       else if (e.kind === 'def_up') v = '防御力 ' + fmt(e.multiplier, 2) + ' 倍（3 ターン）';
@@ -13620,7 +13623,7 @@ body.mtw #trial .mwi-matcard.mtw-picked .v2-mat-count { color: #fff6d6; }
     if (sp.shape === 'wall_point') return '通れない壁を 1 マス作ります。敵の攻撃を受け止めます。' + (sp.wall && sp.wall.reflect ? '敵の通常攻撃を少し返します。' : '');
     return uniq(sp.effects.map(effName)).join('・') + 'の魔法です。';
   }
-  return { EFF: EFF, SHAPE: SHAPE, AREA: AREA, RARITY: RARITY, SUBJECT: SUBJECT, isNext: isNext, label: label, powerOf: powerOf, iconKeys: iconKeys, rows: rows, desc: desc, fmt: fmt, powerRank: powerRank, powers: powers, gradeText: gradeText };
+  return { EFF: EFF, SHAPE: SHAPE, AREA: AREA, RARITY: RARITY, SUBJECT: SUBJECT, isNext: isNext, label: label, powerOf: powerOf, iconKeys: iconKeys, rows: rows, desc: desc, fmt: fmt, chanceWord: chanceWord, powerRank: powerRank, powers: powers, gradeText: gradeText };
 });
 
 </script>
@@ -17688,10 +17691,11 @@ function mnConfirm(a,sp,choice){
   if(main.kind==='barrier'){const b=R.barrierValue(main,a.key);lines.push('守り '+mnFmt(b.rate)+'%減（3ターン）');}
   if(main.kind==='def_up'){const d=R.defUpValue(main,a.key);lines.push('防御力 '+mnFmt(d.multiplier,2)+'倍（3ターン）');}
   if(main.kind==='wall'){const w=R.wallHp(sp,a.key,a.maxHp);lines.push('壁 HP '+w.hp+'・5ターン'+(sp.wall.reflect?'・反射':'')+(sp.wall.resist?'・'+({element:{fire:'炎',ice:'氷',thunder:'雷'}[sp.wall.resist.element]+'耐性',magic:'魔法耐性',physical:'物理耐性'}[sp.wall.resist.kind]):''));}
-  for(const e of sp.effects)if(e.kind==='status'){const r=R.statusRoll(e,a.key,false);lines.push((e.slot==='main'?'':'追加：')+({sleep:'眠り',chill:'凍え',shock:'しびれ',confuse:'混乱',seal:'封印',slow:'鈍足',atk_down:'攻撃力ダウン',burn:'火傷',poison:'毒',ensho:'炎焼',toxic:'猛毒'}[e.status])+' '+mnFmt(r.chance)+'%（ボスは別）');}
+  // Ver 0.1.209（ユーザーの決定）：かかる確率・成功の確率は言葉で（唱える仲間の補正のあとの値で決める）
+  for(const e of sp.effects)if(e.kind==='status'){const r=R.statusRoll(e,a.key,false);lines.push((e.slot==='main'?'':'追加：')+({sleep:'眠り',chill:'凍え',shock:'しびれ',confuse:'混乱',seal:'封印',slow:'鈍足',atk_down:'攻撃力ダウン',burn:'火傷',poison:'毒',ensho:'炎焼',toxic:'猛毒'}[e.status])+'：'+chanceWord(r.chance,'かかる')+'（ボスは別）');}
   for(const e of sp.effects)if(e.slot==='added'&&(e.kind==='heal'||e.kind==='regen')){const h=R.healAmount(e,a.key,100,{mist:sp.delivery==='mist',regen:e.kind==='regen'});lines.push('追加：回復 最大HPの'+mnFmt(h.pct)+'%'+(e.kind==='regen'||sp.delivery==='mist'?'（3回まで）':''));}
-  if(mnHasAdded(sp,'cure'))lines.push('追加：解除 '+mnFmt(R.cureReviveChance(a.key).chance)+'%'+(mnFriendly(sp)?'':'（'+a.name+'へ）'));
-  if(mnHasAdded(sp,'revive'))lines.push('追加：蘇生 '+mnFmt(R.cureReviveChance(a.key).chance)+'%'+(choice.revive?'（'+ALLY[choice.revive].name+'）':'（気絶した仲間がいない）'));
+  if(mnHasAdded(sp,'cure'))lines.push('追加：解除（'+chanceWord(R.cureReviveChance(a.key).chance,'成功')+'）'+(mnFriendly(sp)?'':'（'+a.name+'へ）'));
+  if(mnHasAdded(sp,'revive'))lines.push('追加：蘇生（'+chanceWord(R.cureReviveChance(a.key).chance,'成功')+'）'+(choice.revive?'（'+ALLY[choice.revive].name+'）':'（気絶した仲間がいない）'));
   const who=mnFriendly(sp)?'味方 '+pl.mates.length+'人':sp.delivery==='wall'?'':'敵 '+pl.foes.length+(pl.walls.length?'・壁 '+pl.walls.length:'');
   openMenu({title:a.name+'「'+sp.name+'」',tcol:'#9fe8ff',text:(who?'当たる：'+who+'\n':'')+lines.join('\n')+'\nたまり '+mnNeed(sp)+'（使うと 0）・1ターン',bottom:true,skp:true,items:[
     {label:'使う',col:'#ffd24a',action:()=>{G.skPrev=null;closeAll();mnCast(a,sp,choice);}},
@@ -17942,15 +17946,17 @@ function mnMonShoot(m,t){
   function nextNumbers(rec, caster) {
     var RT = MW.generationNext.runtime, sp = rec.spell, lines = [], base = PR.CASTER_BASE[caster] || { hp: 20 };
     var EF = MW.mainBridge.nextLabel.EFF, F = MW.mainBridge.nextLabel.fmt;
+    // Ver 0.1.209（ユーザーの決定）：かかる確率・成功の確率は言葉で（量の % はそのまま）
+    var CW = MW.mainBridge.nextLabel.chanceWord;
     sp.effects.forEach(function (e, i) {
       var h = (i === 0 ? '主' : '追加') + '：' + (e.kind === 'status' ? EF[e.status] : EF[e.kind]) + ' ';
       if (e.kind === 'damage') { var a = RT.attackPower(e, caster, 1, { band: sp.genBand, mist: sp.delivery === 'mist' }); lines.push(h + (a.ok ? '1 体あたり ' + Math.round(a.power) + (sp.delivery === 'mist' ? '（霧：3 回まで）' : '') : '—')); }
-      else if (e.kind === 'status') { var n = RT.statusRoll(e, caster, false), b = RT.statusRoll(e, caster, true); lines.push(h + F(n.chance) + '%' + (n.turns ? '・' + n.turns + 'ターン' : n.ticks ? '・' + n.ticks + '回' : '') + '（ボス ' + F(b.chance) + '%' + (b.turns ? '・' + b.turns + 'ターン' : '') + '）'); }
+      else if (e.kind === 'status') { var n = RT.statusRoll(e, caster, false), b = RT.statusRoll(e, caster, true); lines.push(h + CW(n.chance, 'かかる') + (n.turns ? '・' + n.turns + 'ターン' : n.ticks ? '・' + n.ticks + '回' : '') + '（ボスには' + CW(b.chance) + (b.turns ? '・' + b.turns + 'ターン' : '') + '）'); }
       else if (e.kind === 'heal' || e.kind === 'regen') { var hh = RT.healAmount(e, caster, 100, { mist: sp.delivery === 'mist', regen: e.kind === 'regen' }); lines.push(h + '最大 HP の ' + F(hh.pct) + '%' + (e.kind === 'regen' || sp.delivery === 'mist' ? '（3 回まで）' : '')); }
       else if (e.kind === 'barrier') { var bb = RT.barrierValue(e, caster); lines.push(h + F(bb.rate) + '% 減・3 ターン'); }
       else if (e.kind === 'def_up') { var dd = RT.defUpValue(e, caster); lines.push(h + F(dd.multiplier, 2) + ' 倍・3 ターン'); }
       else if (e.kind === 'wall') { var ww = RT.wallHp(sp, caster, base.hp); lines.push(h + 'HP ' + (ww.ok ? ww.hp : '—') + '（Lv1 の最大 HP ' + base.hp + '）・5 ターン'); }
-      else if (e.kind === 'cure' || e.kind === 'revive') { var c = RT.cureReviveChance(caster); lines.push(h + (c.ok ? F(c.chance) + '%' : '—')); }
+      else if (e.kind === 'cure' || e.kind === 'revive') { var c = RT.cureReviveChance(caster); lines.push(h + (c.ok ? CW(c.chance, '成功') : '—')); }
     });
     return lines;
   }
