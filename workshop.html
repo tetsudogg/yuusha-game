@@ -2460,7 +2460,7 @@ body.mtw #trial .mwi-matcard.mtw-picked .v2-mat-count { color: #fff6d6; }
 <span id="creator-wrap"><label>作成者 <select id="creator"><option value="rizel">リゼル</option><option value="sevran">セヴラン</option></select></label></span>
 <div id="trial" data-active="core"></div>
 </main>
-<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.209" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
+<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.210" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
 <script>
 'use strict';
 // 魔法錬成 Stage 0：乱数・ハッシュ・正規化 JSON
@@ -13810,7 +13810,8 @@ function mofResolveBroken(choice) {
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', injectPref); else injectPref();
   // 魔導書・完成の画面の「詳しく見る」の形（旧 SpellV2 の result.model と同じ使い方：rank・appraisal・rows）
   function model(rec) {
-    var rows = NL.rows(rec).slice();
+    // Ver 0.1.210（ユーザーの依頼）：珍しさは上の「珍しさ：〜」の 1 行だけにする（下の並びに同じ行が 2 回出ていた）
+    var rows = NL.rows(rec).filter(function (r) { return r[0] !== '珍しさ'; });
     rows.push(['作成者', rec.birth && rec.birth.creatorId === 'sevran' ? 'セヴラン' : 'リゼル']);
     return { title: NL.label(rec), rank: NL.RARITY[rec.gen && rec.gen.rarity] || '—', appraisal: '珍しさ：' + (NL.RARITY[rec.gen && rec.gen.rarity] || '—') + (rec.gen && rec.gen.legendCapped ? '（レジェンドの解禁の前なので、エピックとして記録）' : ''), rows: rows };
   }
