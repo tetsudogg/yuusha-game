@@ -2480,6 +2480,53 @@ body.mtw .mwi-chip[data-icon="rank-legendary"] .mwi-name,
 @keyframes mof-unique-pop { 0% { opacity: 0; transform: scale(.9); filter: brightness(2.2); } 55% { opacity: 1; transform: scale(1.03); filter: brightness(1.5); } 100% { opacity: 1; transform: none; filter: none; } }
 @media (prefers-reduced-motion: reduce) { #mof-completion .mof-unique-row.mof-unique-reveal { animation: none; } }
 
+/* ---- 14. Ver 0.1.215（ユーザーの依頼）：魔法の内容のシートの並びと収まり（完成の画面・魔導書の詳しい画面。iPhone 13 mini の幅 375px で 1 列に収める） ---- */
+/* どの列の下にも、うすい黄色の線。2 列の行（必要魔力｜属性・届き方｜範囲）も線がつながるよう、列のすき間は 0 */
+#mof-completion .mof-result-card, body.mtw #mtw-book .mbv-card { column-gap: 0; }
+.mof-result-card .mof-result-row { border-bottom: 1px solid rgba(201, 162, 74, .35); padding: 5px 0; min-height: 50px; box-sizing: border-box; }
+.mof-result-card .mof-result-half { grid-column: auto; }
+.mof-result-card .mof-result-half-r { padding-left: 10px; }
+.mof-result-card .mof-result-effect { border-bottom: 1px solid rgba(201, 162, 74, .35); margin: 0; padding: 8px 0; }
+.mof-result-card .mof-unique-row { border-top: 0; }
+/* 1 珍しさ：S〜D の文字（色はレア度の色） */
+.mof-rank { min-width: 44px; min-height: 40px; padding: 0 12px; border-radius: 8px; border: 2px solid currentColor; background: rgba(20, 14, 40, .78); font: inherit; font-size: 1.35rem; font-weight: bold; line-height: 1; cursor: pointer; }
+.mof-rank-S { color: #ffd86a; box-shadow: 0 0 10px rgba(255, 216, 106, .55); text-shadow: 0 0 8px rgba(255, 216, 106, .6); }
+.mof-rank-A { color: #cf7ff0; box-shadow: 0 0 8px rgba(196, 90, 214, .45); }
+.mof-rank-B { color: #7fb0ff; box-shadow: 0 0 8px rgba(111, 156, 255, .45); }
+.mof-rank-C { color: #8fe0b8; box-shadow: 0 0 6px rgba(111, 191, 152, .35); }
+.mof-rank-D { color: #b8b3cc; }
+/* 2 魔法の種類：威力の札は少し小さく・下の線からはなす */
+.mof-result-card .mof-result-role { padding-bottom: 9px; }
+.mof-result-card .mof-result-role .mof-result-icons { row-gap: 4px; }
+.mof-result-card .mpw-list { margin-left: 2px; gap: 4px 5px; }
+.mof-result-card .mpw { font-size: .74rem; padding: 0 6px; line-height: 1.55; }
+.mof-result-card .mpw-v { font-size: .86rem; }
+/* 3 シンクロ：横 1 列（名前と「高・中・小」を同じくらいの大きさに） */
+.mof-result-sync .msy-list { flex-wrap: nowrap; gap: 0 9px; min-width: 0; }
+.mof-result-sync .msy { gap: 3px; align-items: center; }
+.mof-result-sync .msy-k { font-size: .8rem; }
+.mof-result-sync .msy-v { font-size: .8rem; min-width: 1.3em; padding: 0 3px; line-height: 1.45; }
+/* 4 必要魔力：数字 */
+.mof-result-need .mof-result-need-n { font-size: 1.2rem; }
+/* 6 効果：アイコンは横にならべる */
+.mof-result-card .mof-result-effects .mof-result-icons { flex-wrap: wrap; flex-direction: row; }
+@media (max-width: 400px) {
+  #mof-completion .mof-result-label, body.mtw #mtw-book .mbv-card .mof-result-label { flex-basis: 62px; font-size: 12.5px; }
+  .mof-result-sync .msy-list { gap: 0 7px; }
+}
+/* 魔導書の詳しい画面も、スマホで 2 列（必要魔力｜属性・届き方｜範囲）に */
+body.mtw #mtw-book .mbv-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
+/* せまい画面：シンクロをさらに詰める。とてもせまい画面（iPhone SE の 1 世代目など 340px より下）は、はみ出さないよう折り返してよい */
+@media (max-width: 400px) {
+  .mof-result-sync .msy-list { gap: 0 5px; }
+  .mof-result-sync .msy { gap: 2px; }
+  .mof-result-sync .msy-k, .mof-result-sync .msy-v { font-size: .74rem; }
+  .mof-result-sync .msy-v { padding: 0 2px; }
+  .mof-result-card .mof-result-row { gap: 4px; }
+}
+@media (max-width: 340px) { .mof-result-sync .msy-list { flex-wrap: wrap; row-gap: 3px; } }
+
 /* A diffuse GOLD BACKGROUND light behind the unchanged artwork. */
 .unique-legend-icon-wrap {
   --unique-icon-size: 40px;
@@ -2518,7 +2565,7 @@ body.mtw .mwi-chip[data-icon="rank-legendary"] .mwi-name,
 <span id="creator-wrap"><label>作成者 <select id="creator"><option value="rizel">リゼル</option><option value="sevran">セヴラン</option></select></label></span>
 <div id="trial" data-active="core"></div>
 </main>
-<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.214" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
+<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.215" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
 <script>
 'use strict';
 // 魔法錬成 Stage 0：乱数・ハッシュ・正規化 JSON
@@ -15306,7 +15353,43 @@ window.__MTW_STEP_PICK = true;
     var d = doc.createElement('p'); d.className = 'mof-unique-desc'; d.textContent = u.desc; box.appendChild(d);
     row.appendChild(box); return row;
   }
-  window.__mofSpellView = { uniqueOf: uniqueOf, uniqueEl: uniqueEl, uniqueIcon: uniqueIcon, syncEl: syncEl, syncOf: syncOf, powerEl: powerEl, delivery: delivery, ordered: ordered, needOf: needOf, groups: function (s) { return isNext(s) ? groupsNext(s) : groups(s); }, desc: function (s) { return isNext(s) ? NL.desc(s) : desc(s); }, isNext: isNext };
+  // Ver 0.1.215（ユーザーの依頼）：珍しさは、絵のかわりに S〜D の文字（レジェンド＝金の S・エピック＝紫の A・レア＝青の B・アンコモン＝緑の C・コモン＝灰の D）。押すと名前と説明
+  var RANK_LETTER = { common: 'D', uncommon: 'C', rare: 'B', epic: 'A', legendary: 'S' };
+  function rankKey(s) { var g = groupsOf(s).filter(function (x) { return x[1] === 'rank'; })[0]; return g && g[2] && g[2][0] ? g[2][0] : null; }
+  function rankEl(doc, s, onInfo) {
+    var k = rankKey(s); if (!k || !RANK_LETTER[k]) return null;
+    var L = RANK_LETTER[k], name = IC.label('rank', k) || k, b = doc.createElement('button');
+    b.type = 'button'; b.className = 'mof-rank mof-rank-' + L; b.setAttribute('data-icon', 'rank-' + k); b.setAttribute('data-rank', L);
+    b.setAttribute('aria-label', '珍しさ：' + name + '（' + L + '）。名前と説明を開く'); b.textContent = L;
+    b.addEventListener('click', function () { if (onInfo) onInfo(name + '：' + IC.info('rank-' + k), b); });
+    return b;
+  }
+  // 完成の画面と魔導書の「魔法の内容」の並び（Ver 0.1.215・ユーザーの決定）：
+  //   1 珍しさ／2 魔法の種類（＋威力の札）／3 シンクロ／4 必要魔力｜属性／5 届き方｜範囲／6 効果（＋短い説明）／7 性質／（ユニークスキル）
+  // o.row(題, 種類, キーの並び)＝アイコンの行を作る（押したときの説明の出し方は画面ごと）・o.info(文)＝珍しさを押したときの説明・o.ids＝行の ID
+  function buildCard(doc, s, o) {
+    var G = {}, out = [], ids = o.ids || {};
+    groupsOf(s).forEach(function (g) { G[g[1]] = g; });
+    function mk(cls, label) { var r = doc.createElement('div'); r.className = 'mof-result-row ' + cls; var l = doc.createElement('span'); l.className = 'mof-result-label'; l.textContent = label; r.appendChild(l); return r; }
+    function icons(kind, cls) { var g = G[kind]; if (!g) return null; var r = o.row(g[0], kind, g[2]); if (cls) cls.split(' ').forEach(function (c) { r.classList.add(c); }); return r; }
+    var rk = rankEl(doc, s, o.info);
+    if (rk) { var r1 = mk('mof-result-wide mof-result-rank', '珍しさ'); if (ids.rank) r1.id = ids.rank; r1.appendChild(rk); out.push(r1); }
+    var r2 = icons('role', 'mof-result-wide mof-result-role');
+    if (r2) { var pw = powerEl(doc, s); if (pw) { if (ids.power) pw.id = ids.power; r2.querySelector('.mof-result-icons').appendChild(pw); } out.push(r2); }
+    var sy = syncEl(doc, s);
+    if (sy) { var r3 = mk('mof-result-wide mof-result-sync', 'シンクロ'); if (ids.sync) r3.id = ids.sync; r3.appendChild(sy); out.push(r3); }
+    var nd = needOf(s), re = icons('element', nd === null ? 'mof-result-wide' : 'mof-result-half mof-result-half-r');
+    if (nd !== null) { var r4 = mk('mof-result-half mof-result-need', '必要魔力'); if (ids.need) r4.id = ids.need; var nb = doc.createElement('b'); nb.className = 'mof-result-need-n'; nb.textContent = String(nd); r4.appendChild(nb); out.push(r4); }
+    if (re) out.push(re);
+    var rd = icons('delivery', 'mof-result-half'), rr = icons('range', 'mof-result-half mof-result-half-r');
+    if (rd) out.push(rd); if (rr) out.push(rr);
+    var rf = icons('effect', 'mof-result-wide mof-result-effects'); if (rf) out.push(rf);
+    var d = (isNext(s) ? NL.desc(s) : desc(s)); if (d) { var p = doc.createElement('p'); p.className = 'mof-result-effect'; p.textContent = d; out.push(p); }
+    var rt = icons('trait', 'mof-result-wide'); if (rt) out.push(rt);
+    var uq = uniqueEl(doc, s); if (uq) { if (ids.unique) uq.id = ids.unique; out.push(uq); }
+    return out;
+  }
+  window.__mofSpellView = { buildCard: buildCard, rankEl: rankEl, rankKey: rankKey, RANK_LETTER: RANK_LETTER, uniqueOf: uniqueOf, uniqueEl: uniqueEl, uniqueIcon: uniqueIcon, syncEl: syncEl, syncOf: syncOf, powerEl: powerEl, delivery: delivery, ordered: ordered, needOf: needOf, groups: function (s) { return isNext(s) ? groupsNext(s) : groups(s); }, desc: function (s) { return isNext(s) ? NL.desc(s) : desc(s); }, isNext: isNext };
 })();
 
 </script>
@@ -15367,23 +15450,14 @@ window.__MTW_STEP_PICK = true;
       if (!keys.length) icons.appendChild(el('span', 'mbv-none', 'なし'));
       return r;
     }
-    // Ver 0.1.203：完成の画面と同じ並び（魔法の種類をいちばん上・そのすぐ下に必要な魔力）
-    (SV.ordered ? SV.ordered(sp) : SV.groups(sp)).forEach(function (g) {
-      if (g[1] === 'trait') { var d = SV.desc(sp); if (d) card.appendChild(el('p', 'mof-result-effect', d)); }
-      var rw = row(g[0], g[1], g[2]);
-      if (g[1] === 'role') { rw.classList.add('mof-result-wide', 'mof-result-role'); if (SV.powerEl) { var pw = SV.powerEl(doc, sp); if (pw) { pw.id = 'mbv-power'; rw.querySelector('.mof-result-icons').appendChild(pw); } } }
-      card.appendChild(rw);
-      if (g[1] === 'role' && SV.needOf) {
-        var nd = SV.needOf(sp);
-        if (nd !== null) { var nr = el('div', 'mof-result-row mof-result-wide mof-result-need'); nr.id = 'mbv-need'; nr.appendChild(el('span', 'mof-result-label', '必要な魔力')); nr.appendChild(el('b', 'mof-result-need-n', String(nd))); card.appendChild(nr); }
-        // Ver 0.1.207：シンクロ率（唱える仲間ごと・高／中／小）
-        var sy = SV.syncEl && SV.syncEl(doc, sp);
-        if (sy) { var sr = el('div', 'mof-result-row mof-result-wide mof-result-sync'); sr.id = 'mbv-sync'; sr.appendChild(el('span', 'mof-result-label', 'シンクロ率')); sr.appendChild(sy); card.appendChild(sr); }
-      }
-    });
-    // Ver 0.1.214：ユニークスキル（突然変異）の行（いちばん下）
-    var uqr = SV.uniqueEl && SV.uniqueEl(doc, sp);
-    if (uqr) { uqr.id = 'mbv-unique'; card.appendChild(uqr); card.classList.add('mof-has-unique'); }
+    // Ver 0.1.215（ユーザーの依頼）：完成の画面と同じ並び（saved-spell-view.js の buildCard）
+    var rankInfo = function (text) {
+      if (!infoP) { infoP = el('p', 'mbv-icon-info'); infoP.id = 'mbv-icon-info'; infoP.setAttribute('role', 'status'); card.appendChild(infoP); }
+      if (open) { open.setAttribute('aria-expanded', 'false'); open = null; }
+      infoP.hidden = false; infoP.textContent = text;
+    };
+    SV.buildCard(doc, sp, { row: row, info: rankInfo, ids: { rank: 'mbv-rank', power: 'mbv-power', need: 'mbv-need', sync: 'mbv-sync', unique: 'mbv-unique' } }).forEach(function (r) { card.appendChild(r); });
+    if (card.querySelector('#mbv-unique')) card.classList.add('mof-has-unique');
     box.appendChild(card);
     var tb = ctx.tryButton();
     if (tb) box.appendChild(tb);
@@ -19233,26 +19307,14 @@ function mnMonShoot(m,t){
     var edit = button('✎', 'mof-result-rename', function () { opener = edit; openRename(spell, function (s) { spell = s; render(); page.querySelector('#mof-result-rename').focus(); }); });
     edit.setAttribute('aria-label', '魔法の名前を変更'); line.appendChild(edit); page.appendChild(line);
     // 魔導書と同じ「保存した魔法 → アイコンと短い説明」（main-official/saved-spell-view.js）。同じ効果は 1 回
-    var card = el('div', undefined, 'mof-result-card'), SV = window.__mofSpellView, G = SV.ordered ? SV.ordered(spell) : SV.groups(spell);
-    G.forEach(function (g) {
-      if (g[1] === 'trait') card.appendChild(el('p', SV.desc(spell), 'mof-result-effect'));
-      var rw = iconRow(g[0], g[1], g[2]);
-      // 魔法の種類（いちばん上・横いっぱい）の横に、効果ごとの威力（新方式だけ）
-      if (g[1] === 'role') { rw.classList.add('mof-result-wide', 'mof-result-role'); if (SV.powerEl) { var pw = SV.powerEl(document, spell); if (pw) { pw.id = 'mof-result-power'; rw.querySelector('.mof-result-icons').appendChild(pw); } } }
-      card.appendChild(rw);
-      // 魔法の種類のすぐ下に、必要な魔力（作ったときの値）
-      if (g[1] === 'role' && SV.needOf) {
-        var nd = SV.needOf(spell);
-        if (nd !== null) { var nr = el('div', undefined, 'mof-result-row mof-result-wide mof-result-need'); nr.id = 'mof-result-need'; nr.appendChild(el('span', '必要な魔力', 'mof-result-label')); nr.appendChild(el('b', String(nd), 'mof-result-need-n')); card.appendChild(nr); }
-        // Ver 0.1.207：シンクロ率（唱える仲間ごと・高／中／小）
-        var sy = SV.syncEl && SV.syncEl(document, spell);
-        if (sy) { var sr = el('div', undefined, 'mof-result-row mof-result-wide mof-result-sync'); sr.id = 'mof-result-sync'; sr.appendChild(el('span', 'シンクロ率', 'mof-result-label')); sr.appendChild(sy); card.appendChild(sr); }
-      }
-    });
+    // Ver 0.1.215（ユーザーの依頼）：並びは saved-spell-view.js の buildCard（珍しさ → 魔法の種類 → シンクロ → 必要魔力｜属性 → 届き方｜範囲 → 効果 → 性質 → ユニークスキル）
+    var card = el('div', undefined, 'mof-result-card'), SV = window.__mofSpellView;
+    var showInfo = function (text) { var info = page.querySelector('#mof-result-icon-info'); if (!info) { info = el('p'); info.id = 'mof-result-icon-info'; info.setAttribute('role', 'status'); card.appendChild(info); } info.textContent = text; };
+    SV.buildCard(document, spell, { row: iconRow, info: showInfo, ids: { rank: 'mof-result-rank', power: 'mof-result-power', need: 'mof-result-need', sync: 'mof-result-sync', unique: 'mof-result-unique' } }).forEach(function (r) { card.appendChild(r); });
     if (rk === 'legendary') card.classList.add(legendSeen[spell.id] ? 'mof-legend' : 'mof-legend-pending');
     // Ver 0.1.214：ユニークスキル（突然変異）の行。演出のあいだは伏せておき、最後に光って出す
-    var uqr = SV.uniqueEl && SV.uniqueEl(document, spell);
-    if (uqr) { uqr.id = 'mof-result-unique'; if (!legendSeen[spell.id]) uqr.classList.add('mof-unique-pending'); card.appendChild(uqr); card.classList.add('mof-has-unique'); }
+    var uqr = card.querySelector('#mof-result-unique');
+    if (uqr) { if (!legendSeen[spell.id]) uqr.classList.add('mof-unique-pending'); card.classList.add('mof-has-unique'); }
     page.appendChild(card);
     var detail = el('details', undefined, 'mof-result-details'); detail.appendChild(el('summary', '詳しく見る'));
     var model = spell.nextFormat && window.__mofNext ? window.__mofNext.model(spell) : W.v2ui.result.model(spell); detail.appendChild(el('p', model.appraisal));
