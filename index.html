@@ -976,6 +976,16 @@ body.mob .pc .nm{font-size:10px;line-height:1.1}
 body.mob .pc .nm .sub{display:none}
 body.mob .pc>div>.sub{font-size:9px;line-height:1.1}
 body.mob .pc .bar{width:70px;height:4px}
+/* Ver 0.1.216（ユーザーの依頼）：会話イベントの下の吹き出しが、画面の外に切れる。
+   原因：絵の枠（.sbox）の大きさを 100vh で決めていた。iPhone の Safari などでは、100vh は「ブラウザの帯をかくしたときの高さ」なので、帯が出ているあいだは枠が画面より大きくなり、下が切れる。
+   直し：外の枠（.sty＝今見えている画面にぴったり）の大きさから決める（cqw・cqh）。吹き出しの下には、いつも少しすき間を作る（ホームバーのぶんも） */
+#screen>.sty{container-type:size}
+@supports (width:1cqw){
+  .sty .sbox{width:min(100cqw,calc(100cqh * 16 / 9));height:min(100cqh,calc(100cqw * 9 / 16))}
+  body.mob.port .sty .sbox{width:100cqw;height:100cqh}
+}
+.sty .sdlg{bottom:max(3.5%,calc(env(safe-area-inset-bottom,0px) + 8px))}
+body.mob.port .sty .sdlg{bottom:max(3%,calc(env(safe-area-inset-bottom,0px) + 10px))}
 </style>
 </head>
 <body>
@@ -1001,7 +1011,7 @@ body.mob .pc .bar{width:70px;height:4px}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.215'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.216'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -24377,7 +24387,7 @@ function mbDrawIns(cpx,cpy,t){
     });
     if (sp.wall) out.push(['壁の性質', (sp.wall.reflect ? '反射' : '') + (sp.wall.resist ? (sp.wall.reflect ? '・' : '') + (sp.wall.resist.kind === 'element' ? ELEM[sp.wall.resist.element] + '耐性' : sp.wall.resist.kind === 'magic' ? '魔法耐性' : '物理耐性') : '') || 'なし']);
     // Ver 0.1.214：ユニークスキル（突然変異）
-    if (sp.unique && MWRT() && MWRT().UNIQUE[sp.unique]) out.push(['ユニークスキル', MWRT().UNIQUE[sp.unique].name + '：' + MWRT().UNIQUE[sp.unique].desc]);
+    if (sp.unique && MWRT() && MWRT().UNIQUE[sp.unique]) out.push(['突然変異', MWRT().UNIQUE[sp.unique].name + '：' + MWRT().UNIQUE[sp.unique].desc]);
     // Ver 0.1.205（ユーザーの決定）：魔力同調の結果は画面に出さない（効果の補正は、中ではそのまま足す）
     return out;
   }

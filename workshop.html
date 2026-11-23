@@ -2527,6 +2527,9 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
 }
 @media (max-width: 340px) { .mof-result-sync .msy-list { flex-wrap: wrap; row-gap: 3px; } }
 
+/* ---- 15. Ver 0.1.216（ユーザーの依頼）：珍しさの文字（S〜D）を少し小さく ---- */
+.mof-rank { min-width: 34px; min-height: 30px; padding: 0 9px; font-size: 1.05rem; border-width: 1.5px; border-radius: 7px; }
+
 /* A diffuse GOLD BACKGROUND light behind the unchanged artwork. */
 .unique-legend-icon-wrap {
   --unique-icon-size: 40px;
@@ -2565,7 +2568,7 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
 <span id="creator-wrap"><label>作成者 <select id="creator"><option value="rizel">リゼル</option><option value="sevran">セヴラン</option></select></label></span>
 <div id="trial" data-active="core"></div>
 </main>
-<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.215" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
+<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.216" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
 <script>
 'use strict';
 // 魔法錬成 Stage 0：乱数・ハッシュ・正規化 JSON
@@ -13787,7 +13790,7 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
     });
     if (sp.wall) out.push(['壁の性質', (sp.wall.reflect ? '反射' : '') + (sp.wall.resist ? (sp.wall.reflect ? '・' : '') + (sp.wall.resist.kind === 'element' ? ELEM[sp.wall.resist.element] + '耐性' : sp.wall.resist.kind === 'magic' ? '魔法耐性' : '物理耐性') : '') || 'なし']);
     // Ver 0.1.214：ユニークスキル（突然変異）
-    if (sp.unique && MWRT() && MWRT().UNIQUE[sp.unique]) out.push(['ユニークスキル', MWRT().UNIQUE[sp.unique].name + '：' + MWRT().UNIQUE[sp.unique].desc]);
+    if (sp.unique && MWRT() && MWRT().UNIQUE[sp.unique]) out.push(['突然変異', MWRT().UNIQUE[sp.unique].name + '：' + MWRT().UNIQUE[sp.unique].desc]);
     // Ver 0.1.205（ユーザーの決定）：魔力同調の結果は画面に出さない（効果の補正は、中ではそのまま足す）
     return out;
   }
@@ -15339,11 +15342,11 @@ window.__MTW_STEP_PICK = true;
     var im = doc.createElement('img'); im.className = 'unique-legend-icon'; im.alt = ''; im.setAttribute('aria-hidden', 'true'); im.setAttribute('draggable', 'false'); im.src = src;
     wrap.appendChild(im); return wrap;
   }
-  // 完成の画面・魔導書の「ユニークスキル」の行（突然変異の印・アイコン・名前・説明）
+  // 完成の画面・魔導書の「突然変異」の行（Ver 0.1.216：ユーザーの依頼で、題を「ユニークスキル」から「突然変異」に）。突然変異の印・アイコン・名前・説明
   function uniqueEl(doc, s) {
     var u = uniqueOf(s); if (!u) return null;
     var row = doc.createElement('div'); row.className = 'mof-result-row mof-result-wide mof-unique-row'; row.setAttribute('data-unique', u.key);
-    var lab = doc.createElement('span'); lab.className = 'mof-result-label'; lab.textContent = 'ユニークスキル'; row.appendChild(lab);
+    var lab = doc.createElement('span'); lab.className = 'mof-result-label'; lab.textContent = '突然変異'; row.appendChild(lab);
     var box = doc.createElement('div'); box.className = 'mof-unique-box';
     var head = doc.createElement('div'); head.className = 'mof-unique-head';
     var mk = uniqueIcon(doc, 'mark-mutation', 28); if (mk) { mk.classList.add('mof-unique-mark'); head.appendChild(mk); }
@@ -18357,7 +18360,7 @@ function mnMonShoot(m,t){
     // Ver 0.1.209（ユーザーの決定）：かかる確率・成功の確率は言葉で（量の % はそのまま）
     var CW = MW.mainBridge.nextLabel.chanceWord;
     // Ver 0.1.214：ユニークスキルは、実験場の部屋では発動しない（迷宮だけ）。名前と説明だけ見せる
-    if (sp.unique && RT.UNIQUE && RT.UNIQUE[sp.unique]) lines.push('ユニークスキル：' + RT.UNIQUE[sp.unique].name + '（' + RT.UNIQUE[sp.unique].desc + '）※ 実験場では発動しません（迷宮で発動します）');
+    if (sp.unique && RT.UNIQUE && RT.UNIQUE[sp.unique]) lines.push('突然変異：' + RT.UNIQUE[sp.unique].name + '（' + RT.UNIQUE[sp.unique].desc + '）※ 実験場では発動しません（迷宮で発動します）');
     sp.effects.forEach(function (e, i) {
       var h = (i === 0 ? '主' : '追加') + '：' + (e.kind === 'status' ? EF[e.status] : EF[e.kind]) + ' ';
       if (e.kind === 'damage') { var a = RT.attackPower(e, caster, 1, { band: sp.genBand, mist: sp.delivery === 'mist' }); lines.push(h + (a.ok ? '1 体あたり ' + Math.round(a.power) + (sp.delivery === 'mist' ? '（霧：3 回まで）' : '') : '—')); }
@@ -18880,6 +18883,7 @@ function mnMonShoot(m,t){
     st.units.slice().sort(function (a, b) { return R.disp[a.id].y - R.disp[b.id].y; }).forEach(function (u) { if (!u.dead) drawUnit(g, u, sp, t); });
     // 演出
     drawAnims(g, t);
+    drawVfx(g, t);
     drawPops(g, t);
     g.setTransform(1, 0, 0, 1, 0, 0);
     if (R.cut) drawCut(g, t);
@@ -18997,7 +19001,6 @@ function mnMonShoot(m,t){
     now += lead;
     var pathEv = r.events.filter(function (e) { return e.type === 'path'; })[0], areaEv = r.events.filter(function (e) { return e.type === 'area'; })[0];
     var me = P.session.state().units.filter(function (u) { return u.id === 'caster'; })[0];
-    if (!lead) R.anims.push({ kind: 'circle', x: me.x, y: me.y, col: col, t0: now + 200, dur: 520 });
     var delay = 450;
     if (pathEv && pathEv.cells.length) { R.anims.push({ kind: 'bolt', cells: pathEv.cells, col: col, t0: now + delay, dur: 60 * pathEv.cells.length + 120 }); delay += 60 * pathEv.cells.length + 120; }
     if (areaEv && areaEv.cells.length) R.anims.push({ kind: 'area', cells: areaEv.cells, col: col, t0: now + delay, dur: 420 });
@@ -19024,25 +19027,121 @@ function mnMonShoot(m,t){
     if (f.kind === 'status') { var st = f.status; if (st === 'poison' || st === 'toxic') return 'poison'; if (st === 'burn' || st === 'ensho') return 'burn'; return HFX[st] ? st : 'sleep'; }
     return 'none';
   }
+  // Ver 0.1.216（ユーザーの依頼「実験場だと演出が小さい。本編の演出に合わせて」）：
+  // 本編の magicnext.js の mnFx と同じ部品・同じ大きさ・同じ順番で出す（唱えた仲間の足元の魔法陣 → 弾は光線 → 当たった相手ごとに 落雷／渦／経文／柱／輪 → 画面の光）。
+  // 色と部品の表は本編の MNFX と同じ。描き方（drawVfx）は本編の render.js の drawVfx を移したもの（光は重ねて明るく）。火の粉などの粒だけは出さない。
+  var MNFX = {
+    fire: { c: '255,90,20', c2: '255,240,160', ring: '255,160,60', fl: '255,140,40' }, ice: { c: '110,200,255', c2: '235,250,255', ring: '190,240,255', fl: '170,230,255' },
+    thunder: { bolt: 1, ring: '255,240,120', fl: '255,250,190' }, none: { c: '230,210,255', c2: '255,255,255', ring: '225,200,255', fl: '235,220,255' },
+    poison: { spiral: 1, ring: '190,120,255', dark: '40,0,50' }, sleep: { ring: '170,170,255' }, confuse: { spiral: 1, ring: '255,150,220' }, seal: { ring: '150,110,200', dark: '20,0,30' },
+    slow: { ring: '140,230,255' }, atk_down: { ring: '200,160,255' }, chill: { ring: '170,230,255' }, shock: { bolt: 1, ring: '255,240,120' },
+    burn: { c: '255,90,20', c2: '255,240,160', ring: '255,140,60' }, heal: { c: '140,255,170', c2: '255,250,200', ring: '140,255,170', sutra: 1 },
+    guard: { c: '255,210,100', c2: '255,250,220', ring: '255,220,120', sutra: 1 }, wall: { c: '150,200,255', c2: '235,250,255', ring: '170,220,255' }
+  };
+  function vfx(o) { (R.vfx = R.vfx || []).push(o); }
   function hitFx(sp, events, t0) {
     try {
-      var F = HFX[hfxKey(sp && sp.fx)], st = P.session.state(), seen = {}, n = 0;
+      var key = hfxKey(sp && sp.fx), F = MNFX[key] || MNFX.none, col = F.c || F.ring || '255,255,255', st = P.session.state(), seen = {}, tg = [];
+      var me = st.units.filter(function (x) { return x.id === 'caster'; })[0];
+      var px = function (u) { return [(u.x + 0.5) * TS, (u.y + 0.5) * TS]; };
       (events || []).forEach(function (e) {
         if (['damage', 'heal', 'status', 'guard'].indexOf(e.type) < 0) return;
         var id = e.target || e.unit; if (!id || seen[id]) return; seen[id] = 1;
-        var u = st.units.filter(function (x) { return x.id === id; })[0]; if (!u) return;
-        R.anims.push({ kind: 'fx-' + F.k, x: u.x, y: u.y, col: F.c, col2: F.c2 || '#ffffff', t0: t0 + (n++) * 70, dur: F.k === 'strike' ? 520 : 760 });
+        var u = st.units.filter(function (x) { return x.id === id; })[0]; if (u) tg.push({ x: u.x, y: u.y });
       });
       // 当たった相手の記録がないとき（満タンの回復・空振りなど）も、範囲のまん中か術者の所に出す
-      if (!n) {
+      if (!tg.length) {
         var ar = (events || []).filter(function (e) { return e.type === 'area' && e.cells && e.cells.length; })[0], at0 = null;
         if (ar) { var mx = 0, my = 0; ar.cells.forEach(function (c) { mx += c[0]; my += c[1]; }); var c0 = ar.cells.reduce(function (b, c) { var d = Math.abs(c[0] - mx / ar.cells.length) + Math.abs(c[1] - my / ar.cells.length); return !b || d < b.d ? { c: c, d: d } : b; }, null); at0 = c0 && c0.c; }
-        if (!at0) { var me = st.units.filter(function (x) { return x.id === 'caster'; })[0]; if (me) at0 = [me.x, me.y]; }
-        if (at0) R.anims.push({ kind: 'fx-' + F.k, x: at0[0], y: at0[1], col: F.c, col2: F.c2 || '#ffffff', t0: t0, dur: F.k === 'strike' ? 520 : 760 }), n = 1;
+        if (!at0 && me) at0 = [me.x, me.y];
+        if (at0) tg.push({ x: at0[0], y: at0[1] });
       }
-      if (n) R.anims.push({ kind: 'fx-flash', col: F.c, t0: t0 + 60, dur: 320 });
-      R.fxLast = { key: hfxKey(sp && sp.fx), n: n };
+      var bolt = sp && sp.fx && sp.fx.delivery === 'bolt', mist = sp && sp.fx && sp.fx.delivery === 'mist';
+      // 唱えた仲間の足元の魔法陣（本編と同じ：半径 1.6 マス・星つき・1.1 秒）
+      if (me) { var m0 = px(me); vfx({ k: 'circle', x: m0[0], y: m0[1] + 8, r: 1.6, c: F.ring || col, spin: 1.4, star: true, t0: t0 - 300, dur: 1100 }); }
+      tg.forEach(function (t, i) {
+        var q = px(t), d = t0 + i * 70;
+        if (bolt && me) { var m1 = px(me); vfx({ k: 'beam', x: m1[0], y: m1[1], x1: q[0], y1: q[1], w: 10, c: F.ring || col, t0: t0 - 140 + i * 60, dur: 420 }); }
+        if (F.bolt) vfx({ k: 'bolt', x: q[0], y: q[1] + 8, r: 1, h: 120, t0: d, dur: 600 });
+        if (F.spiral) vfx({ k: 'spiral', x: q[0], y: q[1], r: 2.2, t0: d - 60, dur: 900 });
+        if (F.sutra) vfx({ k: 'sutra', x: q[0], y: q[1] + 8, r: 1.2, t0: d - 80, dur: 1100 });
+        if (F.c) vfx({ k: 'pillar', x: q[0], y: q[1] + 10, w: 18, h: mist ? 50 : 90, c: F.c, c2: F.c2, t0: d, dur: 750 });
+        vfx({ k: 'ring', x: q[0], y: q[1] + 8, r: 1, c: F.ring || col, t0: d + 30, dur: 520 });
+      });
+      if (F.dark) vfx({ k: 'dark', c: F.dark, t0: t0 - 260, dur: 800 });
+      if (F.fl) vfx({ k: 'flash', c: F.fl, t0: t0 + 40, dur: 360 });
+      R.fxLast = { key: key, n: tg.length, kinds: (R.vfx || []).map(function (v) { return v.k; }) };
     } catch (e) {}
+  }
+  // 本編の drawVfx（src/js/render/render.js）を移したもの。座標は部屋の中のドット（1 マス＝TS）。表示の倍率は呼ぶ側の変換にまかせる
+  function drawVfx(g, t) {
+    var L = R.vfx; if (!L || !L.length) return;
+    R.vfx = L = L.filter(function (v) { return t < v.t0 + v.dur; });
+    g.save();
+    L.forEach(function (v) {
+      var e = t - v.t0; if (e < 0) return;
+      var k = Math.min(1, e / v.dur), X = v.x || 0, Y = v.y || 0, c = v.c || '255,200,120', i, a0, grd;
+      var env = Math.max(0, k < 0.12 ? k / 0.12 : k > 0.72 ? (1 - k) / 0.28 : 1);
+      g.globalCompositeOperation = 'lighter'; g.globalAlpha = env;
+      if (v.k === 'dark' || v.k === 'flash') {
+        g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
+        if (v.k === 'dark') { g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.fillStyle = 'rgba(' + (v.c || '8,0,18') + ',' + (0.6 * env).toFixed(3) + ')'; }
+        else { g.globalAlpha = 1; g.fillStyle = 'rgba(' + c + ',' + (0.75 * (1 - k)).toFixed(3) + ')'; }
+        g.fillRect(0, 0, R.cv.width, R.cv.height); g.restore(); return;
+      }
+      if (v.k === 'circle') {
+        var Rr = v.r * TS * (0.25 + 0.75 * Math.min(1, k / 0.16)), spn = v.spin || 1;
+        g.save(); g.translate(X, Y); g.scale(1, 0.5);
+        grd = g.createRadialGradient(0, 0, Rr * 0.1, 0, 0, Rr * 1.35); grd.addColorStop(0, 'rgba(' + c + ',0.42)'); grd.addColorStop(0.7, 'rgba(' + c + ',0.16)'); grd.addColorStop(1, 'rgba(' + c + ',0)'); g.fillStyle = grd; g.fillRect(-Rr * 1.4, -Rr * 1.4, Rr * 2.8, Rr * 2.8);
+        g.strokeStyle = 'rgba(' + c + ',0.95)'; g.lineWidth = 2; g.beginPath(); g.arc(0, 0, Rr, 0, Math.PI * 2); g.stroke(); g.lineWidth = 1; g.beginPath(); g.arc(0, 0, Rr * 0.86, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(0, 0, Rr * 0.4, 0, Math.PI * 2); g.stroke();
+        g.save(); g.rotate(t / 700 * spn); g.beginPath();
+        [0, Math.PI].forEach(function (off) { for (i = 0; i <= 3; i++) { a0 = off + i * Math.PI * 2 / 3 - Math.PI / 2; if (i) g.lineTo(Math.cos(a0) * Rr * 0.84, Math.sin(a0) * Rr * 0.84); else g.moveTo(Math.cos(a0) * Rr * 0.84, Math.sin(a0) * Rr * 0.84); } });
+        g.stroke();
+        if (v.star) { g.beginPath(); for (i = 0; i <= 5; i++) { a0 = i * Math.PI * 4 / 5 - Math.PI / 2; if (i) g.lineTo(Math.cos(a0) * Rr * 0.84, Math.sin(a0) * Rr * 0.84); else g.moveTo(Math.cos(a0) * Rr * 0.84, Math.sin(a0) * Rr * 0.84); } g.stroke(); }
+        g.restore();
+        g.save(); g.rotate(-t / 1100 * spn); g.fillStyle = 'rgba(255,250,235,0.95)';
+        for (i = 0; i < 18; i++) { g.save(); g.rotate(i / 18 * Math.PI * 2); g.translate(Rr * 0.93, 0); var hh = i % 3 === 0 ? 4 : i % 3 === 1 ? 2.5 : 3.2; g.fillRect(-0.6, -hh / 2, 1.2, hh); g.fillRect(-1.4, -0.6, 2.8, 1.2); g.restore(); }
+        g.restore(); g.restore(); return;
+      }
+      if (v.k === 'pillar') {
+        var w = v.w * (k < 0.18 ? k / 0.18 : 1) * (k > 0.65 ? Math.max(0, (1 - k) / 0.35) : 1), h = v.h * (0.6 + 0.4 * Math.min(1, k / 0.2));
+        grd = g.createLinearGradient(0, Y - h, 0, Y); grd.addColorStop(0, 'rgba(' + c + ',0)'); grd.addColorStop(0.45, 'rgba(' + c + ',0.55)'); grd.addColorStop(1, 'rgba(' + (v.c2 || '255,255,230') + ',0.95)'); g.fillStyle = grd; g.fillRect(X - w / 2, Y - h, w, h);
+        grd = g.createLinearGradient(0, Y - h * 0.9, 0, Y); grd.addColorStop(0, 'rgba(255,255,255,0)'); grd.addColorStop(1, 'rgba(255,255,255,0.9)'); g.fillStyle = grd; g.fillRect(X - w / 6, Y - h * 0.9, w / 3, h * 0.9);
+        if (w > 0.01) { grd = g.createRadialGradient(X, Y, 0, X, Y, w * 1.4); grd.addColorStop(0, 'rgba(' + c + ',0.6)'); grd.addColorStop(1, 'rgba(' + c + ',0)'); g.save(); g.translate(X, Y); g.scale(1, 0.4); g.translate(-X, -Y); g.fillStyle = grd; g.fillRect(X - w * 1.4, Y - w * 1.4, w * 2.8, w * 2.8); g.restore(); }
+        return;
+      }
+      if (v.k === 'ring') {
+        var R2 = v.r * TS * (0.1 + 0.9 * (1 - Math.pow(1 - k, 3))); g.globalAlpha = 1; g.strokeStyle = 'rgba(' + c + ',' + (0.95 * (1 - k)).toFixed(3) + ')'; g.lineWidth = Math.max(0.5, (1 - k) * 7); g.beginPath(); g.ellipse(X, Y, R2, R2 * 0.5, 0, 0, Math.PI * 2); g.stroke(); return;
+      }
+      if (v.k === 'beam') {
+        var ang = Math.atan2(v.y1 - Y, v.x1 - X), len = Math.hypot(v.x1 - X, v.y1 - Y) * Math.min(1, k / 0.2), bw = v.w * (1 + 0.18 * Math.sin(t / 35)) * (k > 0.7 ? Math.max(0.05, (1 - k) / 0.3) : 1);
+        g.save(); g.translate(X, Y); g.rotate(ang); grd = g.createLinearGradient(0, -bw / 2, 0, bw / 2); grd.addColorStop(0, 'rgba(' + c + ',0)'); grd.addColorStop(0.3, 'rgba(' + c + ',0.8)'); grd.addColorStop(0.5, 'rgba(255,255,230,1)'); grd.addColorStop(0.7, 'rgba(' + c + ',0.8)'); grd.addColorStop(1, 'rgba(' + c + ',0)');
+        g.fillStyle = grd; g.fillRect(0, -bw / 2, len, bw); g.beginPath(); g.arc(0, 0, bw * 0.7, 0, Math.PI * 2); g.fill(); g.restore(); return;
+      }
+      if (v.k === 'spiral') {
+        var R3 = v.r * TS * Math.min(1, k * 1.5);
+        for (i = 0; i < 120; i++) { var f = i / 120, a1 = f * 16 + k * 9 + (i % 2) * Math.PI, rr = R3 * f, sz = (i % 5 === 0 ? 3 : 2) * 0.8; g.fillStyle = i % 3 === 0 ? 'rgba(255,230,80,0.95)' : 'rgba(210,140,255,0.9)'; g.fillRect(X + Math.cos(a1) * rr - sz / 2, Y + Math.sin(a1) * rr * 0.6 - sz / 2, sz, sz); }
+        grd = g.createRadialGradient(X, Y, 0, X, Y, Math.max(0.01, R3)); grd.addColorStop(0, 'rgba(200,120,255,0.3)'); grd.addColorStop(1, 'rgba(200,120,255,0)'); g.fillStyle = grd; g.fillRect(X - R3, Y - R3, R3 * 2, R3 * 2); return;
+      }
+      if (v.k === 'bolt') {
+        // 本編と同じ形の稲妻（毎コマ形が変わる）。色は本編の落雷と同じ
+        if (Math.random() < 0.55) return;
+        var R4 = v.r * TS;
+        for (var b2 = 0; b2 < 3; b2++) { var a2 = Math.random() * Math.PI * 2, x0 = X + Math.cos(a2) * R4, y0 = Y + Math.sin(a2) * R4 * 0.5, tx = X + (Math.random() - 0.5) * 10, ty = Y - (v.h || 60);
+          g.beginPath(); g.moveTo(x0, y0); for (var s2 = 1; s2 <= 7; s2++) { var qq = s2 / 7; g.lineTo(x0 + (tx - x0) * qq + (s2 < 7 ? (Math.random() - 0.5) * 12 : 0), y0 + (ty - y0) * qq); }
+          g.strokeStyle = 'rgba(255,50,90,0.85)'; g.lineWidth = 2.4; g.stroke(); g.strokeStyle = 'rgba(255,230,255,0.95)'; g.lineWidth = 1; g.stroke(); }
+        return;
+      }
+      if (v.k === 'sutra') {
+        var R5 = v.r * TS * (0.3 + 0.7 * Math.min(1, k / 0.2)), W5 = '癒光護命聖浄';
+        g.save(); g.translate(X, Y); g.scale(1, 0.5); grd = g.createRadialGradient(0, 0, 0, 0, 0, R5 * 1.2); grd.addColorStop(0, 'rgba(255,240,170,0.45)'); grd.addColorStop(1, 'rgba(160,255,170,0)'); g.fillStyle = grd; g.fillRect(-R5 * 1.2, -R5 * 1.2, R5 * 2.4, R5 * 2.4);
+        g.strokeStyle = 'rgba(255,230,140,0.95)'; g.lineWidth = 1.5; g.beginPath(); g.arc(0, 0, R5, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(0, 0, R5 * 0.78, 0, Math.PI * 2); g.stroke();
+        g.rotate(t / 900); g.fillStyle = 'rgba(255,245,200,1)'; g.font = '9px DotGothic16, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        for (i = 0; i < 12; i++) { g.save(); g.rotate(i / 12 * Math.PI * 2); g.translate(0, -R5 * 0.89); g.fillText(W5[i % W5.length], 0, 0); g.restore(); }
+        g.restore(); return;
+      }
+    });
+    g.restore(); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
   }
   function popEvents(events, delay, kind) {
     var now = performance.now(), st = P.session.state(), at = {}, sfxAt = {};
@@ -19159,7 +19258,7 @@ function mnMonShoot(m,t){
   }
   window.__mtwLab = {
     tryId: tryId, onShow: onShow,
-    state: function () { return { caster: P.caster, slots: P.slots.slice(), notice: P.notice, room: !!R, session: P.session && R ? { state: P.session.state(), totals: P.session.totals(), last: P.session.last(), recovered: P.session.recovered() } : null, mode: R && R.mode, spellId: R && R.spellId, choice: R && R.choice, preview: R && R.pv, dialog: !!(R && R.dialog), shown: R ? R.shown.slice() : [], cut: R && R.cut ? { key: R.cut.key || null, name: R.cut.name, sub: R.cut.sub || null, col: R.cut.col, game: !!R.cut.game } : null, anim: R ? R.anims.length + (R.cut ? 1 : 0) : 0, fx: R && R.fxLast ? { key: R.fxLast.key, n: R.fxLast.n, live: R.anims.filter(function (x) { return /^fx-/.test(x.kind); }).map(function (x) { return x.kind; }) } : null }; },
+    state: function () { return { caster: P.caster, slots: P.slots.slice(), notice: P.notice, room: !!R, session: P.session && R ? { state: P.session.state(), totals: P.session.totals(), last: P.session.last(), recovered: P.session.recovered() } : null, mode: R && R.mode, spellId: R && R.spellId, choice: R && R.choice, preview: R && R.pv, dialog: !!(R && R.dialog), shown: R ? R.shown.slice() : [], cut: R && R.cut ? { key: R.cut.key || null, name: R.cut.name, sub: R.cut.sub || null, col: R.cut.col, game: !!R.cut.game } : null, anim: R ? R.anims.length + (R.cut ? 1 : 0) : 0, fx: R && R.fxLast ? { key: R.fxLast.key, n: R.fxLast.n, kinds: (R.fxLast.kinds || []).slice(), live: (R.vfx || []).map(function (x) { return x.k; }) } : null }; },
     _session: function () { return P.session; }
   };
   P.room = null;
