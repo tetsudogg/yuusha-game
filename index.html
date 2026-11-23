@@ -1001,7 +1001,7 @@ body.mob .pc .bar{width:70px;height:4px}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.210'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.211'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -22731,8 +22731,8 @@ function mbDrawIns(cpx,cpy,t){
       ok: true, partial: undecided.length > 0, subject: subject, genBand: inp.genBand, evalBand: evalBand, finalNeed: inp.finalNeed,
       effects: rows, range: { enemy: rangeMax.enemy, ally: rangeMax.ally }, traits: traitRows, efficiency: eff,
       total: undecided.length ? null : total, partialTotal: total, rarity: rarity, undecided: undecided,
-      // レジェンドの点を出しても、生成でレジェンドを出してよいという意味ではない
-      legendaryGenerationEnabled: false
+      // Ver 0.1.211（ユーザーの決定）：生成でもレジェンドを出す
+      legendaryGenerationEnabled: true
     };
   }
 
@@ -23961,9 +23961,9 @@ function mbDrawIns(cpx,cpy,t){
     if (!pv.ok) return fail('GENERATE_' + pv.code, pv.detail);
     if (pv.steps.main.key !== mainKey) return fail('MAIN_MISMATCH');
     if (!pv.complete) return fail('GENERATE_INCOMPLETE', pv.undecided);
-    // 4 珍しさ：点数がレジェンドに届いても、解禁の判断が別にあるまでエピックにとどめる（黙って解禁しない）
+    // 4 珍しさ：点数のとおり。Ver 0.1.211（ユーザーの決定 2026-11-23）でレジェンドを解禁した（前はエピックにとどめ、legendCapped の印を付けていた）
+    // legendCapped は記録の形をそろえるため残す（新しく作る魔法はいつも false。前に作った「エピック（解禁の前）」の記録はそのまま）
     var rarity = pv.score && pv.score.rarity, capped = false;
-    if (rarity === 'legendary') { rarity = 'epic'; capped = true; }
     var gen = {
       genBand: band, needPref: pref, baseNeed: baseNeed, finalNeed: pv.finalNeed, scoreBand: K.bandOfNeed(pv.finalNeed).band,
       mainKey: pv.steps.main.key, fromSub: pv.steps.main.fromSub, subject: pv.steps.main.subject, shape: pv.steps.shape.key, delivery: pv.steps.shape.delivery,
