@@ -1011,7 +1011,7 @@ body.mob.port .sty .sdlg{bottom:max(3%,calc(env(safe-area-inset-bottom,0px) + 10
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.218'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.219'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -22500,11 +22500,44 @@ function mbDrawIns(cpx,cpy,t){
     attack: [[5, 'common'], [9, 'uncommon'], [17, 'rare'], [25, 'epic'], [Infinity, 'legendary']],
     status: [[4, 'common'], [8, 'uncommon'], [16, 'rare'], [24, 'epic'], [Infinity, 'legendary']],
     heal: [[5, 'common'], [9, 'uncommon'], [21, 'rare'], [31, 'epic'], [Infinity, 'legendary']],
+    heal_table: [[5, 'common'], [9, 'uncommon'], [17, 'rare'], [25, 'epic'], [Infinity, 'legendary']],
     defense: [[5, 'common'], [9, 'uncommon'], [17, 'rare'], [25, 'epic'], [Infinity, 'legendary']]
   };
   // Ver 0.1.218（ユーザーの決定 2026-11-24）：攻撃の主の効果の点は、15 段階の威力（1〜15）を下の表で点にする（上のランクほど大きく上がる）。
   // D 0〜2・C 3〜5・B 6〜8・A 9／11／13・S 19／23／26。威力 S は必ずエピック以上。攻撃のレジェンドは約 1%（前は約 0.09%）。線（THRESHOLDS）は変えない
   var ATTACK_POINTS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 19, 23, 26];
+  // ---- Ver 0.1.219（ユーザーの決定 2026-11-24）：回復が主の魔法の回復量の表と、レジェンドのボーナス
+  // 単体の即時回復（最大 HP の %）：帯ごとの下限〜上限を 15 段階（1 段ごとに 小 +2・中 +3・大 +4）。3 段ずつ D・C・B・A・S。
+  // 範囲は単体に掛ける（3×3 ＝ 0.8・5×5 ＝ 0.7・見えている全体 ＝ 0.6）。四捨五入して整数。継続回復・霧は、この量の 40% × 3 回（前と同じ割合）
+  // 前の決まり（HEAL_STD × 品質 0.8〜1.2）は、試験用の魔法（fixture）と、攻撃などに付く「追加の回復」に、そのまま使う
+  var HEAL_RANGE = { 1: [12, 40], 2: [28, 70], 3: [44, 100] };
+  var HEAL_AREA = { single: 1, r1: 0.8, r2: 0.7, visible: 0.6 };
+  function healByStep(inp) {
+    if (!inp || typeof inp !== 'object' || !bandOk(inp.band)) return fail('BAND');
+    if (typeof inp.area !== 'string' || !own(HEAL_AREA, inp.area)) return fail('AREA_NO_HEAL_STANDARD', inp.area);
+    if (!Number.isInteger(inp.step) || inp.step < 1 || inp.step > 15) return fail('HEAL_STEP', inp.step);
+    var r = HEAL_RANGE[inp.band];
+    return { ok: true, step: inp.step, instant: roundHalfUp((r[0] + (r[1] - r[0]) * (inp.step - 1) / 14) * HEAL_AREA[inp.area]) };
+  }
+  // 回復量 → その帯・その範囲の表の段階（1〜15。表の外は端に入れる）。威力の札の文字と、帯をまたいだときの採点に使う
+  function healStepOf(inp) {
+    if (!inp || typeof inp !== 'object' || !bandOk(inp.band)) return fail('BAND');
+    if (typeof inp.area !== 'string' || !own(HEAL_AREA, inp.area)) return fail('AREA_NO_HEAL_STANDARD', inp.area);
+    if (!num(inp.instant) || inp.instant < 0) return fail('HEAL_RATE');
+    // 表の値（四捨五入した整数）に届いている、いちばん上の段階（表の値そのものは、元の段階にもどる）
+    var st = 1;
+    for (var k = 2; k <= 15; k++) if (clean(inp.instant) >= healByStep({ band: inp.band, area: inp.area, step: k }).instant) st = k;
+    return { ok: true, step: st };
+  }
+  // レジェンドのボーナス（回復が主の魔法だけ。珍しさが決まったあとに引く。珍しさ・評価の帯には入れない）
+  // [出やすさ %, ボーナスの下限, 上限, 足す必要魔力]。大・単体だけは、継続回復（毎ターン 最大 HP の %・3 ターン）。
+  // すでに継続回復を持つ魔法では、その継続回復のターンを +2（足す必要魔力は、引いた段のもの）
+  var HEAL_BONUS = {
+    1: { single: [[50, 1, 10, 2], [35, 11, 15, 3], [15, 16, 20, 4]], r1: [[50, 1, 8, 3], [35, 9, 14, 4], [15, 15, 18, 5]], r2: [[50, 1, 7, 4], [35, 8, 12, 5], [15, 13, 16, 6]], visible: [[50, 1, 6, 5], [35, 7, 11, 6], [15, 12, 15, 7]] },
+    2: { single: [[50, 1, 10, 3], [30, 11, 15, 4], [10, 16, 20, 5], [5, 21, 25, 6], [5, 26, 30, 7]], r1: [[50, 1, 10, 4], [30, 11, 15, 5], [15, 16, 20, 6], [5, 21, 25, 7]], r2: [[50, 1, 10, 5], [35, 11, 15, 6], [15, 16, 20, 7]], visible: [[50, 1, 8, 6], [35, 9, 14, 7], [15, 15, 18, 8]] },
+    3: { single: [[50, 1, 4, 4], [35, 5, 7, 5], [15, 8, 10, 6]], r1: [[50, 1, 10, 4], [35, 11, 15, 5], [15, 16, 20, 6]], r2: [[40, 1, 10, 5], [25, 11, 15, 6], [15, 16, 20, 7], [10, 21, 25, 8], [10, 26, 30, 9]], visible: [[40, 1, 10, 6], [25, 11, 15, 7], [15, 16, 20, 8], [5, 21, 25, 9], [5, 26, 30, 10], [5, 31, 35, 11], [5, 36, 40, 12]] }
+  };
+  var HEAL_BONUS_REGEN = { band: 3, area: 'single', turns: 3, extendTurns: 2 };
   var CURE_POINTS = { single: [2, 3, 4], range: [4, 5, 6], all: [6, 7, 8] };
   var REVIVE_POINTS = { 30: 3, 50: 4, 80: 5, 100: 6 };
   var TRAIT_POINTS = { homing: 2, reflect: 11, resist_element: 6, resist_magic: 10, resist_physical: 10 };
@@ -22680,7 +22713,7 @@ function mbDrawIns(cpx,cpy,t){
   //   kind：damage{ power30 }・status{ status, rate }・heal{ instant }・regen{ instant }・def_up{ multiplier }・barrier{ rate }・wall{ rate }・cure{ count, scope }・revive{ hpRate }
   //   area（効果ごと）：範囲点と、回復/防御の標準の選び方に使う
   function sideOf(kind) { return kind === 'damage' || kind === 'status' ? 'enemy' : kind === 'heal' || kind === 'regen' || kind === 'def_up' || kind === 'barrier' ? 'ally' : null; }
-  function effectPoints(e, evalBand, subject) {
+  function effectPoints(e, evalBand, subject, genBand) {
     if (!e || typeof e !== 'object') return fail('EFFECT_NOT_OBJECT');
     var area = own(e, 'area') ? e.area : 'single';
     if (AREAS.indexOf(area) < 0) return fail('AREA_UNKNOWN', area);
@@ -22700,6 +22733,15 @@ function mbDrawIns(cpx,cpy,t){
         return { ok: true, points: Math.min(15, roundHalfUp(v * e.rate / def.rate)) };
       }
       case 'heal': case 'regen': {
+        // Ver 0.1.219：回復量の表で作った主の回復（step つき）は、段階（1〜15）を攻撃と同じ点の表（ATTACK_POINTS）で点にする。
+        // 評価は最後の必要量の帯。作った帯とちがうとき（苔で帯をまたいだ）は、その帯の表で段階を出しなおす
+        if (e.slot === 'main' && own(e, 'step')) {
+          if (!Number.isInteger(e.step) || e.step < 1 || e.step > 15) return fail('HEAL_STEP');
+          if (!own(HEAL_AREA, area)) return { ok: true, points: null, undecided: ['heal_standard_for_area:' + area] };
+          var hs = e.step;
+          if (genBand !== evalBand) { if (!num(e.instant) || e.instant < 0) return fail('HEAL_RATE'); hs = healStepOf({ band: evalBand, area: area, instant: e.instant }).step; }
+          return { ok: true, points: ATTACK_POINTS[hs - 1], grade: GRADES[hs - 1] };
+        }
         // 追加の回復も、同じ帯・同じ範囲の回復の標準と比べる（RARITY_SCORING 2 節の例）
         if (!own(HEAL_STD[evalBand], area)) return { ok: true, points: null, undecided: ['heal_standard_for_area:' + area] };
         if (!num(e.instant) || e.instant < 0 || e.instant > 100) return fail('HEAL_RATE');
@@ -22748,7 +22790,7 @@ function mbDrawIns(cpx,cpy,t){
     var evalBand = bandOfNeed(inp.finalNeed).band;
     var rows = [], undecided = [], total = 0, rangeMax = { enemy: 0, ally: 0 };
     for (var i = 0; i < ef.length; i++) {
-      var p = effectPoints(ef[i], evalBand, subject);
+      var p = effectPoints(ef[i], evalBand, subject, inp.genBand);
       if (!p.ok) return fail('EFFECT_' + p.code, { index: i, detail: p.detail });
       if (p.points === null) { undecided = undecided.concat(p.undecided); rows.push({ index: i, kind: ef[i].kind, points: null, undecided: p.undecided }); continue; }
       rows.push({ index: i, kind: ef[i].kind, points: p.points, grade: p.grade || null, dedicated: !!p.dedicated });
@@ -22782,7 +22824,9 @@ function mbDrawIns(cpx,cpy,t){
     total += rangeMax.enemy + rangeMax.ally + eff;
     if (!num(total)) return fail('NON_FINITE_RESULT', 'total');
     var rarity = null;
-    if (!undecided.length) { for (var k = 0; k < THRESHOLDS[subject].length; k++) if (total <= THRESHOLDS[subject][k][0]) { rarity = THRESHOLDS[subject][k][1]; break; } }
+    // Ver 0.1.219：回復量の表で作った回復（主に step つき）の線は、攻撃と同じ（heal_table）。前の決まりの回復（試験用）は前の線のまま
+    var th = subject === 'heal' && own(ef[0], 'step') ? THRESHOLDS.heal_table : THRESHOLDS[subject];
+    if (!undecided.length) { for (var k = 0; k < th.length; k++) if (total <= th[k][0]) { rarity = th[k][1]; break; } }
     return {
       ok: true, partial: undecided.length > 0, subject: subject, genBand: inp.genBand, evalBand: evalBand, finalNeed: inp.finalNeed,
       effects: rows, range: { enemy: rangeMax.enemy, ally: rangeMax.ally }, traits: traitRows, efficiency: eff,
@@ -22793,10 +22837,10 @@ function mbDrawIns(cpx,cpy,t){
   }
 
   return {
-    TABLES: { BANDS: BANDS, STANDARD_NEED: STANDARD_NEED, GROWTH: GROWTH, EVAL_LEVEL: EVAL_LEVEL, ATTACK_AREA: ATTACK_AREA, RANGE_POINTS: RANGE_POINTS, GRADES: GRADES, HEAL_STD: HEAL_STD, DEFUP_STD: DEFUP_STD, BARRIER_STD: BARRIER_STD, WALL_RATE: WALL_RATE, QUALITY_FACTORS: QUALITY_FACTORS, SYNC: SYNC, STATUS: STATUS, STATUS_AREA: STATUS_AREA, STATUS_QUALITY: STATUS_QUALITY, DOT: DOT, STATUS_VALUE: STATUS_VALUE, THRESHOLDS: THRESHOLDS, CURE_POINTS: CURE_POINTS, REVIVE_POINTS: REVIVE_POINTS, TRAIT_POINTS: TRAIT_POINTS, ATTACK_POINTS: ATTACK_POINTS },
+    TABLES: { BANDS: BANDS, STANDARD_NEED: STANDARD_NEED, GROWTH: GROWTH, EVAL_LEVEL: EVAL_LEVEL, ATTACK_AREA: ATTACK_AREA, RANGE_POINTS: RANGE_POINTS, GRADES: GRADES, HEAL_STD: HEAL_STD, DEFUP_STD: DEFUP_STD, BARRIER_STD: BARRIER_STD, WALL_RATE: WALL_RATE, QUALITY_FACTORS: QUALITY_FACTORS, SYNC: SYNC, STATUS: STATUS, STATUS_AREA: STATUS_AREA, STATUS_QUALITY: STATUS_QUALITY, DOT: DOT, STATUS_VALUE: STATUS_VALUE, THRESHOLDS: THRESHOLDS, CURE_POINTS: CURE_POINTS, REVIVE_POINTS: REVIVE_POINTS, TRAIT_POINTS: TRAIT_POINTS, ATTACK_POINTS: ATTACK_POINTS, HEAL_RANGE: HEAL_RANGE, HEAL_AREA: HEAL_AREA, HEAL_BONUS: HEAL_BONUS, HEAL_BONUS_REGEN: HEAL_BONUS_REGEN },
     bandOfNeed: bandOfNeed, bandBase: bandBase, attackPower: attackPower, gradeOfRatio: gradeOfRatio, attackEvaluation: attackEvaluation,
     healRate: healRate, defUp: defUp, barrier: barrier, wallHp: wallHp, applyHealSync: applyHealSync, applyDefUpSync: applyDefUpSync, applyBarrierSync: applyBarrierSync, cureReviveChance: cureReviveChance,
-    statusRate: statusRate, applyStatusSync: applyStatusSync, dotTick: dotTick, scoreRarity: scoreRarity
+    healByStep: healByStep, healStepOf: healStepOf, statusRate: statusRate, applyStatusSync: applyStatusSync, dotTick: dotTick, scoreRarity: scoreRarity
   };
 });
 
@@ -23379,9 +23423,22 @@ function mbDrawIns(cpx,cpy,t){
         if (!sr.ok) { undecided.push('status_area:' + area); value = { qualityIndex: q.index }; }
         else { value = { qualityIndex: q.index, rate: sr.finalRate, turns: sr.turns, ticks: sr.ticks }; effects.push({ slot: 'main', kind: 'status', status: main.status, rate: sr.finalRate, area: area }); }
       } else if (main.kind === 'heal' || main.kind === 'regen') {
+        // Ver 0.1.219（ユーザーの決定）：通常の生成（input.healInner つき）は、回復量の表（帯 × 範囲 × 15 段階）で決める。
+        // 段階 ＝ 品質の区分（0〜4）× 3 ＋ 区分の中（healInner 0〜2）＋ 1。試験用（healInner なし）は、前の決まり（標準 × 品質）のまま
+        if (own(input, 'healInner')) {
+          if ([0, 1, 2].indexOf(input.healInner) < 0) return stop(fail('HEAL_INNER', input.healInner));
+          var hstep = q.index * 3 + input.healInner + 1, ht = K.healByStep({ band: input.genBand, area: area, step: hstep });
+          if (!ht.ok) { undecided.push('heal_area:' + area); value = { qualityIndex: q.index }; }
+          else {
+            value = { qualityIndex: q.index, instant: ht.instant, step: hstep };
+            if (main.kind === 'regen') { value.perTick = Math.round(ht.instant * 0.4 * 1e9) / 1e9; value.ticks = 3; }
+            effects.push({ slot: 'main', kind: main.kind, instant: ht.instant, area: area, step: hstep });
+          }
+        } else {
         var hr = K.healRate({ band: input.genBand, area: area, quality: S.TABLES.HEAL_DEF_FACTOR[q.index], kind: main.kind });
         if (!hr.ok) { undecided.push('heal_area:' + area); value = { qualityIndex: q.index }; }
         else { value = { qualityIndex: q.index, instant: hr.instant, perTick: hr.perTick, ticks: hr.ticks }; effects.push({ slot: 'main', kind: main.kind, instant: hr.instant, area: area }); }
+        }
       } else if (main.kind === 'barrier' || main.kind === 'def_up') {
         var dr = (main.kind === 'barrier' ? K.barrier : K.defUp)({ band: input.genBand, area: area, quality: S.TABLES.HEAL_DEF_FACTOR[q.index] });
         if (!dr.ok) { undecided.push('defense_area:' + area); value = { qualityIndex: q.index }; }
@@ -23579,6 +23636,8 @@ function mbDrawIns(cpx,cpy,t){
         r = { slot: e.slot, kind: 'status', status: e.status, rate: e.rate, area: area };
       } else if (e.kind === 'heal' || e.kind === 'regen') {
         r = { slot: e.slot, kind: e.kind, instant: e.instant, area: e.area };
+        // Ver 0.1.219：回復量の表で作った主の回復は、表の段階（1〜15）も持つ
+        if (own(e, 'step')) r.step = e.step;
       } else if (e.kind === 'barrier') {
         r = { slot: e.slot, kind: 'barrier', rate: e.rate, area: e.area };
       } else if (e.kind === 'def_up') {
@@ -23650,6 +23709,28 @@ function mbDrawIns(cpx,cpy,t){
       return u.wall ? delivery === 'wall' : delivery !== 'wall';
     });
   }
+  function validHealBonus(sp) {
+    var b = sp.healBonus, m = sp.effects[0], int = Number.isInteger;
+    if (!b || typeof b !== 'object' || Array.isArray(b) || !(m.kind === 'heal' || m.kind === 'regen')) return fail('HEAL_BONUS');
+    if (!int(b.need) || !int(b.baseNeed) || b.baseNeed < 1 || sp.finalNeed !== b.baseNeed + b.need || !num(b.baseInstant) || b.baseInstant < 0 || b.baseInstant > 100) return fail('HEAL_BONUS_NEED');
+    // 表は、ボーナスの前の必要魔力の帯
+    var hband = K.bandOfNeed(b.baseNeed).band, T = K.TABLES.HEAL_BONUS[hband] && K.TABLES.HEAL_BONUS[hband][m.area], RG = K.TABLES.HEAL_BONUS_REGEN;
+    if (!T) return fail('HEAL_BONUS_AREA', m.area);
+    var kinds = (own(b, 'pct') ? 1 : 0) + (own(b, 'regen') ? 1 : 0) + (own(b, 'regenTurns') ? 1 : 0);
+    if (kinds !== 1) return fail('HEAL_BONUS_KIND');
+    var special = hband === RG.band && m.area === RG.area;
+    var tierOf = function (v) { for (var i = 0; i < T.length; i++) if (v >= T[i][1] && v <= T[i][2]) return T[i]; return null; };
+    if (own(b, 'pct')) {
+      var t1 = int(b.pct) ? tierOf(b.pct) : null;
+      if (special || !t1 || t1[3] !== b.need || m.instant !== Math.min(100, b.baseInstant + b.pct)) return fail('HEAL_BONUS_PCT');
+    } else if (own(b, 'regen')) {
+      var g = b.regen, t2 = g && int(g.perTick) ? tierOf(g.perTick) : null;
+      if (!special || !t2 || t2[3] !== b.need || g.turns !== RG.turns || m.instant !== b.baseInstant || sp.effects.some(function (e) { return e.kind === 'regen'; })) return fail('HEAL_BONUS_REGEN');
+    } else {
+      if (!special || b.regenTurns !== RG.extendTurns || m.instant !== b.baseInstant || !T.some(function (t) { return t[3] === b.need; }) || !sp.effects.some(function (e) { return e.kind === 'regen'; })) return fail('HEAL_BONUS_TURNS');
+    }
+    return { ok: true };
+  }
   function validate(sp) {
     if (!sp || typeof sp !== 'object' || sp.format !== FORMAT || sp.version !== VERSION || !(sp.fixture === true || (sp.fixture === false && typeof sp.birthId === 'string'))) return fail('FORMAT');
     if (typeof sp.fixtureId !== 'string' || !own(SHAPE_TARGET, sp.shape)) return fail('SHAPE');
@@ -23667,6 +23748,10 @@ function mbDrawIns(cpx,cpy,t){
       if (e.kind === 'cure' && (!Number.isInteger(e.count) || e.count < 1)) return fail('CURE_VALUE', i);
       if (e.kind === 'revive' && (!num(e.hpRate) || e.hpRate <= 0 || e.hpRate > 100)) return fail('REVIVE_VALUE', i);
     }
+    // 回復の表の段階：ない（前の記録・追加の回復）か、1〜15
+    for (var i2 = 0; i2 < sp.effects.length; i2++) if (own(sp.effects[i2], 'step') && (!(sp.effects[i2].kind === 'heal' || sp.effects[i2].kind === 'regen') || !Number.isInteger(sp.effects[i2].step) || sp.effects[i2].step < 1 || sp.effects[i2].step > 15)) return fail('HEAL_STEP', i2);
+    // 回復のレジェンドのボーナス（Ver 0.1.219）：ない（前の記録・レジェンドでない）か、回復が主の魔法で、表の範囲の中の値だけ
+    if (own(sp, 'healBonus')) { var hbv = validHealBonus(sp); if (!hbv.ok) return hbv; }
     // 状態異常の魔法のダメージ：ない（前の記録・小の帯）か、状態が主で、帯に合った割合だけ
     if (own(sp, 'statusDamage') && (sp.effects[0].kind !== 'status' || !own(STATUS_DAMAGE, sp.genBand) || sp.statusDamage !== STATUS_DAMAGE[sp.genBand])) return fail('STATUS_DAMAGE', sp.statusDamage);
     // ユニークスキル：ない（前の記録）か、その種類に付けられるものだけ
@@ -23775,6 +23860,16 @@ function mbDrawIns(cpx,cpy,t){
     if (opt && (opt.mist || opt.regen)) pct = clean(pct * MIST.ratio);
     return { ok: true, pct: pct, amount: Math.max(0, roundHalfUp(maxHp * pct / 100)) };
   }
+  // 回復のレジェンドのボーナスの継続回復（大・単体）：1 回の量（最大 HP × % × 回復シンクロ × 魔力同調・四捨五入）と回数。付かない魔法は null
+  function healBonusRegen(sp, caster, maxHp) {
+    if (!sp || !own(sp, 'healBonus') || !sp.healBonus || !sp.healBonus.regen) return null;
+    var s = K.applyHealSync(sp.healBonus.regen.perTick, caster);
+    if (!s.ok) return s;
+    var pct = clean(s.rate * (sp.effects[0].ms || 1));
+    return { ok: true, pct: pct, amount: Math.max(0, roundHalfUp(maxHp * pct / 100)), turns: sp.healBonus.regen.turns };
+  }
+  // 継続回復の回数（はじめの 1 回をふくむ）：ふつうは 3。ボーナスで +2
+  function regenHits(sp) { return REGEN.hits + (sp && sp.healBonus && sp.healBonus.regenTurns ? sp.healBonus.regenTurns : 0); }
   function defUpValue(e, caster) { var r = K.applyDefUpSync(e.multiplier, caster); return r.ok ? { ok: true, multiplier: clean(1 + (r.multiplier - 1) * (e.ms || 1)), turns: 3 } : r; }
   function barrierValue(e, caster) { var r = K.applyBarrierSync(e.rate, caster); return r.ok ? { ok: true, rate: Math.min(100, clean(r.rate * (e.ms || 1))), turns: 3 } : r; }
   function wallHp(sp, caster, casterMaxHp) {
@@ -23801,7 +23896,7 @@ function mbDrawIns(cpx,cpy,t){
   return {
     FORMAT: FORMAT, VERSION: VERSION, CASTERS: CASTERS, SHAPE_TARGET: SHAPE_TARGET, WALL: WALL, MIST: MIST, REGEN: REGEN, REVIVE_HP: REVIVE_HP, ATTACK_SYNC: ATTACK_SYNC,
     toRuntime: toRuntime, fromGenerated: fromGenerated, SYNC_MUL: SYNC_MUL, validate: validate, supportOf: supportOf, AREA_RADIUS: AREA_RADIUS, needOf: needOf, attackPower: attackPower, statusDamagePower: statusDamagePower, STATUS_DAMAGE: STATUS_DAMAGE, STATUS_ELEMENT: STATUS_ELEMENT, damageTo: damageTo, statusRoll: statusRoll, dotAmount: dotAmount,
-    healAmount: healAmount, defUpValue: defUpValue, barrierValue: barrierValue, wallHp: wallHp, cureReviveChance: cureReviveChance,
+    healAmount: healAmount, healBonusRegen: healBonusRegen, regenHits: regenHits, defUpValue: defUpValue, barrierValue: barrierValue, wallHp: wallHp, cureReviveChance: cureReviveChance,
     wallDamage: wallDamage, wallReflect: wallReflect, clone: clone, calc: K,
     UNIQUE: UNIQUE, UNIQUE_ORDER: UNIQUE_ORDER, UNIQUE_RATE: UNIQUE_RATE, uniqueFor: uniqueFor
   };
@@ -24085,6 +24180,8 @@ function mbDrawIns(cpx,cpy,t){
       compat: compatMap(mainKey), slotProfile: rec.catalyst !== null && ADDED_PROFILE_CATALYSTS.indexOf(rec.catalyst) >= 0 ? 'added_catalyst' : 'normal',
       materialHasAddedCandidate: cands.length > 0, addedCandidates: cands.map(function (c) { var o = clone(c); delete o.sources; return o; }), candidatesFinal: true, generation: true, fixture: false
     };
+    // Ver 0.1.219：回復が主の魔法は、回復量の表の「区分の中」（0〜2）を、別の seed つきの列（'hl|'）で引く（前の列の値は動かさない）
+    if (subject === 'heal') { var hl = RNG.createSeededRng('hl|' + base); pvIn.healInner = Math.min(2, Math.floor(hl.next() * 3)); }
     if (cat && (cat.feature === 'trait:homing' || cat.feature === 'trait:pierce')) pvIn.catalystTraitRate = CATALYST_TRAIT_RATE + (maker === 'sevran' ? SEVRAN_TRAIT_BONUS : 0);
     var pv = PV.preview(pvIn);
     if (!pv.ok) return fail('GENERATE_' + pv.code, pv.detail);
@@ -24100,6 +24197,22 @@ function mbDrawIns(cpx,cpy,t){
       var ucand = RT.uniqueFor(pv.steps.main.subject, pv.steps.shape.delivery);
       if (ucand.length) { var uq = RNG.createSeededRng('uq|' + base); if (uq.next() < RT.UNIQUE_RATE) unique = ucand[Math.min(ucand.length - 1, Math.floor(uq.next() * ucand.length))]; }
     }
+    // 6 回復のレジェンドのボーナス（Ver 0.1.219・ユーザーの決定）：回復が主の魔法がレジェンドに決まったあとで引く（別の列 'hb|'）。
+    // 珍しさ・評価の帯・点は、ボーナスの前の値のまま。回復量と必要魔力に足すのは、出生の記録を作るとき（makeBirth）
+    var healBonus = null;
+    if (rarity === 'legendary' && pv.steps.main.subject === 'heal') {
+      var harea = pv.steps.areaAdjust && pv.steps.areaAdjust.applied ? pv.steps.areaAdjust.after : pv.steps.shape.area;
+      // 表は、ボーナスの前の必要魔力の帯（評価の帯）でえらぶ
+      var hband = K.bandOfNeed(pv.finalNeed).band, HB = K.TABLES.HEAL_BONUS[hband] && K.TABLES.HEAL_BONUS[hband][harea];
+      if (HB) {
+        var hb = RNG.createSeededRng('hb|' + base), u1 = hb.next() * 100, u2 = hb.next(), acc = 0, tier = HB[HB.length - 1];
+        for (var ti = 0; ti < HB.length; ti++) { acc += HB[ti][0]; if (u1 < acc) { tier = HB[ti]; break; } }
+        var val = tier[1] + Math.min(tier[2] - tier[1], Math.floor(u2 * (tier[2] - tier[1] + 1)));
+        var RG = K.TABLES.HEAL_BONUS_REGEN, hasRegen = pv.effects.some(function (e) { return e.kind === 'regen'; });
+        if (hband === RG.band && harea === RG.area) healBonus = hasRegen ? { need: tier[3], regenTurns: RG.extendTurns } : { need: tier[3], regen: { perTick: val, turns: RG.turns } };
+        else healBonus = { need: tier[3], pct: val };
+      }
+    }
     var gen = {
       genBand: band, needPref: pref, baseNeed: baseNeed, finalNeed: pv.finalNeed, scoreBand: K.bandOfNeed(pv.finalNeed).band,
       mainKey: pv.steps.main.key, fromSub: pv.steps.main.fromSub, subject: pv.steps.main.subject, shape: pv.steps.shape.key, delivery: pv.steps.shape.delivery,
@@ -24113,6 +24226,7 @@ function mbDrawIns(cpx,cpy,t){
     };
     // ユニークスキルが付いたときだけキーを足す（付かない記録の形は前の版と同じ）
     if (unique) gen.unique = unique;
+    if (healBonus) gen.healBonus = healBonus;
     return { ok: true, preview: pv, gen: gen, materials: mats, maker: maker, needPref: pref, traces: traces, base: base };
   }
   // 出生の記録（保存する形）。manaSync は工房の魔力同調の最高の判定（1〜5。なければ 3＝補正なし）
@@ -24125,6 +24239,18 @@ function mbDrawIns(cpx,cpy,t){
     if (!spell.ok) return spell;
     // ユニークスキルは、実行の契約（spell）にも入れる（本編は spell だけを読む）
     if (generated.gen.unique) spell.spell.unique = generated.gen.unique;
+    // 回復のレジェンドのボーナス：回復量（上限 100）と必要魔力に足す。足す前の値は healBonus（baseNeed・baseInstant）に残す（威力の札と帯は、足す前の値で決める）
+    if (generated.gen.healBonus) {
+      var hbn = generated.gen.healBonus, sp0 = spell.spell, m0 = sp0.effects[0];
+      var hbo = { need: hbn.need, baseNeed: sp0.finalNeed, baseInstant: m0.instant };
+      if (hbn.pct) { hbo.pct = hbn.pct; m0.instant = Math.min(100, m0.instant + hbn.pct); }
+      if (hbn.regen) hbo.regen = { perTick: hbn.regen.perTick, turns: hbn.regen.turns };
+      if (hbn.regenTurns) hbo.regenTurns = hbn.regenTurns;
+      sp0.finalNeed = sp0.finalNeed + hbn.need;
+      sp0.healBonus = hbo;
+      var chk2 = RT.validate(sp0);
+      if (!chk2.ok) return chk2;
+    }
     var rec = { nextFormat: FORMAT_ID, nextVersion: FORMAT_VERSION, id: id, birth: birth, gen: clone(generated.gen), spell: spell.spell };
     rec.digest = birthDigest(rec);
     return { ok: true, record: rec };
@@ -24329,7 +24455,8 @@ function mbDrawIns(cpx,cpy,t){
   //   守り：軽減率 ÷ 単体の標準。壁：耐久率 ÷ 帯の標準（40/65/90%）。状態：付与率 ÷ その状態の主の標準率。解除・蘇生：「—」（D ではない）。
   // ・外周（30% 未満・170% 超）は D−・S＋ に入れるだけ（calc.gradeOfRatio）。範囲・人数・追加効果・珍しさは足さない。
   // ・記録には書かない（読むときに出す。前の出生の digest を変えない）
-  function evalBand(sp) { var b = K.bandOfNeed(sp.finalNeed); return b && b.band ? b.band : sp.genBand; }
+  // Ver 0.1.219：回復のレジェンドのボーナスで必要魔力が増えても、帯は、ボーナスの前の必要魔力で決める（ユーザーの決定）
+  function evalBand(sp) { var b = K.bandOfNeed(sp.healBonus && typeof sp.healBonus.baseNeed === 'number' ? sp.healBonus.baseNeed : sp.finalNeed); return b && b.band ? b.band : sp.genBand; }
   function powerRank(sp, e) {
     if (!sp || !e) return null;
     var T = K.TABLES, b = evalBand(sp), ratio = null;
@@ -24338,8 +24465,15 @@ function mbDrawIns(cpx,cpy,t){
       if (!ev.ok || !ev.grade) return null;
       return { grade: ev.grade, letter: ev.grade.charAt(0), ratio: ev.ratio, kind: e.kind };
     }
-    if (e.kind === 'heal') ratio = e.instant / T.HEAL_STD[b].single * 100;
-    else if (e.kind === 'regen') ratio = e.instant * 0.4 * 3 / T.HEAL_STD[b].single * 100;
+    // Ver 0.1.219（ユーザーの決定）：回復・継続回復は、回復量の表（帯 × 範囲 × 15 段階）の段階で決める（前に作った魔法・追加の回復も、同じ表で出しなおす）。
+    // レジェンドのボーナスの分は入れない（主の効果は、足す前の量で見る）
+    if (e.kind === 'heal' || e.kind === 'regen') {
+      var hin = e.slot === 'main' && sp.healBonus && typeof sp.healBonus.baseInstant === 'number' ? sp.healBonus.baseInstant : e.instant;
+      var hso = K.healStepOf({ band: b, area: own(T.HEAL_AREA, e.area) ? e.area : 'single', instant: hin });
+      if (!hso.ok) return null;
+      var hg = T.GRADES[hso.step - 1];
+      return { grade: hg, letter: hg.charAt(0), ratio: null, kind: e.kind };
+    }
     else if (e.kind === 'def_up') ratio = (e.multiplier - 1) / (T.DEFUP_STD[b].single - 1) * 100;
     else if (e.kind === 'barrier') ratio = e.rate / T.BARRIER_STD[b].single * 100;
     else if (e.kind === 'wall') ratio = e.rate / T.WALL_RATE[b][2] * 100;
@@ -24406,7 +24540,7 @@ function mbDrawIns(cpx,cpy,t){
       var head = (i === 0 ? '主の効果' : '追加の効果') + '：' + effName(e), v = '';
       if (e.kind === 'damage') v = (ELEM[e.element] || '') + 'の攻撃';
       else if (e.kind === 'status') v = chanceWord(e.rate, 'かかる') + '（作成時・仲間の補正の前）';
-      else if (e.kind === 'heal' || e.kind === 'regen') v = '最大 HP の ' + fmt(e.instant) + '%' + (e.kind === 'regen' || sp.delivery === 'mist' ? '（の 40% を 3 回）' : '');
+      else if (e.kind === 'heal' || e.kind === 'regen') v = '最大 HP の ' + fmt(e.instant) + '%' + (sp.delivery === 'mist' ? '（の 40% を 3 回）' : e.kind === 'regen' ? '（の 40% を ' + (3 + (i === 0 && sp.healBonus && sp.healBonus.regenTurns ? sp.healBonus.regenTurns : 0)) + ' 回）' : '');
       else if (e.kind === 'barrier') v = '受けるダメージ ' + fmt(e.rate) + '% 減（3 ターン）';
       else if (e.kind === 'def_up') v = '防御力 ' + fmt(e.multiplier, 2) + ' 倍（3 ターン）';
       else if (e.kind === 'wall') v = '唱える仲間の最大 HP の ' + fmt(e.rate) + '%（5 ターン）';
@@ -24417,6 +24551,8 @@ function mbDrawIns(cpx,cpy,t){
     });
     // Ver 0.1.217：状態異常の魔法のダメージ（中・大の帯）。Lv30・リゼル（攻撃のシンクロ 100%）の 1 体あたりの目安
     if (MWRT() && sp.statusDamage) { var sd = MWRT().statusDamagePower(sp, 'rizel', 30, { mist: sp.delivery === 'mist' }); if (sd && sd.ok) out.push(['ダメージ', '同じ魔力の攻撃魔法の ' + sp.statusDamage + '%（Lv30 で 1 体に約 ' + Math.round(sd.power) + (sp.delivery === 'mist' ? '・霧は 3 回まで' : '') + '）']); }
+    // Ver 0.1.219：回復のレジェンドのボーナスの継続回復（大・単体）
+    if (sp.healBonus && sp.healBonus.regen) out.push(['継続回復', '毎ターン 最大 HP の ' + sp.healBonus.regen.perTick + '%（' + sp.healBonus.regen.turns + ' ターン）']);
     if (sp.wall) out.push(['壁の性質', (sp.wall.reflect ? '反射' : '') + (sp.wall.resist ? (sp.wall.reflect ? '・' : '') + (sp.wall.resist.kind === 'element' ? ELEM[sp.wall.resist.element] + '耐性' : sp.wall.resist.kind === 'magic' ? '魔法耐性' : '物理耐性') : '') || 'なし']);
     // Ver 0.1.214：ユニークスキル（突然変異）
     if (sp.unique && MWRT() && MWRT().UNIQUE[sp.unique]) out.push(['突然変異', MWRT().UNIQUE[sp.unique].name + '：' + MWRT().UNIQUE[sp.unique].desc]);
@@ -24653,11 +24789,13 @@ function mnGuard(e,n,src){
   return Math.max(1,Math.round(n*(1-r/100)));
 }
 // 継続回復（即時の 40% を、唱えたとき・次・次々の 3 回）。同じ種類は強さと残りで比べ、強いほうだけ
-function mnSetRegen(e,amt,key){
+// left：残りの回数（ふつうは 2＝はじめの 1 回のあと 2 回。Ver 0.1.219 の回復のレジェンドのボーナスで 3・4 のこともある）
+function mnSetRegen(e,amt,key,left){
+  const n=left||2;
   const cur=e.mnRegen&&e.mnRegen.left>0?e.mnRegen:null;
-  if(cur&&(cur.amt>amt||(cur.amt===amt&&cur.left>=2)))return false;
-  if(e.rgT>0){const g=Math.max(1,Math.round(e.maxHp*RGRATE));if(g*e.rgT>=amt*3)return false;delete e.rgT;}
-  e.mnRegen={amt,left:2,last:G.turn,key};
+  if(cur&&(cur.amt>amt||(cur.amt===amt&&cur.left>=n)))return false;
+  if(e.rgT>0){const g=Math.max(1,Math.round(e.maxHp*RGRATE));if(g*e.rgT>=amt*(n+1))return false;delete e.rgT;}
+  e.mnRegen={amt,left:n,last:G.turn,key};
   return true;
 }
 
@@ -25157,8 +25295,13 @@ function mnApply(a,sp,pl,rv){
   // 味方へ：回復・継続回復・守り・防御アップ → 追加の解除（その味方へ）→ 蘇生（よみがえった人には、この発動の回復を重ねない）
   for(const e of pl.mates){
     if(G.over)break;
-    if(main.kind==='heal'){const h=R.healAmount(main,a.key,e.maxHp);if(h.ok){mnHealUnit(e,h.amount);if(mnX)mnX.heal.push([e,h.amount]);}}
-    else if(main.kind==='regen'){const h=R.healAmount(main,a.key,e.maxHp,{regen:true});if(h.ok){mnHealUnit(e,h.amount);if(mnX)mnX.heal.push([e,h.amount]);if(mnSetRegen(e,h.amount,sp.fixtureId+'|'+a.key))popText(e,'継続回復','#9affb0');}}
+    if(main.kind==='heal'){
+      const h=R.healAmount(main,a.key,e.maxHp);if(h.ok){mnHealUnit(e,h.amount);if(mnX)mnX.heal.push([e,h.amount]);}
+      // Ver 0.1.219：回復のレジェンドのボーナス（大・単体）＝継続回復（次のターンから 3 回）
+      const br=R.healBonusRegen(sp,a.key,e.maxHp);
+      if(br&&br.ok&&br.amount>0&&mnSetRegen(e,br.amount,sp.fixtureId+'|'+a.key+'|bonus',br.turns))popText(e,'継続回復','#9affb0');
+    }
+    else if(main.kind==='regen'){const h=R.healAmount(main,a.key,e.maxHp,{regen:true});if(h.ok){mnHealUnit(e,h.amount);if(mnX)mnX.heal.push([e,h.amount]);if(mnSetRegen(e,h.amount,sp.fixtureId+'|'+a.key,R.regenHits(sp)-1))popText(e,'継続回復','#9affb0');}}
     else if(main.kind==='barrier'){const b=R.barrierValue(main,a.key);if(b.ok){mnAddGuard(e,'barrier',b.rate,b.turns,sp.fixtureId+'|'+a.key);popText(e,'守り','#ffe08a');msg(nameOf(e)+'に守り（受けるダメージ '+mnFmt(b.rate)+'%減・'+b.turns+'ターン）','good');}}
     else if(main.kind==='def_up'){const d=R.defUpValue(main,a.key);if(d.ok){mnAddGuard(e,'def_up',d.multiplier,d.turns,sp.fixtureId+'|'+a.key);popText(e,'防御↑','#ffe08a');msg(nameOf(e)+'の防御力が'+mnFmt(d.multiplier,2)+'倍（'+d.turns+'ターン）','good');}}
     // 追加の回復・継続回復（契約の量で、主の効果と同じ相手へ）・解除
@@ -25271,7 +25414,8 @@ function mnConfirm(a,sp,choice){
   try{const NL=window.MagicWorkshop.mainBridge&&window.MagicWorkshop.mainBridge.nextLabel;if(NL){const seen={},pw=[];for(const e of sp.effects){const r=NL.powerRank(sp,e),nm=e.kind==='status'?({sleep:'眠り',chill:'凍え',shock:'しびれ',confuse:'混乱',seal:'封印',slow:'鈍足',atk_down:'攻撃力ダウン',burn:'火傷',poison:'毒',ensho:'炎焼',toxic:'猛毒'}[e.status]||e.status):NL.EFF[e.kind]||e.kind;if(seen[nm])continue;seen[nm]=1;pw.push(nm+' '+(r?r.letter:'—'));}lines.push('威力：'+pw.join('・'));}}catch(e){}
   if(main.kind==='damage'){const p=R.attackPower(main,a.key,a.lv||1,{band:sp.genBand,mist:sp.delivery==='mist'});lines.push('威力 '+Math.round(p.power)+(sp.delivery==='mist'?'（霧：3回まで）':''));}
   if(main.kind==='status'){const sd=R.statusDamagePower(sp,a.key,a.lv||1,{mist:sp.delivery==='mist'});if(sd&&sd.ok)lines.push('ダメージ '+Math.round(sd.power)+(sp.delivery==='mist'?'（霧：3回まで）':''));}
-  if(main.kind==='heal'||main.kind==='regen'){const h=R.healAmount(main,a.key,100,{mist:sp.delivery==='mist',regen:main.kind==='regen'});lines.push('回復 最大HPの'+mnFmt(h.pct)+'%'+(sp.delivery==='mist'||main.kind==='regen'?'（3回まで）':''));}
+  if(main.kind==='heal'||main.kind==='regen'){const h=R.healAmount(main,a.key,100,{mist:sp.delivery==='mist',regen:main.kind==='regen'});lines.push('回復 最大HPの'+mnFmt(h.pct)+'%'+(sp.delivery==='mist'?'（3回まで）':main.kind==='regen'?'（'+R.regenHits(sp)+'回まで）':''));
+    const br=R.healBonusRegen(sp,a.key,100);if(br&&br.ok)lines.push('継続回復 毎ターン最大HPの'+mnFmt(br.pct)+'%（'+br.turns+'ターン）');}
   if(main.kind==='barrier'){const b=R.barrierValue(main,a.key);lines.push('守り '+mnFmt(b.rate)+'%減（3ターン）');}
   if(main.kind==='def_up'){const d=R.defUpValue(main,a.key);lines.push('防御力 '+mnFmt(d.multiplier,2)+'倍（3ターン）');}
   if(main.kind==='wall'){const w=R.wallHp(sp,a.key,a.maxHp);lines.push('壁 HP '+w.hp+'・5ターン'+(sp.wall.reflect?'・反射':'')+(sp.wall.resist?'・'+({element:{fire:'炎',ice:'氷',thunder:'雷'}[sp.wall.resist.element]+'耐性',magic:'魔法耐性',physical:'物理耐性'}[sp.wall.resist.kind]):''));}
