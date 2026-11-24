@@ -1011,7 +1011,7 @@ body.mob.port .sty .sdlg{bottom:max(3%,calc(env(safe-area-inset-bottom,0px) + 10
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.219'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.220'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -1786,7 +1786,7 @@ sleeps:'見えている敵すべてを、高確率で3ターン眠らせる。�
 thunder:'前方の相手に雷を落とす。深い階ほど威力が上がる。',blow:'前方の相手を10マス吹き飛ばす。強敵は5マスまで。',sleepst:'高確率で命中し、前方の相手を3ターン眠らせる。強敵には、命中率と効果が半減される。\n（ゴーレム・亡霊・ウィスプなどには効かない）',
 swap:'前方の相手と位置を入れ替える。',slowst:'確定で命中し、4ターンのあいだ前方の相手の動きを鈍くする。強敵には、命中率と効果が半減される。',sealst:'高確率で命中し、4ターンのあいだ前方の相手の特技を封じる。強敵には命中率が半分で、封じるのは1ターン（解けたあと3ターンは封じられない）。',
 storeb:'アイテムを入れて持ち運べる袋。入れた分は持ち物の数に数えない。',
-synb:'武器・盾・腕輪を合成できる袋。\n\n【合成のしかた】\n1. 最初に入れた武器（盾）が「ベース」になる\n2. 次に同じ種類の装備を入れると、ベースに合成される（入れた方は消える）\n\n【受け継がれるもの】\n・［ ］の中の文字は「印」。ベースの印の空きがあれば必ず移る\n・強化値（+の数字）は足し算。ただし失敗することがある\n　合成後が+1〜3なら成功率65%、+4〜6なら45%、+7〜9なら30%、+10以上なら15%\n・素材の強化値がベース以上なら、失敗しても素材の強化値は残る\n　（育てた装備の強化値を、強い装備へ乗り換えられる）\n・［ ］のない会心の剣などの性能は移らない\n\n【条件】\n・袋に入るのは2つまで（ベースと、あと1つ）\n・合成できる回数に限りがある（名前の〈合成あと○〉）\n・回数がなくなっても、魔晶のかけらを1つ使えば合成できる\n・腕輪も合成できる（印の空きは1つ。炎よけなど、もともと耐性を持つ腕輪は2つ）\n・草などは合成されず、普通にしまわれる\n・伝説の装備は素材にできない（ベースにはできる）\n・合成する前に確認が出る',
+synb:'武器・盾・腕輪を合成できる袋。\n\n【合成のしかた】\n1. 最初に入れた武器（盾）が「ベース」になる\n2. 次に同じ種類の装備を入れると、ベースに合成される（入れた方は消える）\n\n【受け継がれるもの】\n・［ ］の中の文字は「印」。ベースの印の空きがあれば必ず移る\n・強化値（+の数字）は足し算。ただし失敗することがある\n　合成後が+1〜3なら成功率65%、+4〜6なら45%、+7〜9なら30%、+10以上なら15%\n・素材の強化値がベース以上なら、失敗しても素材の強化値は残る\n　（育てた装備の強化値を、強い装備へ乗り換えられる）\n・武器と盾：強化値が+20からは、成功しても+1ずつ（+19までの足し算は、一度に+20まで）\n　+30からは成功率が10%→1%まで下がる。上限は+50\n・武器と盾：失敗すると、その装備の次の成功率が少し上がる（+30からは半分の確率）\n　成功すると元にもどる。+10からは、積み上げこみで50%まで\n・［ ］のない会心の剣などの性能は移らない\n\n【条件】\n・袋に入るのは2つまで（ベースと、あと1つ）\n・合成できる回数に限りがある（名前の〈合成あと○〉）\n・回数がなくなっても、魔晶のかけらを1つ使えば合成できる\n・腕輪も合成できる（印の空きは1つ。炎よけなど、もともと耐性を持つ腕輪は2つ）\n・草などは合成されず、普通にしまわれる\n・伝説の装備は素材にできない（ベースにはできる）\n・合成する前に確認が出る',
 bread:'満腹度が50回復する。',bigbread:'満腹度が100回復。お腹いっぱいなら最大満腹度が上がる。',hugebread:'満腹度が全回復し、最大満腹度が10上がる。',
 rhp:'装備するとHPの自然回復が早くなる。',rfull:'装備すると満腹度が減りにくくなる。',
 rtrap:'装備すると、見えているワナがわかり、踏んでも作動しない。',rsight:'装備すると、フロアの敵とアイテムの位置がミニマップに映る。',
@@ -5439,6 +5439,8 @@ function eat(it){
 }
 function readScroll(it){
   if(it.key==='kikan'&&fixedLocked()){msg('扉が強い魔力で閉ざされていて、帰還の巻物の力が届かない…','bad');return false;} // Ver 0.1.31：セヴランとの戦いのあいだは使えない
+  // Ver 0.1.220：強化値が上限（+50）の装備には、強化の巻物は使えない（巻物は減らない）
+  if((it.key==='wup'&&P.weapon&&P.weapon.plus>=ENH_MAX)||(it.key==='sup'&&P.shield&&P.shield.plus>=ENH_MAX)){msg(itemName(it.key==='wup'?P.weapon:P.shield)+'は、これ以上は強化できない（上限 +'+ENH_MAX+'）','info');return false;}
   const old=itemName(it);removeInv(it);msg(old+'を読んだ');afterIdentify(it.key,old);
   const foes=G.mons.filter(m=>isHostile(m)&&G.vis[I(m.x,m.y)]);
   scrollFx(it.key);
@@ -5449,8 +5451,8 @@ function readScroll(it){
     case'blast':{const d=20+G.floor*2;fx(foes.map(m=>[m.x,m.y]),'rgba(255,160,40,0.7)');sfx('blaze');shakeA=Math.max(shakeA,10);vfx({k:'flash',c:'255,170,80',dur:360});for(const m of foes){ufxBurst(m,'#ff9a40',26,8);ufxRing(m,'255,150,60',1.4);}if(!foes.length)msg('爆発が起きたが、誰もいなかった');
       for(const m of foes){msg(m.name+'に'+d+'のダメージ');dmgMon(m,d,P);}break;}
     case'sleeps':sfx('dim');ufxRing(P,'180,150,255',6,{dur:800});for(const m of foes)ufxBurst(m,'#b8a8ff',12,14);if(!foes.length)msg('何も起こらなかった');for(const m of foes)sleepTry(m,null,STAFFFX.sleeps);break;
-    case'wup':if(P.weapon){P.weapon.plus++;msg(itemName(P.weapon)+'が強くなった！','good');}else msg('武器を装備していない…');break;
-    case'sup':if(P.shield){P.shield.plus++;msg(itemName(P.shield)+'が強くなった！','good');}else msg('盾を装備していない…');break;
+    case'wup':if(P.weapon){P.weapon.plus=Math.max(P.weapon.plus,Math.min(ENH_MAX,P.weapon.plus+1));msg(itemName(P.weapon)+'が強くなった！','good');}else msg('武器を装備していない…');break;
+    case'sup':if(P.shield){P.shield.plus=Math.max(P.shield.plus,Math.min(ENH_MAX,P.shield.plus+1));msg(itemName(P.shield)+'が強くなった！','good');}else msg('盾を装備していない…');break;
     case'warp':teleport(P);msg('どこかへワープした！');break;
   }
   return true;
@@ -5585,8 +5587,52 @@ function synthInfo(bag,it){ // 合成が起きるならその内容を返す
   const slots=eqSlots(base.key),seals=(base.seals||[]).slice(),moved=[],lost=[];
   for(const x of(it.seals||[])){if(seals.includes(x))continue;if(seals.length<slots){seals.push(x);moved.push(x);}else lost.push(x);}
   const keep=it.plus>0&&it.plus>=base.plus; // 素材の＋がベース以上なら、失敗しても素材の＋は残る（強い装備へ乗り換えやすく）
-  const fp=keep?it.plus:base.plus;let rate=it.plus>0?synRate(base.plus+it.plus):1;if(base.plus+it.plus===fp)rate=1;
+  const fp=keep?it.plus:base.plus;
+  // Ver 0.1.220（ユーザーの決定 2026-11-25・codex/design ENHANCEMENT_BALANCE_INSTRUCTIONS.md）：武器・盾の強化の見直し。腕輪は前のまま
+  if(it.cat!=='ring'&&it.plus>0){
+    // hi：2 つのうち高いほうの強化値（＝実行の前の強化値。失敗しても、これは必ず残る）
+    const hi=fp;
+    // 上限（+50）：強化値は増えない・抽選もしない（印は移せる）。+50 をこえた前の装備は、下げずにそのまま
+    if(hi>=ENH_MAX)return{base,cost,moved,lost,rate:1,keep,capped:true,enh:{hi,bonus:enhBonusOf(base,it)},res:{key:base.key,cat:base.cat,plus:hi,seals},fail:{key:base.key,cat:base.cat,plus:hi,seals}};
+    // 成功したときの強化値：+20 からは +1 ずつ。+19 までは足し算（一度に上がるのは +20 まで）
+    const target=hi>=ENH_STEP1?hi+1:Math.min(base.plus+it.plus,ENH_STEP1);
+    if(target<=hi)return{base,cost,moved,lost,rate:1,keep,enh:{hi,bonus:enhBonusOf(base,it)},res:{key:base.key,cat:base.cat,plus:hi,seals},fail:{key:base.key,cat:base.cat,plus:hi,seals}};
+    // 通常の成功率：+30 からは 10% → 1%（1 上がるごとに −1%・下限 1%）。+29 までは前のまま（合成後の値で 65／45／30／15%）
+    const baseRate=hi>=ENH_LOW?Math.max(1,40-hi)/100:synRate(target);
+    // 失敗の積み上げ（装備ごと。高いほうの装備の分だけ引きつぐ）。+10 からは、積み上げこみで 50% まで（通常の率より下げない）
+    const bonus=enhBonusOf(base,it),capR=hi>=ENH_CAPFROM?0.5:1;
+    const rate=Math.max(baseRate,Math.min(capR,Math.round((baseRate+bonus/100)*1000)/1000));
+    return{base,cost,moved,lost,rate,keep,enh:{hi,bonus,baseRate,gain:hi>=ENH_LOW?0.5:1},res:{key:base.key,cat:base.cat,plus:target,seals},fail:{key:base.key,cat:base.cat,plus:hi,seals}};
+  }
+  let rate=it.plus>0?synRate(base.plus+it.plus):1;if(base.plus+it.plus===fp)rate=1;
   return{base,cost,moved,lost,rate,keep,res:{key:base.key,cat:base.cat,plus:base.plus+it.plus,seals},fail:{key:base.key,cat:base.cat,plus:fp,seals}};
+}
+// ---- 武器・盾の強化（Ver 0.1.220）
+// 上限 +50／+20 からは成功で +1／+30 から成功率が下がる／+10 からは積み上げこみで 50% まで
+const ENH_MAX=50,ENH_STEP1=20,ENH_LOW=30,ENH_CAPFROM=10,ENH_BONUS_MAX=99;
+// 失敗の積み上げ（it.enb・整数・なければ 0）。前の版の装備には項目がない＝0
+function enhBonus(it){const b=it&&it.enb;return Number.isInteger(b)&&b>0?Math.min(ENH_BONUS_MAX,b):0;}
+// 合成のとき：強化値が高いほうの装備の積み上げだけを使う（同じならベース）。足し算はしない
+function enhBonusOf(base,mat){return mat.plus>base.plus?enhBonus(mat):enhBonus(base);}
+// 合成の結果をベースに書く（鍛冶屋と合成の袋で同じ）。ok＝強化の抽選の結果。積み上げ：成功で 0・失敗で +1（+30 からは 50% で +1）
+function synApply(si,ok){
+  const b=si.base;b.plus=ok?si.res.plus:si.fail.plus;b.seals=si.res.seals;
+  if(!si.enh)return{gained:false};
+  let nb=si.enh.bonus,gained=false;
+  if(si.rate<1){if(ok)nb=0;else if(chance(si.enh.gain)){nb=Math.min(ENH_BONUS_MAX,nb+1);gained=true;}}
+  if(nb>0)b.enb=nb;else delete b.enb;
+  return{gained,bonus:nb};
+}
+// 確認の画面の文（成功率と、積み上げ）
+function enhRateText(si){
+  if(si.capped)return'（強化値は上限の +'+ENH_MAX+'。これ以上は上がらない）';
+  if(si.rate>=1)return'（必ず成功）';
+  const pc=v=>Math.round(v*1000)/10;
+  return'（成功率'+pc(si.rate)+'%'+(si.enh&&si.enh.bonus>0?'・失敗の積み上げ +'+si.enh.bonus+'% こみ':'')+'）';
+}
+function enhFailText(si){
+  if(!si.enh||si.rate>=1)return'';
+  return'\n失敗すると、次からの成功率が'+(si.enh.gain>=1?'少し上がる（+1%）':'少し上がることがある（半分の確率で +1%）')+(si.enh.hi>=ENH_CAPFROM?'。積み上げこみで 50% まで':'');
 }
 function isBoss(e){return!!(e&&e!==P&&e.d&&e.d.boss);}
 const NOSLEEP=['golem','ghost','wisp'];
@@ -5608,10 +5654,11 @@ function putInBag(bag,it){
   const si=synthInfo(bag,it);
   if(si&&si.legend){msg('伝説の装備を素材にすることはできない…');return false;}
   if(si&&si.cost){
-    removeInv(it);const b=si.base;const ok=si.rate>=1||chance(si.rate);b.plus=ok?si.res.plus:si.fail.plus;b.seals=si.res.seals;LASTSYN=b;
+    removeInv(it);const b=si.base;const ok=si.rate>=1||chance(si.rate);const ea=synApply(si,ok);LASTSYN=b;
     if(si.cost==='bag')bag.syn--;else P.shard--;
     if(ok)msg(itemName(it)+'が'+ITEMS[b.key].name+'に合成された！ → '+itemName(b),rarCls(b)||'good');
-    else{msg('強化値の合成に失敗した…'+(si.keep?'（素材の強化値は受け継がれた）':si.moved.length?'（印は受け継がれた）':'')+' → '+itemName(b),'bad');}
+    else{msg('強化値の合成に失敗した…'+(si.keep?'（素材の強化値は受け継がれた）':si.moved.length?'（印は受け継がれた）':'')+' → '+itemName(b),'bad');
+      if(ea.gained)msg('失敗の経験が積み上がった（次の成功率 +'+ea.bonus+'%）','info');}
     if(si.lost.length)msg('印の空きが足りず、［'+si.lost.join('')+'］は消えた');
     if(si.cost==='shard')msg('魔晶のかけらを1つ使った（残り'+P.shard+'個）','info');
     if(ok){sfx('pick2');const[x,y]=ctr(P);burst(x,y-4,16,RAR[rarityOf(b)].c,24,0.7,14,true);}else sfx('dim');
@@ -5637,7 +5684,7 @@ function bagPut(bag,it,sel){ // 入れる（合成が起きるときは必ず確
     :()=>bagDo(bag,()=>putInBag(bag,it),()=>LASTSYN?{mode:'out',sel:bag.contents.indexOf(LASTSYN)}:{mode:'in',sel:sel||0});
   const si=synthInfo(bag,it);
   if(si&&!si.legend&&si.cost){
-    const pl=it.plus>0?'\n強化値：'+(si.base.plus>0?'+':'')+si.base.plus+' → '+(si.res.plus>0?'+':'')+si.res.plus+(si.rate<1?'（成功率'+Math.round(si.rate*100)+'%）'+(si.keep?'\n失敗しても、素材の強化値（'+(it.plus>0?'+':'')+it.plus+'）は残る':'\n失敗すると強化値は移らない'):'（必ず成功）')+(si.moved.length&&si.rate<1?'（印は必ず移る）':''):'';
+    const pl=it.plus>0?'\n強化値：'+(si.base.plus>0?'+':'')+si.base.plus+' → '+(si.res.plus>0?'+':'')+si.res.plus+(si.enh?enhRateText(si):si.rate<1?'（成功率'+Math.round(si.rate*100)+'%）':'（必ず成功）')+(si.rate<1?(si.keep?'\n失敗しても、素材の強化値（'+(it.plus>0?'+':'')+it.plus+'）は残る':'\n失敗すると強化値は移らない')+enhFailText(si):'')+(si.moved.length&&si.rate<1?'（印は必ず移る）':''):'';
     const t='「'+itemName(it)+'」を\n「'+itemName(si.base)+'」に合成しますか？\n\n合成後：'+itemName(si.res)+(si.rate<1?'\n失敗時：'+itemName(si.fail):'')+
       '\n（'+itemName(it)+' は消えます）'+pl+
       (si.moved.length?'\n移る印：［'+si.moved.join('')+'］':'\n移る印：なし')+(si.lost.length?'\n消える印：［'+si.lost.join('')+'］（印の空きが足りない）':'')+
@@ -5756,6 +5803,8 @@ function descOf(it){
   if(it.hado)t+='\n\n覇道 +'+it.hado+'（最大+20）';
   if(it.cat==='weapon')t+='\n\n攻撃力 '+d.atk+(it.plus?'（'+(it.plus>0?'+':'')+it.plus+'）':'')+'　印の空き '+it.seals.length+'/'+d.slots;
   if(it.cat==='shield')t+='\n\n防御力 '+d.def+(it.plus?'（'+(it.plus>0?'+':'')+it.plus+'）':'')+'　印の空き '+it.seals.length+'/'+d.slots;
+  // Ver 0.1.220：強化の失敗の積み上げ（装備ごと）
+  if((it.cat==='weapon'||it.cat==='shield')&&typeof enhBonus==='function'&&enhBonus(it)>0)t+='\n強化の積み上げ +'+enhBonus(it)+'（次の合成の成功率 +'+enhBonus(it)+'%）';
   if(it.cat==='weapon'||it.cat==='shield'){const c=cmpInfo(it),k=it.cat==='weapon'?'攻撃力':'防御力';
     if(c.t!=='装備中'){const who=c.cur?'装備中（'+itemName(c.cur)+'）':'素手';t+='\n⟦'+c.c+'|'+(c.d===0?who+'と同じ'+k:who+'より '+k+' '+c.t)+'⟧';}else t+='\n⟦'+c.c+'|装備中⟧';}
   if(d.fan3)t+='\n\n【性能】前方3方向をまとめて攻撃\n（この装備だけの性能。合成では移せない）';if(d.reach2)t+='\n\n【性能】前方2マス先まで届き、並んだ敵を貫く\n（この装備だけの性能。合成では移せない）';
@@ -9765,13 +9814,14 @@ function smithPick(cat,base){
 function smithConfirm(base,mat){
   const si=synthInfo({key:'synb',contents:[base],syn:1},mat);if(!si||si.legend){msg('その組み合わせは合成できない','info');render();return;}
   const cost=smithCost(si,mat),ok=(P.gold||0)>=cost;
-  const pl=mat.plus>0?'\n強化値：'+(base.plus>0?'+':'')+base.plus+' → '+(si.res.plus>0?'+':'')+si.res.plus+(si.rate<1?'（成功率'+Math.round(si.rate*100)+'%）'+(si.keep?'\n失敗しても、素材の強化値（+'+mat.plus+'）は残る':'\n失敗すると強化値は移らない'):'（必ず成功）'):'';
+  const pl=mat.plus>0?'\n強化値：'+(base.plus>0?'+':'')+base.plus+' → '+(si.res.plus>0?'+':'')+si.res.plus+(si.enh?enhRateText(si):si.rate<1?'（成功率'+Math.round(si.rate*100)+'%）':'（必ず成功）')+(si.rate<1?(si.keep?'\n失敗しても、素材の強化値（+'+mat.plus+'）は残る':'\n失敗すると強化値は移らない')+enhFailText(si):''):'';
   const t='「'+itemName(mat)+'」を\n「'+itemName(base)+'」に合成しますか？\n\n合成後：'+itemName(si.res)+(si.rate<1?'\n失敗時：'+itemName(si.fail):'')+pl+
     '\n移る印：'+(si.moved.length?'［'+si.moved.join('')+'］':'なし')+(si.lost.length?'\n空きが足りず消える印：［'+si.lost.join('')+'］':'')+'\n\n代金：'+cost+'G（所持金 '+(P.gold||0)+'G）';
   openMenu({title:'合成の確認',text:t,items:[{label:ok?'合成する（'+cost+'G）':'お金が足りない',disabled:!ok,action:()=>{
       P.gold-=cost;for(const s of['weapon','shield','ring'])if(P[s]===mat)P[s]=null;smithTake(mat);
-      const good=si.rate>=1||chance(si.rate);base.plus=good?si.res.plus:si.fail.plus;base.seals=si.res.seals;
+      const good=si.rate>=1||chance(si.rate);const ea=synApply(si,good);
       closeAll();sfx(good?'pick2':'dim');msg((good?'カンッ！ 合成に成功した！ → ':'合成の強化値は移らなかった… → ')+itemName(base),good?'good':'bad');
+      if(ea.gained)msg('失敗の経験が積み上がった（次の成功率 +'+ea.bonus+'%）','info');
       vSay('鍛冶屋のゴルド',(good?'いい仕上がりだ。':'すまねえ、強化値はうまく乗らなかった。'+(si.keep?'素材の分は残しておいたぜ。':''))+'\n\n'+itemName(base));}},
     {label:'やめる',action:()=>{closeAll();smithMenu();}}]});
 }
