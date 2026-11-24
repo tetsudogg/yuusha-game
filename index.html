@@ -1011,7 +1011,7 @@ body.mob.port .sty .sdlg{bottom:max(3%,calc(env(safe-area-inset-bottom,0px) + 10
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.217'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.218'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -22502,6 +22502,9 @@ function mbDrawIns(cpx,cpy,t){
     heal: [[5, 'common'], [9, 'uncommon'], [21, 'rare'], [31, 'epic'], [Infinity, 'legendary']],
     defense: [[5, 'common'], [9, 'uncommon'], [17, 'rare'], [25, 'epic'], [Infinity, 'legendary']]
   };
+  // Ver 0.1.218（ユーザーの決定 2026-11-24）：攻撃の主の効果の点は、15 段階の威力（1〜15）を下の表で点にする（上のランクほど大きく上がる）。
+  // D 0〜2・C 3〜5・B 6〜8・A 9／11／13・S 19／23／26。威力 S は必ずエピック以上。攻撃のレジェンドは約 1%（前は約 0.09%）。線（THRESHOLDS）は変えない
+  var ATTACK_POINTS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 19, 23, 26];
   var CURE_POINTS = { single: [2, 3, 4], range: [4, 5, 6], all: [6, 7, 8] };
   var REVIVE_POINTS = { 30: 3, 50: 4, 80: 5, 100: 6 };
   var TRAIT_POINTS = { homing: 2, reflect: 11, resist_element: 6, resist_magic: 10, resist_physical: 10 };
@@ -22688,7 +22691,7 @@ function mbDrawIns(cpx,cpy,t){
         var g = gradeOfRatio(e.power30 / baseOf(evalBand) * 100);
         if (!g.ok) return fail('POWER30_RATIO');
         if (!g.grade) return { ok: true, points: null, undecided: g.undecided };
-        return { ok: true, points: g.index, grade: g.grade, ratio: g.ratio };
+        return { ok: true, points: ATTACK_POINTS[g.index - 1], grade: g.grade, ratio: g.ratio };
       }
       case 'status': {
         if (typeof e.status !== 'string' || !own(STATUS_VALUE, e.status)) return fail('STATUS_UNKNOWN', e.status);
@@ -22772,8 +22775,10 @@ function mbDrawIns(cpx,cpy,t){
       traitRows.push({ trait: tr, points: TRAIT_POINTS[tr] });
       total += TRAIT_POINTS[tr];
     }
-    var std = STANDARD_NEED[evalBand], saving = inp.finalNeed < std ? (std - inp.finalNeed) / std : 0;
-    var eff = saving >= 0.2 - 1e-12 ? 2 : saving >= 0.1 - 1e-12 ? 1 : 0;
+    // Ver 0.1.218（ユーザーの決定 2026-11-24）：「魔力の節約」の点（帯の標準より 10%／20% 少ないと +1／+2）はやめた（いつも 0）。
+    // 帯の境目で、安くて強い魔法のほうが珍しさが低くなる逆転が起きていたため（例：必要魔力 18 は 0 点・24 は +2 点）。
+    // 安さは、効果の点（その必要魔力の帯の標準に対しての強さ）に、もう入っている。記録の形をそろえるため efficiency は 0 のまま残す
+    var eff = 0;
     total += rangeMax.enemy + rangeMax.ally + eff;
     if (!num(total)) return fail('NON_FINITE_RESULT', 'total');
     var rarity = null;
@@ -22788,7 +22793,7 @@ function mbDrawIns(cpx,cpy,t){
   }
 
   return {
-    TABLES: { BANDS: BANDS, STANDARD_NEED: STANDARD_NEED, GROWTH: GROWTH, EVAL_LEVEL: EVAL_LEVEL, ATTACK_AREA: ATTACK_AREA, RANGE_POINTS: RANGE_POINTS, GRADES: GRADES, HEAL_STD: HEAL_STD, DEFUP_STD: DEFUP_STD, BARRIER_STD: BARRIER_STD, WALL_RATE: WALL_RATE, QUALITY_FACTORS: QUALITY_FACTORS, SYNC: SYNC, STATUS: STATUS, STATUS_AREA: STATUS_AREA, STATUS_QUALITY: STATUS_QUALITY, DOT: DOT, STATUS_VALUE: STATUS_VALUE, THRESHOLDS: THRESHOLDS, CURE_POINTS: CURE_POINTS, REVIVE_POINTS: REVIVE_POINTS, TRAIT_POINTS: TRAIT_POINTS },
+    TABLES: { BANDS: BANDS, STANDARD_NEED: STANDARD_NEED, GROWTH: GROWTH, EVAL_LEVEL: EVAL_LEVEL, ATTACK_AREA: ATTACK_AREA, RANGE_POINTS: RANGE_POINTS, GRADES: GRADES, HEAL_STD: HEAL_STD, DEFUP_STD: DEFUP_STD, BARRIER_STD: BARRIER_STD, WALL_RATE: WALL_RATE, QUALITY_FACTORS: QUALITY_FACTORS, SYNC: SYNC, STATUS: STATUS, STATUS_AREA: STATUS_AREA, STATUS_QUALITY: STATUS_QUALITY, DOT: DOT, STATUS_VALUE: STATUS_VALUE, THRESHOLDS: THRESHOLDS, CURE_POINTS: CURE_POINTS, REVIVE_POINTS: REVIVE_POINTS, TRAIT_POINTS: TRAIT_POINTS, ATTACK_POINTS: ATTACK_POINTS },
     bandOfNeed: bandOfNeed, bandBase: bandBase, attackPower: attackPower, gradeOfRatio: gradeOfRatio, attackEvaluation: attackEvaluation,
     healRate: healRate, defUp: defUp, barrier: barrier, wallHp: wallHp, applyHealSync: applyHealSync, applyDefUpSync: applyDefUpSync, applyBarrierSync: applyBarrierSync, cureReviveChance: cureReviveChance,
     statusRate: statusRate, applyStatusSync: applyStatusSync, dotTick: dotTick, scoreRarity: scoreRarity

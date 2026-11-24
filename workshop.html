@@ -2568,7 +2568,7 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
 <span id="creator-wrap"><label>作成者 <select id="creator"><option value="rizel">リゼル</option><option value="sevran">セヴラン</option></select></label></span>
 <div id="trial" data-active="core"></div>
 </main>
-<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.217" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
+<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.218" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
 <script>
 'use strict';
 // 魔法錬成 Stage 0：乱数・ハッシュ・正規化 JSON
@@ -11905,6 +11905,9 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
     heal: [[5, 'common'], [9, 'uncommon'], [21, 'rare'], [31, 'epic'], [Infinity, 'legendary']],
     defense: [[5, 'common'], [9, 'uncommon'], [17, 'rare'], [25, 'epic'], [Infinity, 'legendary']]
   };
+  // Ver 0.1.218（ユーザーの決定 2026-11-24）：攻撃の主の効果の点は、15 段階の威力（1〜15）を下の表で点にする（上のランクほど大きく上がる）。
+  // D 0〜2・C 3〜5・B 6〜8・A 9／11／13・S 19／23／26。威力 S は必ずエピック以上。攻撃のレジェンドは約 1%（前は約 0.09%）。線（THRESHOLDS）は変えない
+  var ATTACK_POINTS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 19, 23, 26];
   var CURE_POINTS = { single: [2, 3, 4], range: [4, 5, 6], all: [6, 7, 8] };
   var REVIVE_POINTS = { 30: 3, 50: 4, 80: 5, 100: 6 };
   var TRAIT_POINTS = { homing: 2, reflect: 11, resist_element: 6, resist_magic: 10, resist_physical: 10 };
@@ -12091,7 +12094,7 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
         var g = gradeOfRatio(e.power30 / baseOf(evalBand) * 100);
         if (!g.ok) return fail('POWER30_RATIO');
         if (!g.grade) return { ok: true, points: null, undecided: g.undecided };
-        return { ok: true, points: g.index, grade: g.grade, ratio: g.ratio };
+        return { ok: true, points: ATTACK_POINTS[g.index - 1], grade: g.grade, ratio: g.ratio };
       }
       case 'status': {
         if (typeof e.status !== 'string' || !own(STATUS_VALUE, e.status)) return fail('STATUS_UNKNOWN', e.status);
@@ -12175,8 +12178,10 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
       traitRows.push({ trait: tr, points: TRAIT_POINTS[tr] });
       total += TRAIT_POINTS[tr];
     }
-    var std = STANDARD_NEED[evalBand], saving = inp.finalNeed < std ? (std - inp.finalNeed) / std : 0;
-    var eff = saving >= 0.2 - 1e-12 ? 2 : saving >= 0.1 - 1e-12 ? 1 : 0;
+    // Ver 0.1.218（ユーザーの決定 2026-11-24）：「魔力の節約」の点（帯の標準より 10%／20% 少ないと +1／+2）はやめた（いつも 0）。
+    // 帯の境目で、安くて強い魔法のほうが珍しさが低くなる逆転が起きていたため（例：必要魔力 18 は 0 点・24 は +2 点）。
+    // 安さは、効果の点（その必要魔力の帯の標準に対しての強さ）に、もう入っている。記録の形をそろえるため efficiency は 0 のまま残す
+    var eff = 0;
     total += rangeMax.enemy + rangeMax.ally + eff;
     if (!num(total)) return fail('NON_FINITE_RESULT', 'total');
     var rarity = null;
@@ -12191,7 +12196,7 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
   }
 
   return {
-    TABLES: { BANDS: BANDS, STANDARD_NEED: STANDARD_NEED, GROWTH: GROWTH, EVAL_LEVEL: EVAL_LEVEL, ATTACK_AREA: ATTACK_AREA, RANGE_POINTS: RANGE_POINTS, GRADES: GRADES, HEAL_STD: HEAL_STD, DEFUP_STD: DEFUP_STD, BARRIER_STD: BARRIER_STD, WALL_RATE: WALL_RATE, QUALITY_FACTORS: QUALITY_FACTORS, SYNC: SYNC, STATUS: STATUS, STATUS_AREA: STATUS_AREA, STATUS_QUALITY: STATUS_QUALITY, DOT: DOT, STATUS_VALUE: STATUS_VALUE, THRESHOLDS: THRESHOLDS, CURE_POINTS: CURE_POINTS, REVIVE_POINTS: REVIVE_POINTS, TRAIT_POINTS: TRAIT_POINTS },
+    TABLES: { BANDS: BANDS, STANDARD_NEED: STANDARD_NEED, GROWTH: GROWTH, EVAL_LEVEL: EVAL_LEVEL, ATTACK_AREA: ATTACK_AREA, RANGE_POINTS: RANGE_POINTS, GRADES: GRADES, HEAL_STD: HEAL_STD, DEFUP_STD: DEFUP_STD, BARRIER_STD: BARRIER_STD, WALL_RATE: WALL_RATE, QUALITY_FACTORS: QUALITY_FACTORS, SYNC: SYNC, STATUS: STATUS, STATUS_AREA: STATUS_AREA, STATUS_QUALITY: STATUS_QUALITY, DOT: DOT, STATUS_VALUE: STATUS_VALUE, THRESHOLDS: THRESHOLDS, CURE_POINTS: CURE_POINTS, REVIVE_POINTS: REVIVE_POINTS, TRAIT_POINTS: TRAIT_POINTS, ATTACK_POINTS: ATTACK_POINTS },
     bandOfNeed: bandOfNeed, bandBase: bandBase, attackPower: attackPower, gradeOfRatio: gradeOfRatio, attackEvaluation: attackEvaluation,
     healRate: healRate, defUp: defUp, barrier: barrier, wallHp: wallHp, applyHealSync: applyHealSync, applyDefUpSync: applyDefUpSync, applyBarrierSync: applyBarrierSync, cureReviveChance: cureReviveChance,
     statusRate: statusRate, applyStatusSync: applyStatusSync, dotTick: dotTick, scoreRarity: scoreRarity
