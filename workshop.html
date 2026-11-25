@@ -2118,7 +2118,7 @@ body.mtw .slot .slot-icon{display:block;width:40px;height:40px;object-fit:contai
 #mof-completion .mof-result-teacher{font-size:14px;line-height:1.6}
 #mof-completion .mof-result-details summary{background:transparent;color:#d9c595;padding:0 4px}
 @media(max-width:360px){#mof-completion{padding:16px 10px}.mof-result-card{padding:8px}.mof-result-icons{gap:2px}}
-body.mof-completing > :not(#mof-completion):not(dialog):not(script):not(style):not(link){display:none!important}
+body.mof-completing > :not(#mof-completion):not(dialog):not(script):not(style):not(link):not(.mof-skill-toast):not(.mof-skill-panel){display:none!important}
 #mof-completion .mof-result-label{white-space:nowrap;flex-basis:72px;font-size:13px}
 /* 威力の評価（POWER_RANK_SPEC 2・4 節の色・POWER_RANK_COMPLETION_SPEC）：珍しさと同じ色（S レジェンド・A エピック・B レア・C アンコモン・D コモン）。C 以上は同じ色の控えめな光彩・D と「—」は光彩なし */
 .mpw-list { display: inline-flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; margin-left: 6px; }
@@ -2530,6 +2530,31 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
 /* ---- 15. Ver 0.1.216（ユーザーの依頼）：珍しさの文字（S〜D）を少し小さく ---- */
 .mof-rank { min-width: 34px; min-height: 30px; padding: 0 9px; font-size: 1.05rem; border-width: 1.5px; border-radius: 7px; }
 
+/* ---- 16 熟練度と実績（Ver 0.1.221） ---- */
+header.top.mof-skill-head { display: flex; align-items: center; }
+.mof-skill-chip { display: inline-flex; align-items: center; gap: 8px; margin: 0 12px 0 auto; padding: 3px 10px 4px; border: 1px solid rgba(201, 162, 74, .7); border-radius: 999px; background: rgba(28, 20, 52, .85); color: #f1e3b8; font: inherit; font-size: 12px; line-height: 1.2; white-space: nowrap; cursor: pointer; min-height: 0; }
+.mof-skill-chip b { font-size: 14px; color: #ffd86a; }
+.mof-skill-bar { display: inline-block; width: 54px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .14); overflow: hidden; }
+.mof-skill-bar i, .mof-skill-big i { display: block; height: 100%; background: linear-gradient(90deg, #c9a24a, #ffe08a); }
+.mof-skill-panel { position: fixed; left: 12px; right: 12px; top: 54px; bottom: 96px; max-width: 520px; margin: 0 auto; z-index: 90; border: 1px solid rgba(201, 162, 74, .8); border-radius: 12px; background: rgba(20, 14, 40, .97); color: #ece6d2; padding: 14px 16px; overflow-y: auto; font-size: 14px; line-height: 1.6; box-shadow: 0 8px 30px rgba(0, 0, 0, .6); }
+.mof-skill-panel h3 { margin: 0 0 8px; font-size: 16px; color: #ffd86a; display: flex; justify-content: space-between; align-items: center; }
+.mof-skill-close { font: inherit; font-size: 12px; color: #d8d2ee; background: transparent; border: 1px solid rgba(255, 255, 255, .3); border-radius: 6px; padding: 3px 10px; cursor: pointer; min-height: 0; }
+.mof-skill-lv { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.mof-skill-lv b { font-size: 26px; color: #ffd86a; }
+.mof-skill-lv small { color: #b8b0d8; }
+.mof-skill-big { display: block; height: 10px; border-radius: 5px; background: rgba(255, 255, 255, .12); overflow: hidden; margin-bottom: 4px; }
+.mof-skill-note { font-size: 12px; color: #b8b0d8; margin-bottom: 10px; }
+.mof-skill-list { border-top: 1px solid rgba(201, 162, 74, .35); }
+.mof-skill-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid rgba(201, 162, 74, .22); font-size: 13px; }
+.mof-skill-row .m { width: 18px; text-align: center; color: #ffd86a; }
+.mof-skill-row .g { font-size: 11px; color: #b8b0d8; }
+.mof-skill-row .p { margin-left: auto; font-size: 12px; color: #c9a24a; }
+.mof-skill-row.no { color: #8a84a6; }
+.mof-skill-row.no .m, .mof-skill-row.no .p { color: #5d587a; }
+.mof-skill-toast { position: fixed; left: 16px; right: 16px; max-width: 480px; margin: 0 auto; bottom: 108px; z-index: 95; border: 1px solid #ffd86a; border-radius: 10px; background: rgba(32, 22, 58, .97); color: #fff3cf; padding: 10px 14px; font-size: 14px; line-height: 1.6; box-shadow: 0 0 18px rgba(255, 216, 106, .35); }
+.mof-skill-toast b { color: #ffd86a; }
+.mof-skill-toast small { display: block; color: #cfc6a8; font-size: 12px; }
+
 /* A diffuse GOLD BACKGROUND light behind the unchanged artwork. */
 .unique-legend-icon-wrap {
   --unique-icon-size: 40px;
@@ -2568,7 +2593,7 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
 <span id="creator-wrap"><label>作成者 <select id="creator"><option value="rizel">リゼル</option><option value="sevran">セヴラン</option></select></label></span>
 <div id="trial" data-active="core"></div>
 </main>
-<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.220" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
+<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.221" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
 <script>
 'use strict';
 // 魔法錬成 Stage 0：乱数・ハッシュ・正規化 JSON
@@ -12409,7 +12434,7 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
   }
   var MAKERS = ['rizel', 'sevran'];
   // 主効果の品質の補正（主体・形・製作者）
-  function mainQualityBonus(subject, shape, formId, maker) {
+  function mainQualityBonus(subject, shape, formId, maker, skillPoints) {
     var parts = [], f = FORMS[formId] ? FORMS[formId].bonus : {};
     if (maker === 'rizel') { parts.push({ source: 'maker', why: 'rizel_style_main', points: 5 }); if (subject === 'attack') parts.push({ source: 'maker', why: 'rizel_attack', points: 5 }); }
     if (maker === 'sevran' && subject === 'status') parts.push({ source: 'maker', why: 'sevran_status', points: 5 });
@@ -12417,6 +12442,8 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
     if (f.singleQuality && SHAPES[shape] && SHAPES[shape].area === 'single' && SHAPES[shape].delivery !== 'wall') parts.push({ source: 'form', why: 'form_single', points: f.singleQuality });
     if (f.wallQuality && SHAPES[shape] && SHAPES[shape].delivery === 'wall') parts.push({ source: 'form', why: 'form_wall', points: f.wallQuality });
     if (f.healDefenseQuality && (subject === 'heal' || subject === 'defense')) parts.push({ source: 'form', why: 'form_heal_defense', points: f.healDefenseQuality });
+    // Ver 0.1.221：工房の熟練度の補正（熟練度 1 つごとに 0.5。作成者の補正とは別の枠・合計の上限 20 は同じ）
+    if (num(skillPoints) && skillPoints > 0) parts.push({ source: 'workshop', why: 'workshop_skill', points: skillPoints });
     return { parts: parts, cap: capBonus(parts) };
   }
   // 品質の区分（0〜4）を引く
@@ -12445,18 +12472,20 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
   // ---- 4 追加枠・壁の性質
   // profile：'normal'（1 枠目 30%・2 枠目 10%）か 'added_catalyst'（60%・20%）。どの触媒がどちらかは明示の入力（全触媒に一律にしない）
   var SLOT_BASE = { normal: [30, 10], added_catalyst: [60, 20] };
-  function slotBonus(slotNo, formId, maker, materialHasAddedCandidate) {
+  function slotBonus(slotNo, formId, maker, materialHasAddedCandidate, skillPoints) {
     var parts = [], f = FORMS[formId] ? FORMS[formId].bonus : {};
     if (maker === 'sevran') parts.push({ source: 'maker', why: 'sevran_style_slot' + slotNo, points: 5 });
     if (slotNo === 1 && f.slot1) parts.push({ source: 'form', why: 'form_slot1', points: f.slot1 });
     if (slotNo === 1 && f.slot1IfCandidate && materialHasAddedCandidate === true) parts.push({ source: 'form', why: 'form_slot1_if_candidate', points: f.slot1IfCandidate });
     if (slotNo === 2 && f.slot2) parts.push({ source: 'form', why: 'form_slot2', points: f.slot2 });
+    // Ver 0.1.221：工房の熟練度（追加の 1 枠目だけ・熟練度 1 つごとに +0.5%）
+    if (slotNo === 1 && num(skillPoints) && skillPoints > 0) parts.push({ source: 'workshop', why: 'workshop_skill', points: skillPoints });
     return { parts: parts, cap: capBonus(parts) };
   }
-  function drawAddedSlots(stream, profile, formId, maker, materialHasAddedCandidate) {
+  function drawAddedSlots(stream, profile, formId, maker, materialHasAddedCandidate, skillPoints) {
     if (!own(SLOT_BASE, profile)) return fail('SLOT_PROFILE', profile);
     if (maker !== undefined && maker !== null && MAKERS.indexOf(maker) < 0) return fail('MAKER', maker);
-    var b1 = slotBonus(1, formId, maker, materialHasAddedCandidate), p1 = Math.min(100, SLOT_BASE[profile][0] + b1.cap.points);
+    var b1 = slotBonus(1, formId, maker, materialHasAddedCandidate, skillPoints), p1 = Math.min(100, SLOT_BASE[profile][0] + b1.cap.points);
     var s1 = chance(stream, 'added_slot1', p1);
     if (!s1.ok) return s1;
     var traces = [Object.assign({ bonus: b1 }, s1.trace)];
@@ -12808,7 +12837,10 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
       steps.areaAdjust = { applied: aa.applied, before: area, after: aa.area }; area = aa.area;
     }
     // 4 主効果の品質（製作者・形の補正、上限つき）
-    var qb = S.mainQualityBonus(main.subject, shapeKey, rec.form, maker);
+    // Ver 0.1.221：工房の熟練度（input.skill 0〜10。なければ 0）。品質の補正と、追加の 1 枠目の確率に 熟練度 × 0.5
+    var skillPts = 0;
+    if (own(input, 'skill')) { if (!Number.isInteger(input.skill) || input.skill < 0 || input.skill > 10) return stop(fail('SKILL', input.skill)); skillPts = input.skill * 0.5; }
+    var qb = S.mainQualityBonus(main.subject, shapeKey, rec.form, maker, skillPts);
     var coreRarity = S.TABLES.CORES[rec.core].rarity, effects = [], value = {};
     if (main.subject === 'attack') {
       var ap = S.drawAttackPersonality(st, coreRarity, qb.cap.points); if (!ap.ok) return stop(ap);
@@ -12855,7 +12887,7 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
     steps.mainQuality = { bonus: qb, value: value };
     // 5 追加枠
     if (!own(S.TABLES.SLOT_BASE, input.slotProfile)) return stop(fail('SLOT_PROFILE_UNDECIDED', input.slotProfile));
-    var sl = S.drawAddedSlots(st, input.slotProfile, rec.form, maker, input.materialHasAddedCandidate === true); if (!sl.ok) return stop(sl);
+    var sl = S.drawAddedSlots(st, input.slotProfile, rec.form, maker, input.materialHasAddedCandidate === true, skillPts); if (!sl.ok) return stop(sl);
     traces = traces.concat(sl.traces);
     steps.addedSlots = { count: sl.count, profile: input.slotProfile };
     var added = [];
@@ -13531,6 +13563,9 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
     var pref = input.needPref === undefined ? 'normal' : input.needPref;
     if (!own(NEED_PREF, pref)) return fail('NEED_PREF', pref);
     if (input.createdAt !== undefined && input.createdAt !== null && typeof input.createdAt !== 'string') return fail('CREATED_AT');
+    // Ver 0.1.221：工房の熟練度（0〜10。なければ 0）。seed の列は変えない（同じ seed・同じ熟練度なら同じ結果）
+    var skill = input.skill === undefined || input.skill === null ? 0 : input.skill;
+    if (!Number.isInteger(skill) || skill < 0 || skill > 10) return fail('SKILL', input.skill);
     var ck = checkRecipe(input.recipe);
     if (!ck.ok) return ck;
     var rec = input.recipe, mats = [rec.core, rec.form, rec.catalyst];
@@ -13556,7 +13591,7 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
     for (var q = 0; q < keyList.length; q++) {
       var k = keyList[q];
       if (/^status:/.test(k) || k === 'heal' || k === 'regen') {
-        var dq = S.drawQuality(st, 'added_quality:' + k, coreRarity, 0);
+        var dq = S.drawQuality(st, 'added_quality:' + k, coreRarity, skill * 0.5);
         if (!dq.ok) return dq;
         traces.push(dq.trace);
         qual[k] = dq.index;
@@ -13584,6 +13619,7 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
       materialHasAddedCandidate: cands.length > 0, addedCandidates: cands.map(function (c) { var o = clone(c); delete o.sources; return o; }), candidatesFinal: true, generation: true, fixture: false
     };
     // Ver 0.1.219：回復が主の魔法は、回復量の表の「区分の中」（0〜2）を、別の seed つきの列（'hl|'）で引く（前の列の値は動かさない）
+    if (skill > 0) pvIn.skill = skill;
     if (subject === 'heal') { var hl = RNG.createSeededRng('hl|' + base); pvIn.healInner = Math.min(2, Math.floor(hl.next() * 3)); }
     if (cat && (cat.feature === 'trait:homing' || cat.feature === 'trait:pierce')) pvIn.catalystTraitRate = CATALYST_TRAIT_RATE + (maker === 'sevran' ? SEVRAN_TRAIT_BONUS : 0);
     var pv = PV.preview(pvIn);
@@ -13630,7 +13666,7 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
     // ユニークスキルが付いたときだけキーを足す（付かない記録の形は前の版と同じ）
     if (unique) gen.unique = unique;
     if (healBonus) gen.healBonus = healBonus;
-    return { ok: true, preview: pv, gen: gen, materials: mats, maker: maker, needPref: pref, traces: traces, base: base };
+    return { ok: true, preview: pv, gen: gen, materials: mats, maker: maker, needPref: pref, traces: traces, base: base, skill: skill };
   }
   // 出生の記録（保存する形）。manaSync は工房の魔力同調の最高の判定（1〜5。なければ 3＝補正なし）
   function makeBirth(input, generated, manaSync) {
@@ -13638,6 +13674,8 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
     if (ms !== null && [1, 2, 3, 4, 5].indexOf(ms) < 0) return fail('MANA_SYNC', ms);
     var id = 'spn_' + RNG.stableHash(generated.base).slice(0, 20);
     var birth = { seed: input.seed, createdAt: input.createdAt === undefined ? null : input.createdAt, creatorId: generated.maker, materials: generated.materials.slice(), needPref: generated.needPref, manaSync: ms };
+    // 熟練度は、0 より上のときだけ記録に入れる（0 の記録の形は前の版と同じ）
+    if (generated.skill > 0) birth.skill = generated.skill;
     var spell = RT.fromGenerated(generated.preview, { birthId: id, name: null, manaSync: ms });
     if (!spell.ok) return spell;
     // ユニークスキルは、実行の契約（spell）にも入れる（本編は spell だけを読む）
@@ -13670,6 +13708,7 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
     if (own(rec, 'spellFormat')) return fail('MIXED_LEGACY_FORMAT');
     if (typeof rec.id !== 'string' || !/^spn_[0-9a-f]{8,40}$/.test(rec.id)) return fail('ID');
     if (!rec.birth || typeof rec.birth !== 'object' || !Array.isArray(rec.birth.materials) || rec.birth.materials.length !== 3) return fail('BIRTH');
+    if (own(rec.birth, 'skill') && (!Number.isInteger(rec.birth.skill) || rec.birth.skill < 1 || rec.birth.skill > 10)) return fail('BIRTH_SKILL');
     if (!rec.gen || typeof rec.gen !== 'object' || Array.isArray(rec.gen)) return fail('GEN');
     if (!rec.spell || typeof rec.spell !== 'object' || rec.spell.birthId !== rec.id) return fail('SPELL_ID');
     var v = RT.validate(rec.spell);
@@ -13973,6 +14012,83 @@ body.mtw #mtw-book .mbv-card > *:not(.mof-result-half) { grid-column: 1 / -1; }
 
 </script>
 <script>
+/* magic-workshop/js/main-bridge/workshop-skill.js */
+'use strict';
+// 工房の熟練度と実績（Ver 0.1.221・ユーザーの決定 2026-11-25）。
+// ・熟練度は、魔導書に入っている新方式の魔法（読める出生）から、そのつど数える（新しい保存はしない。前に作った魔法も数に入る）。
+// ・点：魔法 1 つごとに +1 ＋ 達成した実績の点。点がたまると熟練度が 0 → 10 に上がる。
+// ・効き目（generate の input.skill）：熟練度 1 つごとに、品質の良い側への補正 +0.5・追加効果の 1 つめの確率 +0.5%（熟練度 10 で +5・+5%）。
+//   積み上がった確率は画面に出さない（熟練度とゲージ・実績だけ）。
+// ・魔導書に入るのは 200 個まで（next-book の LIMIT）なので、作った数の実績は 200 まで。
+// 画面・保存にはさわらない純粋なモジュール。
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./next-label.js'));
+  else { var M = root.MagicWorkshop; M.mainBridge.workshopSkill = factory(M.mainBridge.nextLabel); }
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (NL) {
+  var MAX = 10;
+  // 熟練度 L になるのに要る点（THRESHOLDS[L]）
+  var THRESHOLDS = [0, 8, 20, 36, 56, 80, 108, 140, 176, 216, 260];
+  var RANK = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4 };
+  function statsOf(births) {
+    var st = { made: 0, rare: 0, epic: 0, legend: 0, added1: 0, added2: 0, s: 0, unique: 0, subjects: {} };
+    (births || []).forEach(function (r) {
+      if (!r || !r.spell || !r.gen || !Array.isArray(r.spell.effects)) return;
+      st.made++;
+      var k = RANK[r.gen.rarity] || 0;
+      if (k >= 2) st.rare++;
+      if (k >= 3) st.epic++;
+      if (k >= 4) st.legend++;
+      var added = r.spell.effects.filter(function (e) { return e && e.slot === 'added'; }).length;
+      if (added >= 1) st.added1++;
+      if (added >= 2) st.added2++;
+      var hasS = false;
+      try { hasS = NL.powers(r).some(function (p) { return p.letter === 'S'; }); } catch (e) { hasS = false; }
+      if (hasS) st.s++;
+      if (r.spell.unique) st.unique++;
+      if (typeof r.spell.subject === 'string') st.subjects[r.spell.subject] = 1;
+    });
+    st.kinds = ['attack', 'status', 'heal', 'defense'].filter(function (x) { return st.subjects[x]; }).length;
+    return st;
+  }
+  // 実績の表：[id, 名前, 点, 何を数えるか, いくつで達成]
+  var ACH = [
+    ['made10', '魔法を 10 個作った', 5, 'made', 10], ['made30', '魔法を 30 個作った', 5, 'made', 30], ['made60', '魔法を 60 個作った', 5, 'made', 60],
+    ['made100', '魔法を 100 個作った', 5, 'made', 100], ['made150', '魔法を 150 個作った', 5, 'made', 150], ['made200', '魔法を 200 個作った', 5, 'made', 200],
+    ['rare1', 'はじめてのレア', 3, 'rare', 1], ['epic1', 'はじめてのエピック', 8, 'epic', 1], ['legend1', 'はじめてのレジェンド', 20, 'legend', 1],
+    ['epic10', 'エピックを 10 個', 10, 'epic', 10], ['legend5', 'レジェンドを 5 個', 20, 'legend', 5],
+    ['added1', '追加効果が 1 つ付いた', 3, 'added1', 1], ['added2', '追加効果が 2 つ付いた', 10, 'added2', 1],
+    ['srank', 'S ランクの効果が付いた', 10, 's', 1], ['unique', '突然変異が起きた', 20, 'unique', 1],
+    ['kinds4', '4 種類をぜんぶ作った', 5, 'kinds', 4]
+  ];
+  function levelOf(points) { var lv = 0; for (var i = 1; i <= MAX; i++) if (points >= THRESHOLDS[i]) lv = i; return lv; }
+  // births（魔導書の読める出生）→ 熟練度・点・実績の一覧
+  function evaluate(births) {
+    var st = statsOf(births), pts = st.made;
+    var list = ACH.map(function (a) {
+      var have = st[a[3]] || 0, done = have >= a[4];
+      if (done) pts += a[2];
+      // 途中の進み具合：作った数は「あと N 個」、ほかの 2 つ以上の実績は「N / M」
+      var prog = null;
+      if (!done && a[4] > 1) prog = a[3] === 'made' ? 'あと ' + (a[4] - have) + ' 個' : have + ' / ' + a[4];
+      return { id: a[0], name: a[1], points: a[2], done: done, progress: prog };
+    });
+    var lv = levelOf(pts), cur = THRESHOLDS[lv], next = lv < MAX ? THRESHOLDS[lv + 1] : null;
+    return {
+      level: lv, max: MAX, points: pts, made: st.made, next: next, toNext: next === null ? 0 : next - pts,
+      ratio: next === null ? 1 : Math.max(0, Math.min(1, (pts - cur) / (next - cur))), list: list
+    };
+  }
+  // 前と後をくらべて、新しく達成した実績と、熟練度の上がり方を返す
+  function diff(before, after) {
+    var had = {};
+    (before && before.list || []).forEach(function (x) { if (x.done) had[x.id] = 1; });
+    return { gained: after.list.filter(function (x) { return x.done && !had[x.id]; }), from: before ? before.level : 0, to: after.level, up: !!before && after.level > before.level };
+  }
+  return { MAX: MAX, THRESHOLDS: THRESHOLDS, ACH: ACH, statsOf: statsOf, levelOf: levelOf, evaluate: evaluate, diff: diff };
+});
+
+</script>
+<script>
 /* main-official/workshop-save.js */
 'use strict';
 /* R8B：正式の工房のページ：素材を使う錬成（main-bridge/material-forge.js の forgeWithMaterials）と、所持の数。
@@ -14115,8 +14231,19 @@ function mofResolveBroken(choice) {
     box.appendChild(el('p', { class: 'mof-next-pred-note' }, 'すべてが一緒に付くわけではありません。できた魔法は、完成の画面と魔導書で確かめられます。'));
   }
   // 錬成：出生（同調の判定はまだ null）。作れないときは素材を使わない
+  // Ver 0.1.221：工房の熟練度（魔導書の魔法から数える。0〜10）。読めないときは 0（補正なし）
+  function skillNow() {
+    try {
+      var WS = W.mainBridge.workshopSkill, NB = W.mainBridge.nextBook;
+      if (!WS || !NB) return 0;
+      var p = NB.parse(window.localStorage.getItem(NB.KEY));
+      return p.ok ? WS.evaluate(p.births).level : 0;
+    } catch (e) { return 0; }
+  }
   function forge(recipe, seed, creator, createdAt) {
     var inp = { recipe: { core: recipe.core, form: recipe.form, catalyst: recipe.catalyst || null }, seed: seed, maker: creator === 'sevran' ? 'sevran' : 'rizel', needPref: st.pref, createdAt: createdAt };
+    var sk = skillNow();
+    if (sk > 0) inp.skill = sk;
     var g = GEN.generate(inp);
     if (!g.ok) return { ok: false, code: g.code, ja: why(g) };
     var b = GEN.makeBirth(inp, g, null);
@@ -14126,6 +14253,8 @@ function mofResolveBroken(choice) {
   function finalize(rec, grade) {
     if (!NL.isNext(rec) || !rec.birth) return { ok: false, code: 'NOT_NEXT' };
     var m = rec.birth.materials, inp = { recipe: { core: m[0], form: m[1], catalyst: m[2] }, seed: rec.birth.seed, maker: rec.birth.creatorId, needPref: rec.birth.needPref, createdAt: rec.birth.createdAt };
+    // 作ったときの熟練度（出生の記録）で作りなおす（保存の直前に熟練度が変わっても、同じ魔法になる）
+    if (rec.birth.skill) inp.skill = rec.birth.skill;
     var g = GEN.generate(inp);
     if (!g.ok) return { ok: false, code: g.code };
     var b = GEN.makeBirth(inp, g, grade);
@@ -14161,6 +14290,89 @@ function mofResolveBroken(choice) {
     return { title: NL.label(rec), rank: NL.RARITY[rec.gen && rec.gen.rarity] || '—', appraisal: '珍しさ：' + (NL.RARITY[rec.gen && rec.gen.rarity] || '—') + (rec.gen && rec.gen.legendCapped ? '（レジェンドの解禁の前なので、エピックとして記録）' : ''), rows: rows };
   }
   window.__mofNext = { predict: predict, renderPrediction: renderPrediction, forge: forge, finalize: finalize, model: model, pref: function () { return st.pref; } };
+})();
+
+</script>
+<script>
+/* main-official/workshop-skill-ui.js */
+'use strict';
+/* 工房の熟練度と実績の表示（Ver 0.1.221・ユーザーの決定 2026-11-25）。
+   ・上の「魔法工房」の右に「熟練度 N」とゲージ（次の熟練度までの進み具合）。押すと「熟練度と実績」の一覧。
+   ・魔法を保存したあと、新しく達成した実績と、熟練度が上がったことを、画面の下に知らせる。
+   ・数えるのは main-bridge/workshop-skill.js（魔導書の魔法から）。積み上がった確率は出さない。保存はしない。 */
+(function () {
+  var W = window.MagicWorkshop;
+  if (!W || !W.mainBridge || !W.mainBridge.workshopSkill || !W.mainBridge.nextBook) return;
+  var WS = W.mainBridge.workshopSkill, NB = W.mainBridge.nextBook, doc = document;
+  var last = null;
+  function el(tag, cls, text) { var e = doc.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+  function now() {
+    try { var p = NB.parse(window.localStorage.getItem(NB.KEY)); return WS.evaluate(p.ok ? p.births : []); } catch (e) { return WS.evaluate([]); }
+  }
+  function bar(cls, ratio) { var b = el('span', cls), i = el('i'); i.style.width = Math.round(ratio * 100) + '%'; b.appendChild(i); return b; }
+  function chip() {
+    var c = doc.getElementById('mof-skill-chip');
+    if (c) return c;
+    var head = doc.querySelector('header.top'), title = head && head.querySelector('h1.title');
+    if (!head || !title) return null;
+    c = el('button', 'mof-skill-chip'); c.type = 'button'; c.id = 'mof-skill-chip';
+    c.addEventListener('click', openPanel);
+    title.after(c);
+    head.classList.add('mof-skill-head');
+    return c;
+  }
+  function render(s) {
+    var c = chip();
+    if (!c) return;
+    c.textContent = '';
+    c.appendChild(doc.createTextNode('熟練度 '));
+    c.appendChild(el('b', null, String(s.level)));
+    c.appendChild(bar('mof-skill-bar', s.ratio));
+    c.setAttribute('aria-label', '熟練度 ' + s.level + '。押すと実績の一覧');
+  }
+  function refresh() { last = now(); render(last); return last; }
+  function closePanel() { var p = doc.getElementById('mof-skill-panel'); if (p) p.remove(); }
+  function openPanel() {
+    closePanel();
+    var s = refresh();
+    var p = el('div', 'mof-skill-panel'); p.id = 'mof-skill-panel'; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', '熟練度と実績');
+    var h = el('h3', null, '熟練度と実績'), x = el('button', 'mof-skill-close', '✕ 閉じる'); x.type = 'button'; x.addEventListener('click', closePanel); h.appendChild(x);
+    p.appendChild(h);
+    var lv = el('div', 'mof-skill-lv'); lv.appendChild(doc.createTextNode('熟練度 ')); lv.appendChild(el('b', null, String(s.level)));
+    lv.appendChild(el('small', null, s.next === null ? 'いちばん上まで上がりました' : '次の熟練度まで あと ' + s.toNext));
+    p.appendChild(lv);
+    p.appendChild(bar('mof-skill-big', s.ratio));
+    p.appendChild(el('div', 'mof-skill-note', '魔法を作るほど、少しずつ腕が上がります（魔導書の魔法 ' + s.made + ' 個）。'));
+    var list = el('div', 'mof-skill-list');
+    s.list.forEach(function (a) {
+      var r = el('div', 'mof-skill-row' + (a.done ? '' : ' no'));
+      r.setAttribute('data-ach', a.id);
+      r.appendChild(el('span', 'm', a.done ? '◆' : '◇'));
+      r.appendChild(doc.createTextNode(a.name));
+      if (a.progress) r.appendChild(el('span', 'g', '（' + a.progress + '）'));
+      r.appendChild(el('span', 'p', '+' + a.points));
+      list.appendChild(r);
+    });
+    p.appendChild(list);
+    doc.body.appendChild(p);
+  }
+  // 魔法を保存したあと（onForged から）：前とくらべて、新しい実績・熟練度が上がったことを知らせる
+  function forged() {
+    var before = last, after = now();
+    last = after; render(after);
+    var d = WS.diff(before, after);
+    if (!d.gained.length && !d.up) return;
+    var old = doc.getElementById('mof-skill-toast'); if (old) old.remove();
+    var t = el('div', 'mof-skill-toast'); t.id = 'mof-skill-toast'; t.setAttribute('role', 'status');
+    d.gained.forEach(function (a) { var l = el('div'); l.appendChild(el('b', null, '◆ 実績：' + a.name)); l.appendChild(doc.createTextNode('（+' + a.points + '）')); t.appendChild(l); });
+    if (d.up) t.appendChild(el('small', null, '熟練度が ' + d.from + ' → ' + d.to + ' に上がった！'));
+    t.addEventListener('click', function () { t.remove(); });
+    doc.body.appendChild(t);
+    setTimeout(function () { if (t.parentNode) t.remove(); }, 9000);
+  }
+  function init() { refresh(); }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', init); else init();
+  window.__mofSkill = { refresh: refresh, forged: forged, open: openPanel, close: closePanel, state: function () { return last; } };
 })();
 
 </script>
@@ -15214,7 +15426,7 @@ var MTW_TRIAL_OPTS = Object.freeze({
 });
 
 </script>
-<script>window.__mtwScreen=MagicWorkshop.v2ui.screen.create({completionPage:true,onOpenSaved:function(s){if(window.__mofCompletion)window.__mofCompletion.show(s);},saveBirth:mofSaveBirth,savedListMode:"book",onOpenBook:function(){if(window.__mtwBook)window.__mtwBook.show("book",true);},trialNames:MTW_TRIAL_OPTS.names,trialIntro:MTW_TRIAL_OPTS.intro,iconUI:true,forgeSaves:true,next:window.__mofNext||null,materialCount:mofCount,saveMessages:MOF_SAVE_MSG,onForged:function(r,sp){if(window.mofForged)window.mofForged(r,sp);if(r&&r.ok&&window.__mofCompletion)window.__mofCompletion.show(sp);},doc:document,host:document.getElementById("trial"),storage:(function(){try{return window.localStorage;}catch(e){return null;}})(),getCreatorId:function(){return document.getElementById("creator").value;}});window.__mtwScreen.open();</script>
+<script>window.__mtwScreen=MagicWorkshop.v2ui.screen.create({completionPage:true,onOpenSaved:function(s){if(window.__mofCompletion)window.__mofCompletion.show(s);},saveBirth:mofSaveBirth,savedListMode:"book",onOpenBook:function(){if(window.__mtwBook)window.__mtwBook.show("book",true);},trialNames:MTW_TRIAL_OPTS.names,trialIntro:MTW_TRIAL_OPTS.intro,iconUI:true,forgeSaves:true,next:window.__mofNext||null,materialCount:mofCount,saveMessages:MOF_SAVE_MSG,onForged:function(r,sp){if(window.mofForged)window.mofForged(r,sp);if(r&&r.ok&&window.__mofCompletion)window.__mofCompletion.show(sp);if(r&&r.ok&&window.__mofSkill)window.__mofSkill.forged(sp);},doc:document,host:document.getElementById("trial"),storage:(function(){try{return window.localStorage;}catch(e){return null;}})(),getCreatorId:function(){return document.getElementById("creator").value;}});window.__mtwScreen.open();</script>
 <script>
 /* main-official（素材を順番に選ぶ印） */
 window.__MTW_STEP_PICK = true;

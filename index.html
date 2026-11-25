@@ -1011,7 +1011,7 @@ body.mob.port .sty .sdlg{bottom:max(3%,calc(env(safe-area-inset-bottom,0px) + 10
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.220'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.221'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -23056,7 +23056,7 @@ function mbDrawIns(cpx,cpy,t){
   }
   var MAKERS = ['rizel', 'sevran'];
   // 主効果の品質の補正（主体・形・製作者）
-  function mainQualityBonus(subject, shape, formId, maker) {
+  function mainQualityBonus(subject, shape, formId, maker, skillPoints) {
     var parts = [], f = FORMS[formId] ? FORMS[formId].bonus : {};
     if (maker === 'rizel') { parts.push({ source: 'maker', why: 'rizel_style_main', points: 5 }); if (subject === 'attack') parts.push({ source: 'maker', why: 'rizel_attack', points: 5 }); }
     if (maker === 'sevran' && subject === 'status') parts.push({ source: 'maker', why: 'sevran_status', points: 5 });
@@ -23064,6 +23064,8 @@ function mbDrawIns(cpx,cpy,t){
     if (f.singleQuality && SHAPES[shape] && SHAPES[shape].area === 'single' && SHAPES[shape].delivery !== 'wall') parts.push({ source: 'form', why: 'form_single', points: f.singleQuality });
     if (f.wallQuality && SHAPES[shape] && SHAPES[shape].delivery === 'wall') parts.push({ source: 'form', why: 'form_wall', points: f.wallQuality });
     if (f.healDefenseQuality && (subject === 'heal' || subject === 'defense')) parts.push({ source: 'form', why: 'form_heal_defense', points: f.healDefenseQuality });
+    // Ver 0.1.221：工房の熟練度の補正（熟練度 1 つごとに 0.5。作成者の補正とは別の枠・合計の上限 20 は同じ）
+    if (num(skillPoints) && skillPoints > 0) parts.push({ source: 'workshop', why: 'workshop_skill', points: skillPoints });
     return { parts: parts, cap: capBonus(parts) };
   }
   // 品質の区分（0〜4）を引く
@@ -23092,18 +23094,20 @@ function mbDrawIns(cpx,cpy,t){
   // ---- 4 追加枠・壁の性質
   // profile：'normal'（1 枠目 30%・2 枠目 10%）か 'added_catalyst'（60%・20%）。どの触媒がどちらかは明示の入力（全触媒に一律にしない）
   var SLOT_BASE = { normal: [30, 10], added_catalyst: [60, 20] };
-  function slotBonus(slotNo, formId, maker, materialHasAddedCandidate) {
+  function slotBonus(slotNo, formId, maker, materialHasAddedCandidate, skillPoints) {
     var parts = [], f = FORMS[formId] ? FORMS[formId].bonus : {};
     if (maker === 'sevran') parts.push({ source: 'maker', why: 'sevran_style_slot' + slotNo, points: 5 });
     if (slotNo === 1 && f.slot1) parts.push({ source: 'form', why: 'form_slot1', points: f.slot1 });
     if (slotNo === 1 && f.slot1IfCandidate && materialHasAddedCandidate === true) parts.push({ source: 'form', why: 'form_slot1_if_candidate', points: f.slot1IfCandidate });
     if (slotNo === 2 && f.slot2) parts.push({ source: 'form', why: 'form_slot2', points: f.slot2 });
+    // Ver 0.1.221：工房の熟練度（追加の 1 枠目だけ・熟練度 1 つごとに +0.5%）
+    if (slotNo === 1 && num(skillPoints) && skillPoints > 0) parts.push({ source: 'workshop', why: 'workshop_skill', points: skillPoints });
     return { parts: parts, cap: capBonus(parts) };
   }
-  function drawAddedSlots(stream, profile, formId, maker, materialHasAddedCandidate) {
+  function drawAddedSlots(stream, profile, formId, maker, materialHasAddedCandidate, skillPoints) {
     if (!own(SLOT_BASE, profile)) return fail('SLOT_PROFILE', profile);
     if (maker !== undefined && maker !== null && MAKERS.indexOf(maker) < 0) return fail('MAKER', maker);
-    var b1 = slotBonus(1, formId, maker, materialHasAddedCandidate), p1 = Math.min(100, SLOT_BASE[profile][0] + b1.cap.points);
+    var b1 = slotBonus(1, formId, maker, materialHasAddedCandidate, skillPoints), p1 = Math.min(100, SLOT_BASE[profile][0] + b1.cap.points);
     var s1 = chance(stream, 'added_slot1', p1);
     if (!s1.ok) return s1;
     var traces = [Object.assign({ bonus: b1 }, s1.trace)];
@@ -23455,7 +23459,10 @@ function mbDrawIns(cpx,cpy,t){
       steps.areaAdjust = { applied: aa.applied, before: area, after: aa.area }; area = aa.area;
     }
     // 4 主効果の品質（製作者・形の補正、上限つき）
-    var qb = S.mainQualityBonus(main.subject, shapeKey, rec.form, maker);
+    // Ver 0.1.221：工房の熟練度（input.skill 0〜10。なければ 0）。品質の補正と、追加の 1 枠目の確率に 熟練度 × 0.5
+    var skillPts = 0;
+    if (own(input, 'skill')) { if (!Number.isInteger(input.skill) || input.skill < 0 || input.skill > 10) return stop(fail('SKILL', input.skill)); skillPts = input.skill * 0.5; }
+    var qb = S.mainQualityBonus(main.subject, shapeKey, rec.form, maker, skillPts);
     var coreRarity = S.TABLES.CORES[rec.core].rarity, effects = [], value = {};
     if (main.subject === 'attack') {
       var ap = S.drawAttackPersonality(st, coreRarity, qb.cap.points); if (!ap.ok) return stop(ap);
@@ -23502,7 +23509,7 @@ function mbDrawIns(cpx,cpy,t){
     steps.mainQuality = { bonus: qb, value: value };
     // 5 追加枠
     if (!own(S.TABLES.SLOT_BASE, input.slotProfile)) return stop(fail('SLOT_PROFILE_UNDECIDED', input.slotProfile));
-    var sl = S.drawAddedSlots(st, input.slotProfile, rec.form, maker, input.materialHasAddedCandidate === true); if (!sl.ok) return stop(sl);
+    var sl = S.drawAddedSlots(st, input.slotProfile, rec.form, maker, input.materialHasAddedCandidate === true, skillPts); if (!sl.ok) return stop(sl);
     traces = traces.concat(sl.traces);
     steps.addedSlots = { count: sl.count, profile: input.slotProfile };
     var added = [];
@@ -24178,6 +24185,9 @@ function mbDrawIns(cpx,cpy,t){
     var pref = input.needPref === undefined ? 'normal' : input.needPref;
     if (!own(NEED_PREF, pref)) return fail('NEED_PREF', pref);
     if (input.createdAt !== undefined && input.createdAt !== null && typeof input.createdAt !== 'string') return fail('CREATED_AT');
+    // Ver 0.1.221：工房の熟練度（0〜10。なければ 0）。seed の列は変えない（同じ seed・同じ熟練度なら同じ結果）
+    var skill = input.skill === undefined || input.skill === null ? 0 : input.skill;
+    if (!Number.isInteger(skill) || skill < 0 || skill > 10) return fail('SKILL', input.skill);
     var ck = checkRecipe(input.recipe);
     if (!ck.ok) return ck;
     var rec = input.recipe, mats = [rec.core, rec.form, rec.catalyst];
@@ -24203,7 +24213,7 @@ function mbDrawIns(cpx,cpy,t){
     for (var q = 0; q < keyList.length; q++) {
       var k = keyList[q];
       if (/^status:/.test(k) || k === 'heal' || k === 'regen') {
-        var dq = S.drawQuality(st, 'added_quality:' + k, coreRarity, 0);
+        var dq = S.drawQuality(st, 'added_quality:' + k, coreRarity, skill * 0.5);
         if (!dq.ok) return dq;
         traces.push(dq.trace);
         qual[k] = dq.index;
@@ -24231,6 +24241,7 @@ function mbDrawIns(cpx,cpy,t){
       materialHasAddedCandidate: cands.length > 0, addedCandidates: cands.map(function (c) { var o = clone(c); delete o.sources; return o; }), candidatesFinal: true, generation: true, fixture: false
     };
     // Ver 0.1.219：回復が主の魔法は、回復量の表の「区分の中」（0〜2）を、別の seed つきの列（'hl|'）で引く（前の列の値は動かさない）
+    if (skill > 0) pvIn.skill = skill;
     if (subject === 'heal') { var hl = RNG.createSeededRng('hl|' + base); pvIn.healInner = Math.min(2, Math.floor(hl.next() * 3)); }
     if (cat && (cat.feature === 'trait:homing' || cat.feature === 'trait:pierce')) pvIn.catalystTraitRate = CATALYST_TRAIT_RATE + (maker === 'sevran' ? SEVRAN_TRAIT_BONUS : 0);
     var pv = PV.preview(pvIn);
@@ -24277,7 +24288,7 @@ function mbDrawIns(cpx,cpy,t){
     // ユニークスキルが付いたときだけキーを足す（付かない記録の形は前の版と同じ）
     if (unique) gen.unique = unique;
     if (healBonus) gen.healBonus = healBonus;
-    return { ok: true, preview: pv, gen: gen, materials: mats, maker: maker, needPref: pref, traces: traces, base: base };
+    return { ok: true, preview: pv, gen: gen, materials: mats, maker: maker, needPref: pref, traces: traces, base: base, skill: skill };
   }
   // 出生の記録（保存する形）。manaSync は工房の魔力同調の最高の判定（1〜5。なければ 3＝補正なし）
   function makeBirth(input, generated, manaSync) {
@@ -24285,6 +24296,8 @@ function mbDrawIns(cpx,cpy,t){
     if (ms !== null && [1, 2, 3, 4, 5].indexOf(ms) < 0) return fail('MANA_SYNC', ms);
     var id = 'spn_' + RNG.stableHash(generated.base).slice(0, 20);
     var birth = { seed: input.seed, createdAt: input.createdAt === undefined ? null : input.createdAt, creatorId: generated.maker, materials: generated.materials.slice(), needPref: generated.needPref, manaSync: ms };
+    // 熟練度は、0 より上のときだけ記録に入れる（0 の記録の形は前の版と同じ）
+    if (generated.skill > 0) birth.skill = generated.skill;
     var spell = RT.fromGenerated(generated.preview, { birthId: id, name: null, manaSync: ms });
     if (!spell.ok) return spell;
     // ユニークスキルは、実行の契約（spell）にも入れる（本編は spell だけを読む）
@@ -24317,6 +24330,7 @@ function mbDrawIns(cpx,cpy,t){
     if (own(rec, 'spellFormat')) return fail('MIXED_LEGACY_FORMAT');
     if (typeof rec.id !== 'string' || !/^spn_[0-9a-f]{8,40}$/.test(rec.id)) return fail('ID');
     if (!rec.birth || typeof rec.birth !== 'object' || !Array.isArray(rec.birth.materials) || rec.birth.materials.length !== 3) return fail('BIRTH');
+    if (own(rec.birth, 'skill') && (!Number.isInteger(rec.birth.skill) || rec.birth.skill < 1 || rec.birth.skill > 10)) return fail('BIRTH_SKILL');
     if (!rec.gen || typeof rec.gen !== 'object' || Array.isArray(rec.gen)) return fail('GEN');
     if (!rec.spell || typeof rec.spell !== 'object' || rec.spell.birthId !== rec.id) return fail('SPELL_ID');
     var v = RT.validate(rec.spell);
