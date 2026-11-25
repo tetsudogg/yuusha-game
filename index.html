@@ -1011,7 +1011,7 @@ body.mob.port .sty .sdlg{bottom:max(3%,calc(env(safe-area-inset-bottom,0px) + 10
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.221'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.222'; // タイトル画面の右下に表示（更新のたびに上げる）
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -9742,19 +9742,47 @@ function devUp(from,to){
 /* ---- 道具屋 ---- */
 const VSHOP={2:['bread','herb','cure','ident'],3:['bigbread','bigherb','map','arrow'],4:['storeb','warp','sleepgr'],5:['hugebread','synb']};
 function vShopStock(){if(!vTrade())return[];return['bread','herb'].concat(planDone('goods1')?['bigbread','bigherb','cure']:[]);} // Ver 0.1.17：初回帰還のあと 干し肉・薬草、仕入れ改善で3つ追加（旧：発展度の VSHOP）
+/* ---- お店の実績（Ver 0.1.222・ユーザーの決定 2026-11-25） ----
+   村の道具屋（ネネ）で売った数・売った金額で実績。実績 1 つごとに、この店の売値 +1%・買値 −1%（10 個で ±10%）。迷宮の中の店は前のまま。
+   記録は村の記録（VS.shopAch＝{n:売った数, g:売った合計の金額, best:1 回の最高の売値}）。前の記録にはない＝0 から。
+   「高い品」の 2 つめ（20,000G）は Claude が足した仮の実績（合計を 10 個にするため） */
+const SHOPACH=[['n50','品物を 50 個売った','n',50],['n200','品物を 200 個売った','n',200],['n500','品物を 500 個売った','n',500],['n1000','品物を 1000 個売った','n',1000],
+  ['g1','売った金額が 1万G','g',10000],['g5','売った金額が 5万G','g',50000],['g20','売った金額が 20万G','g',200000],['g100','売った金額が 100万G','g',1000000],
+  ['b5','5,000G 以上の品を売った','best',5000],['b20','20,000G 以上の品を売った','best',20000]];
+function shopAchState(){const a=VS&&VS.shopAch;const num=v=>Number.isFinite(v)&&v>0?Math.floor(v):0;return{n:num(a&&a.n),g:num(a&&a.g),best:num(a&&a.best)};}
+function shopAchList(){const st=shopAchState();return SHOPACH.map(([id,name,k,need])=>({id,name,done:st[k]>=need,prog:k==='best'?null:Math.min(st[k],need)+' / '+need}));}
+function shopLv(){return shopAchList().filter(a=>a.done).length;}
+// この店の値段（お得意さまのレベルぶん）。どちらも四捨五入（1G より下にはしない）。安い品は、レベルが低いうちは値段が変わらないことがある
+function vBuyPrice(it){return Math.max(1,Math.round(price(it)*(100-shopLv())/100));}
+function vSellPrice(it){return Math.max(1,Math.round(sellPrice(it)*(100+shopLv())/100));}
+// 売ったあと：数と金額を足して、新しい実績を知らせる
+function shopAchSold(sp){
+  const before=shopAchList().filter(a=>a.done).map(a=>a.id),st=shopAchState();
+  VS.shopAch={n:st.n+1,g:st.g+sp,best:Math.max(st.best,sp)};
+  const got=shopAchList().filter(a=>a.done&&!before.includes(a.id));
+  for(const a of got)msg('実績：'+a.name+'（お得意さま レベル '+shopLv()+'）','gold');
+  if(got.length){sfx('pick2');msg('この店の売値が +'+shopLv()+'%・買値が −'+shopLv()+'% になった','info');}
+  saveVillage();
+}
+function shopAchMenu(){
+  const L=shopAchList(),lv=shopLv();
+  openMenu({title:'お得意さまの実績',text:'お得意さま レベル '+lv+'（この店の売値 +'+lv+'%・買値 −'+lv+'%）\n売った数 '+shopAchState().n+' 個　売った金額 '+shopAchState().g+'G',
+    items:L.map(a=>({label:(a.done?'◆ ':'◇ ')+a.name,col:a.done?'#f0c542':'#6a6088',right:a.done?'達成':(a.prog||''),action:()=>{}})).concat([{label:'もどる',action:()=>{closeAll();vShopMenu(2);}}])});
+}
 function vShopMenu(sel){
-  openMenu({title:'道具屋のネネ',text:'いらっしゃい。迷宮へ行くなら、支度はここでどうぞ。\n\n所持金 '+(P.gold||0)+'G　持ち物 '+P.inv.length+'/20',items:[
-    {label:'買う',action:()=>vShopList('buy',0)},{label:'売る',action:()=>vShopList('sell',0)},{label:'やめる',action:()=>{closeAll();render();}}]});
+  const lv=shopLv();
+  openMenu({title:'道具屋のネネ',text:'いらっしゃい。迷宮へ行くなら、支度はここでどうぞ。\n\n所持金 '+(P.gold||0)+'G　持ち物 '+P.inv.length+'/20\nお得意さま レベル '+lv+(lv?'（売値 +'+lv+'%・買値 −'+lv+'%）':''),items:[
+    {label:'買う',action:()=>vShopList('buy',0)},{label:'売る',action:()=>vShopList('sell',0)},{label:'お得意さまの実績',action:()=>{closeAll();shopAchMenu();}},{label:'やめる',action:()=>{closeAll();render();}}]});
   if(sel){MS[MS.length-1].sel=sel;drawMenu();}
 }
 function vShopList(mode,sel){
   const buy=mode==='buy';closeAll();vShopMenu(buy?0:1);let items;
-  if(buy)items=vShopStock().map((k,i)=>{const it=createItem(k),pr=price(it);return{icon:rimKey(it),label:itemName(it),col:icol(it),right:pr+'G',rcol:(P.gold||0)>=pr?'#f0c542':'#6a6088',action:()=>{
+  if(buy)items=vShopStock().map((k,i)=>{const it=createItem(k),pr=vBuyPrice(it);return{icon:rimKey(it),label:itemName(it),col:icol(it),right:pr+'G',rcol:(P.gold||0)>=pr?'#f0c542':'#6a6088',action:()=>{
     if((P.gold||0)<pr)msg('お金が足りない','bad');else if(P.inv.length>=20)msg('持ち物がいっぱいで持てない','bad');else{const n=createItem(k);P.gold-=pr;P.inv.push(n);msg(itemName(n)+'を'+pr+'Gで買った','gold');sfx('gold');}
     render();vShopList('buy',i);}};});
-  else{items=P.inv.map((it,i)=>{const sp=sellPrice(it);return{mark:isEq(it)?'E':'',icon:rimKey(it),label:itemName(it),col:icol(it),right:isEq(it)?'装備中':sp+'G',action:()=>{
+  else{items=P.inv.map((it,i)=>{const sp=vSellPrice(it);return{mark:isEq(it)?'E':'',icon:rimKey(it),label:itemName(it),col:icol(it),right:isEq(it)?'装備中':sp+'G',action:()=>{
     if(isEq(it)){msg('装備中の物は売れない','bad');render();vShopList('sell',i);return;}
-    const go=()=>{P.inv.splice(P.inv.indexOf(it),1);P.gold=(P.gold||0)+sp;msg(itemName(it)+'を'+sp+'Gで売った','gold');sfx('gold');render();vShopList('sell',i);};
+    const go=()=>{P.inv.splice(P.inv.indexOf(it),1);P.gold=(P.gold||0)+sp;msg(itemName(it)+'を'+sp+'Gで売った','gold');sfx('gold');shopAchSold(sp);render();vShopList('sell',i);};
     openMenu({title:'本当に売りますか？',tcol:icol(it),text:itemName(it)+' を '+sp+'G で売ります。'+(rarityOf(it)>=2?'\n（貴重な品です）':'')+(it.cat==='bag'&&it.contents.length?'\n（袋の中の'+it.contents.length+'個もいっしょに手放します）':''),items:[{label:'やめる',action:()=>vShopList('sell',i)},{label:'売る（'+sp+'G）',col:'#f0c542',action:go}]});}};});
     if(!items.length)items=[{label:'（売れる物がない）',disabled:true,action:()=>{}}];}
   openMenu({title:buy?'買う':'売る',text:(buy?'［買う］　売る':'買う　［売る］')+'　（←→ で切り替え）\n所持金 '+(P.gold||0)+'G　持ち物 '+P.inv.length+'/20',items,lr:()=>vShopList(buy?'sell':'buy',0)});
