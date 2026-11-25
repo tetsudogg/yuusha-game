@@ -2593,7 +2593,7 @@ header.top.mof-skill-head { display: flex; align-items: center; }
 <span id="creator-wrap"><label>作成者 <select id="creator"><option value="rizel">リゼル</option><option value="sevran">セヴラン</option></select></label></span>
 <div id="trial" data-active="core"></div>
 </main>
-<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.224" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
+<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.225" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
 <script>
 'use strict';
 // 魔法錬成 Stage 0：乱数・ハッシュ・正規化 JSON
@@ -11957,6 +11957,52 @@ header.top.mof-skill-head { display: flex; align-items: center; }
     for (var k = 2; k <= 15; k++) if (clean(inp.instant) >= healByStep({ band: inp.band, area: inp.area, step: k }).instant) st = k;
     return { ok: true, step: st };
   }
+  // ---- Ver 0.1.225（ユーザーの決定 2026-11-25）：状態異常・守りが主の魔法も、回復と同じ形（帯ごとの下限〜上限を 15 段階）で決める
+  // 状態異常のかかる確率（単体・%）：状態を 3 つのグループに分け、グループ × 帯で下限〜上限（1 段ごとに +2）。
+  //   強＝しびれ・眠り・猛毒・炎焼／中＝凍え・混乱・毒・火傷・封印（封印はボスに強いので中）／軽＝攻撃力ダウン・鈍足（帯によらず同じ。帯の差はダメージで出す）
+  //   範囲は今の係数（STATUS_AREA）を掛けて四捨五入。続くターン・ボスの決まり・中と大のダメージは変えない
+  var STATUS_GROUP = { shock: 'strong', sleep: 'strong', toxic: 'strong', ensho: 'strong', chill: 'mid', confuse: 'mid', poison: 'mid', burn: 'mid', seal: 'mid', atk_down: 'light', slow: 'light' };
+  var STATUS_RANGE = { strong: { 1: [44, 72], 2: [51, 79], 3: [58, 86] }, mid: { 1: [58, 86], 2: [65, 93], 3: [72, 100] }, light: { 1: [72, 100], 2: [72, 100], 3: [72, 100] } };
+  // 守り（単体）：防御力アップの倍率・ダメージ軽減の %・壁の耐久率（術者の最大 HP の %）。上限は前の決まりのいちばん上と同じ。
+  //   範囲は回復と同じ係数（HEAL_AREA。防御力アップは上がる分に掛ける）。壁に範囲はない
+  var DEFUP_RANGE = { 1: [1.32, 1.60], 2: [1.42, 1.84], 3: [1.52, 2.08] };
+  var BARRIER_RANGE = { 1: [22, 36], 2: [26, 54], 3: [30, 72] };
+  var WALL_RANGE = { 1: [21, 49], 2: [37, 79], 3: [64, 120] };
+  function stepOk(x) { return Number.isInteger(x) && x >= 1 && x <= 15; }
+  function statusByStep(inp) {
+    if (!inp || typeof inp !== 'object' || !bandOk(inp.band)) return fail('BAND');
+    if (typeof inp.status !== 'string' || !own(STATUS_GROUP, inp.status)) return fail('STATUS_UNKNOWN', inp.status);
+    var area = own(inp, 'area') ? inp.area : 'single';
+    if (typeof area !== 'string' || !own(STATUS_AREA, area)) return fail('AREA_NO_STATUS_FACTOR', area);
+    if (!stepOk(inp.step)) return fail('STATUS_STEP', inp.step);
+    var r = STATUS_RANGE[STATUS_GROUP[inp.status]][inp.band];
+    return { ok: true, step: inp.step, group: STATUS_GROUP[inp.status], rate: roundHalfUp((r[0] + (r[1] - r[0]) * (inp.step - 1) / 14) * STATUS_AREA[area]) };
+  }
+  // 確率 → その帯・その範囲の表の段階（表の値に届いている、いちばん上の段。表の外は端）
+  function statusStepOf(inp) {
+    if (!inp || typeof inp !== 'object' || !num(inp.rate) || inp.rate < 0) return fail('RATE');
+    var st = 1;
+    for (var k = 1; k <= 15; k++) { var t = statusByStep({ band: inp.band, status: inp.status, area: inp.area, step: k }); if (!t.ok) return t; if (k > 1 && clean(inp.rate) >= t.rate) st = k; }
+    return { ok: true, step: st };
+  }
+  // 守り：kind＝'def_up'（multiplier）・'barrier'（rate）・'wall'（rate）
+  function defByStep(inp) {
+    if (!inp || typeof inp !== 'object' || !bandOk(inp.band)) return fail('BAND');
+    if (!stepOk(inp.step)) return fail('DEFENSE_STEP', inp.step);
+    var f = (inp.step - 1) / 14, r;
+    if (inp.kind === 'wall') { r = WALL_RANGE[inp.band]; return { ok: true, step: inp.step, rate: roundHalfUp(r[0] + (r[1] - r[0]) * f) }; }
+    var area = own(inp, 'area') ? inp.area : 'single';
+    if (typeof area !== 'string' || !own(HEAL_AREA, area)) return fail('AREA_NO_DEFENSE_STANDARD', area);
+    if (inp.kind === 'def_up') { r = DEFUP_RANGE[inp.band]; return { ok: true, step: inp.step, multiplier: roundHalfUp((1 + (r[0] - 1 + (r[1] - r[0]) * f) * HEAL_AREA[area]) * 100) / 100 }; }
+    if (inp.kind === 'barrier') { r = BARRIER_RANGE[inp.band]; return { ok: true, step: inp.step, rate: roundHalfUp((r[0] + (r[1] - r[0]) * f) * HEAL_AREA[area]) }; }
+    return fail('DEFENSE_KIND', inp.kind);
+  }
+  function defStepOf(inp) {
+    if (!inp || typeof inp !== 'object' || !num(inp.value) || inp.value < 0) return fail('DEFENSE_VALUE');
+    var st = 1;
+    for (var k = 1; k <= 15; k++) { var t = defByStep({ band: inp.band, kind: inp.kind, area: inp.area, step: k }); if (!t.ok) return t; if (k > 1 && clean(inp.value) >= (inp.kind === 'def_up' ? t.multiplier : t.rate)) st = k; }
+    return { ok: true, step: st };
+  }
   // レジェンドのボーナス（回復が主の魔法だけ。珍しさが決まったあとに引く。珍しさ・評価の帯には入れない）
   // [出やすさ %, ボーナスの下限, 上限, 足す必要魔力]。大・単体だけは、継続回復（毎ターン 最大 HP の %・3 ターン）。
   // すでに継続回復を持つ魔法では、その継続回復のターンを +2（足す必要魔力は、引いた段のもの）
@@ -12079,7 +12125,8 @@ header.top.mof-skill-head { display: flex; align-items: center; }
     if (!num(inp.casterMaxHp) || inp.casterMaxHp <= 0) return fail('CASTER_MAX_HP');
     var s = syncOf('heal', inp.caster);
     if (s === null) return fail('CASTER', inp.caster);
-    var rate = WALL_RATE[inp.band][qi];
+    var rate = own(inp, 'rate') ? inp.rate : WALL_RATE[inp.band][qi];
+    if (!num(rate) || rate <= 0) return fail('WALL_RATE', rate);
     return finiteOut({ ok: true, rate: rate, sync: s, raw: clean(inp.casterMaxHp * rate / 100 * s / 100), hp: Math.max(1, roundHalfUp(inp.casterMaxHp * rate / 100 * s / 100)), defense: 0 }, ['raw', 'hp']);
   }
   // 使うときのシンクロ（別の関数。ほかの計算へ混ぜない）
@@ -12158,6 +12205,13 @@ header.top.mof-skill-head { display: flex; align-items: center; }
         if (typeof e.status !== 'string' || !own(STATUS_VALUE, e.status)) return fail('STATUS_UNKNOWN', e.status);
         var v = STATUS_VALUE[e.status], def = own(STATUS, e.status) ? STATUS[e.status] : DOT[e.status];
         if (!num(e.rate) || e.rate < 0 || e.rate > 100) return fail('RATE');
+        // Ver 0.1.225：表で作った主の状態（step つき）は、段階を攻撃と同じ点の表で点にする（状態の種類の点は使わない）。評価は最後の必要量の帯
+        if (e.slot === 'main' && own(e, 'step')) {
+          if (!stepOk(e.step)) return fail('STATUS_STEP');
+          var ss = e.step;
+          if (genBand !== evalBand) { var sso = statusStepOf({ band: evalBand, status: e.status, area: own(STATUS_AREA, area) ? area : 'single', rate: e.rate }); if (!sso.ok) return fail('STATUS_STEP_OF'); ss = sso.step; }
+          return { ok: true, points: ATTACK_POINTS[ss - 1], grade: GRADES[ss - 1] };
+        }
         return { ok: true, points: Math.min(15, roundHalfUp(v * e.rate / def.rate)) };
       }
       case 'heal': case 'regen': {
@@ -12178,6 +12232,13 @@ header.top.mof-skill-head { display: flex; align-items: center; }
       }
       case 'def_up': case 'barrier': case 'wall': {
         if (e.slot === 'added') return { ok: true, points: null, undecided: ['added_defense_cross_subject'] };
+        // Ver 0.1.225：表で作った主の守り（step つき）は、段階を攻撃と同じ点の表で点にする。評価は最後の必要量の帯
+        if (own(e, 'step')) {
+          if (!stepOk(e.step)) return fail('DEFENSE_STEP');
+          var ds = e.step;
+          if (genBand !== evalBand) { var dso = defStepOf({ band: evalBand, kind: e.kind, area: own(HEAL_AREA, area) ? area : 'single', value: e.kind === 'def_up' ? e.multiplier : e.rate }); if (!dso.ok) return fail('DEFENSE_STEP_OF'); ds = dso.step; }
+          return { ok: true, points: ATTACK_POINTS[ds - 1], grade: GRADES[ds - 1] };
+        }
         if (e.kind === 'wall') {
           if (!num(e.rate) || e.rate <= 0) return fail('WALL_RATE');
           return { ok: true, points: Math.min(15, roundHalfUp(8 * e.rate / WALL_RATE[evalBand][2])) };
@@ -12253,7 +12314,8 @@ header.top.mof-skill-head { display: flex; align-items: center; }
     if (!num(total)) return fail('NON_FINITE_RESULT', 'total');
     var rarity = null;
     // Ver 0.1.219：回復量の表で作った回復（主に step つき）の線は、攻撃と同じ（heal_table）。前の決まりの回復（試験用）は前の線のまま
-    var th = subject === 'heal' && own(ef[0], 'step') ? THRESHOLDS.heal_table : THRESHOLDS[subject];
+    // Ver 0.1.225：表で作った状態異常・守り（主に step つき）の線も、攻撃と同じ
+    var th = own(ef[0], 'step') && (subject === 'heal' || subject === 'status' || subject === 'defense') ? THRESHOLDS.heal_table : THRESHOLDS[subject];
     if (!undecided.length) { for (var k = 0; k < th.length; k++) if (total <= th[k][0]) { rarity = th[k][1]; break; } }
     return {
       ok: true, partial: undecided.length > 0, subject: subject, genBand: inp.genBand, evalBand: evalBand, finalNeed: inp.finalNeed,
@@ -12265,10 +12327,10 @@ header.top.mof-skill-head { display: flex; align-items: center; }
   }
 
   return {
-    TABLES: { BANDS: BANDS, STANDARD_NEED: STANDARD_NEED, GROWTH: GROWTH, EVAL_LEVEL: EVAL_LEVEL, ATTACK_AREA: ATTACK_AREA, RANGE_POINTS: RANGE_POINTS, GRADES: GRADES, HEAL_STD: HEAL_STD, DEFUP_STD: DEFUP_STD, BARRIER_STD: BARRIER_STD, WALL_RATE: WALL_RATE, QUALITY_FACTORS: QUALITY_FACTORS, SYNC: SYNC, STATUS: STATUS, STATUS_AREA: STATUS_AREA, STATUS_QUALITY: STATUS_QUALITY, DOT: DOT, STATUS_VALUE: STATUS_VALUE, THRESHOLDS: THRESHOLDS, CURE_POINTS: CURE_POINTS, REVIVE_POINTS: REVIVE_POINTS, TRAIT_POINTS: TRAIT_POINTS, ATTACK_POINTS: ATTACK_POINTS, HEAL_RANGE: HEAL_RANGE, HEAL_AREA: HEAL_AREA, HEAL_BONUS: HEAL_BONUS, HEAL_BONUS_REGEN: HEAL_BONUS_REGEN },
+    TABLES: { BANDS: BANDS, STANDARD_NEED: STANDARD_NEED, GROWTH: GROWTH, EVAL_LEVEL: EVAL_LEVEL, ATTACK_AREA: ATTACK_AREA, RANGE_POINTS: RANGE_POINTS, GRADES: GRADES, HEAL_STD: HEAL_STD, DEFUP_STD: DEFUP_STD, BARRIER_STD: BARRIER_STD, WALL_RATE: WALL_RATE, QUALITY_FACTORS: QUALITY_FACTORS, SYNC: SYNC, STATUS: STATUS, STATUS_AREA: STATUS_AREA, STATUS_QUALITY: STATUS_QUALITY, DOT: DOT, STATUS_VALUE: STATUS_VALUE, THRESHOLDS: THRESHOLDS, CURE_POINTS: CURE_POINTS, REVIVE_POINTS: REVIVE_POINTS, TRAIT_POINTS: TRAIT_POINTS, ATTACK_POINTS: ATTACK_POINTS, HEAL_RANGE: HEAL_RANGE, HEAL_AREA: HEAL_AREA, HEAL_BONUS: HEAL_BONUS, HEAL_BONUS_REGEN: HEAL_BONUS_REGEN, STATUS_GROUP: STATUS_GROUP, STATUS_RANGE: STATUS_RANGE, DEFUP_RANGE: DEFUP_RANGE, BARRIER_RANGE: BARRIER_RANGE, WALL_RANGE: WALL_RANGE },
     bandOfNeed: bandOfNeed, bandBase: bandBase, attackPower: attackPower, gradeOfRatio: gradeOfRatio, attackEvaluation: attackEvaluation,
     healRate: healRate, defUp: defUp, barrier: barrier, wallHp: wallHp, applyHealSync: applyHealSync, applyDefUpSync: applyDefUpSync, applyBarrierSync: applyBarrierSync, cureReviveChance: cureReviveChance,
-    healByStep: healByStep, healStepOf: healStepOf, statusRate: statusRate, applyStatusSync: applyStatusSync, dotTick: dotTick, scoreRarity: scoreRarity
+    healByStep: healByStep, healStepOf: healStepOf, statusByStep: statusByStep, statusStepOf: statusStepOf, defByStep: defByStep, defStepOf: defStepOf, statusRate: statusRate, applyStatusSync: applyStatusSync, dotTick: dotTick, scoreRarity: scoreRarity
   };
 });
 
@@ -12853,7 +12915,25 @@ header.top.mof-skill-head { display: flex; align-items: center; }
     } else {
       var q = S.drawQuality(st, 'main_quality', coreRarity, qb.cap.points); if (!q.ok) return stop(q);
       traces.push(q.trace);
-      if (main.kind === 'status') {
+      // Ver 0.1.225（ユーザーの決定）：通常の生成（input.stepInner つき）の状態異常・守りは、表（帯 × 15 段階）で決める。
+      // 段階 ＝ 品質の区分（0〜4）× 3 ＋ 区分の中（stepInner 0〜2）＋ 1。試験用（stepInner なし）は、前の決まりのまま
+      var tstep = null;
+      if (own(input, 'stepInner')) { if ([0, 1, 2].indexOf(input.stepInner) < 0) return stop(fail('STEP_INNER', input.stepInner)); tstep = q.index * 3 + input.stepInner + 1; }
+      if (main.kind === 'status' && tstep !== null) {
+        var sb = K.statusByStep({ band: input.genBand, status: main.status, area: area, step: tstep });
+        if (!sb.ok) { undecided.push('status_area:' + area); value = { qualityIndex: q.index }; }
+        else {
+          var sr0 = K.statusRate({ status: main.status, slot: 'main', qualityOffset: 0, area: area });
+          value = { qualityIndex: q.index, rate: sb.rate, turns: sr0.ok ? sr0.turns : undefined, ticks: sr0.ok ? sr0.ticks : undefined, step: tstep };
+          effects.push({ slot: 'main', kind: 'status', status: main.status, rate: sb.rate, area: area, step: tstep });
+        }
+      } else if ((main.kind === 'barrier' || main.kind === 'def_up' || main.kind === 'wall') && tstep !== null) {
+        var db = K.defByStep({ band: input.genBand, kind: main.kind, area: area, step: tstep });
+        if (!db.ok) { undecided.push('defense_area:' + area); value = { qualityIndex: q.index }; }
+        else if (main.kind === 'wall') { value = { qualityIndex: q.index, wallRate: db.rate, step: tstep }; effects.push({ slot: 'main', kind: 'wall', rate: db.rate, step: tstep }); }
+        else if (main.kind === 'barrier') { value = { qualityIndex: q.index, rate: db.rate, step: tstep }; effects.push({ slot: 'main', kind: 'barrier', rate: db.rate, area: area, step: tstep }); }
+        else { value = { qualityIndex: q.index, multiplier: db.multiplier, step: tstep }; effects.push({ slot: 'main', kind: 'def_up', multiplier: db.multiplier, area: area, step: tstep }); }
+      } else if (main.kind === 'status') {
         var sr = K.statusRate({ status: main.status, slot: 'main', qualityOffset: S.TABLES.STATUS_OFFSET[q.index], area: area });
         if (!sr.ok) { undecided.push('status_area:' + area); value = { qualityIndex: q.index }; }
         else { value = { qualityIndex: q.index, rate: sr.finalRate, turns: sr.turns, ticks: sr.ticks }; effects.push({ slot: 'main', kind: 'status', status: main.status, rate: sr.finalRate, area: area }); }
@@ -13069,17 +13149,22 @@ header.top.mof-skill-head { display: flex; align-items: center; }
         r = { slot: e.slot, kind: 'damage', element: main.key.split(':')[1], growthType: v.growthType, intrinsic: v.intrinsic, area: area };
       } else if (e.kind === 'status') {
         r = { slot: e.slot, kind: 'status', status: e.status, rate: e.rate, area: area };
+        // Ver 0.1.225：表で作った主の状態・守りは、表の段階（1〜15）も持つ
+        if (own(e, 'step')) r.step = e.step;
       } else if (e.kind === 'heal' || e.kind === 'regen') {
         r = { slot: e.slot, kind: e.kind, instant: e.instant, area: e.area };
         // Ver 0.1.219：回復量の表で作った主の回復は、表の段階（1〜15）も持つ
         if (own(e, 'step')) r.step = e.step;
       } else if (e.kind === 'barrier') {
         r = { slot: e.slot, kind: 'barrier', rate: e.rate, area: e.area };
+        if (own(e, 'step')) r.step = e.step;
       } else if (e.kind === 'def_up') {
         r = { slot: e.slot, kind: 'def_up', multiplier: e.multiplier, area: e.area };
+        if (own(e, 'step')) r.step = e.step;
       } else if (e.kind === 'wall') {
         if (!v || !Number.isInteger(v.qualityIndex)) return fail('WALL_VALUE');
         r = { slot: e.slot, kind: 'wall', rate: e.rate, qualityIndex: v.qualityIndex };
+        if (own(e, 'step')) r.step = e.step;
       } else if (e.kind === 'cure') {
         if (e.slot !== 'added') return fail('CURE_MAIN_NOT_ALLOWED');
         r = { slot: 'added', kind: 'cure', count: e.count, scope: e.scope };
@@ -13184,7 +13269,7 @@ header.top.mof-skill-head { display: flex; align-items: center; }
       if (e.kind === 'revive' && (!num(e.hpRate) || e.hpRate <= 0 || e.hpRate > 100)) return fail('REVIVE_VALUE', i);
     }
     // 回復の表の段階：ない（前の記録・追加の回復）か、1〜15
-    for (var i2 = 0; i2 < sp.effects.length; i2++) if (own(sp.effects[i2], 'step') && (!(sp.effects[i2].kind === 'heal' || sp.effects[i2].kind === 'regen') || !Number.isInteger(sp.effects[i2].step) || sp.effects[i2].step < 1 || sp.effects[i2].step > 15)) return fail('HEAL_STEP', i2);
+    for (var i2 = 0; i2 < sp.effects.length; i2++) if (own(sp.effects[i2], 'step') && (['heal', 'regen', 'status', 'barrier', 'def_up', 'wall'].indexOf(sp.effects[i2].kind) < 0 || (sp.effects[i2].kind !== 'heal' && sp.effects[i2].kind !== 'regen' && sp.effects[i2].slot !== 'main') || !Number.isInteger(sp.effects[i2].step) || sp.effects[i2].step < 1 || sp.effects[i2].step > 15)) return fail('HEAL_STEP', i2);
     // 回復のレジェンドのボーナス（Ver 0.1.219）：ない（前の記録・レジェンドでない）か、回復が主の魔法で、表の範囲の中の値だけ
     if (own(sp, 'healBonus')) { var hbv = validHealBonus(sp); if (!hbv.ok) return hbv; }
     // 状態異常の魔法のダメージ：ない（前の記録・小の帯）か、状態が主で、帯に合った割合だけ
@@ -13309,7 +13394,10 @@ header.top.mof-skill-head { display: flex; align-items: center; }
   function barrierValue(e, caster) { var r = K.applyBarrierSync(e.rate, caster); return r.ok ? { ok: true, rate: Math.min(100, clean(r.rate * (e.ms || 1))), turns: 3 } : r; }
   function wallHp(sp, caster, casterMaxHp) {
     var w = sp.effects[0];
-    var r = K.wallHp({ band: sp.genBand, qualityIndex: w.qualityIndex, casterMaxHp: casterMaxHp, caster: caster });
+    // Ver 0.1.225：表で作った壁（step つき）は、記録の耐久率を使う。前の壁は、品質の区分から
+    var wi = { band: sp.genBand, qualityIndex: w.qualityIndex, casterMaxHp: casterMaxHp, caster: caster };
+    if (own(w, 'step')) wi.rate = w.rate;
+    var r = K.wallHp(wi);
     // 魔力同調は、最後の 1 回の丸めの前に掛ける（途中で丸めない）
     if (r.ok && (w.ms || 1) !== 1) { r = Object.assign({}, r); r.raw = clean(r.raw * w.ms); r.hp = Math.max(1, roundHalfUp(r.raw)); }
     return r;
@@ -13621,6 +13709,8 @@ header.top.mof-skill-head { display: flex; align-items: center; }
     // Ver 0.1.219：回復が主の魔法は、回復量の表の「区分の中」（0〜2）を、別の seed つきの列（'hl|'）で引く（前の列の値は動かさない）
     if (skill > 0) pvIn.skill = skill;
     if (subject === 'heal') { var hl = RNG.createSeededRng('hl|' + base); pvIn.healInner = Math.min(2, Math.floor(hl.next() * 3)); }
+    // Ver 0.1.225：状態異常・守りが主の魔法も、表の「区分の中」（0〜2）を別の列（'sd|'）で引く
+    if (subject === 'status' || subject === 'defense') { var sdr = RNG.createSeededRng('sd|' + base); pvIn.stepInner = Math.min(2, Math.floor(sdr.next() * 3)); }
     if (cat && (cat.feature === 'trait:homing' || cat.feature === 'trait:pierce')) pvIn.catalystTraitRate = CATALYST_TRAIT_RATE + (maker === 'sevran' ? SEVRAN_TRAIT_BONUS : 0);
     var pv = PV.preview(pvIn);
     if (!pv.ok) return fail('GENERATE_' + pv.code, pv.detail);
@@ -13915,6 +14005,18 @@ header.top.mof-skill-head { display: flex; align-items: center; }
       if (!hso.ok) return null;
       var hg = T.GRADES[hso.step - 1];
       return { grade: hg, letter: hg.charAt(0), ratio: null, kind: e.kind };
+    }
+    // Ver 0.1.225：表で作った主の状態異常・守り（step つき）は、表の段階で決める（作った帯とちがう帯で見るときは、その帯の表で出しなおす）。
+    // 前に作った魔法・追加の効果は、前の決まり（標準との比）のまま
+    else if (own(e, 'step') && (e.kind === 'status' || e.kind === 'def_up' || e.kind === 'barrier' || e.kind === 'wall')) {
+      var ts = e.step;
+      if (b !== sp.genBand) {
+        var tso = e.kind === 'status' ? K.statusStepOf({ band: b, status: e.status, area: own(T.STATUS_AREA, e.area) ? e.area : 'single', rate: e.rate })
+          : K.defStepOf({ band: b, kind: e.kind, area: own(T.HEAL_AREA, e.area) ? e.area : 'single', value: e.kind === 'def_up' ? e.multiplier : e.rate });
+        if (!tso.ok) return null; ts = tso.step;
+      }
+      if (!(ts >= 1 && ts <= 15)) return null;
+      return { grade: T.GRADES[ts - 1], letter: T.GRADES[ts - 1].charAt(0), ratio: null, kind: e.kind };
     }
     else if (e.kind === 'def_up') ratio = (e.multiplier - 1) / (T.DEFUP_STD[b].single - 1) * 100;
     else if (e.kind === 'barrier') ratio = e.rate / T.BARRIER_STD[b].single * 100;
