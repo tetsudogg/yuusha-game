@@ -986,6 +986,14 @@ body.mob .pc .bar{width:70px;height:4px}
 }
 .sty .sdlg{bottom:max(3.5%,calc(env(safe-area-inset-bottom,0px) + 8px))}
 body.mob.port .sty .sdlg{bottom:max(3%,calc(env(safe-area-inset-bottom,0px) + 10px))}
+
+/* Ver 0.1.223：タイトルの版の上に、更新の日付と知らせ */
+.tnews{position:fixed;right:14px;bottom:30px;z-index:2;max-width:min(360px,70vw);padding:7px 11px;border:1px solid rgba(240,197,66,.55);border-radius:8px;background:rgba(18,12,36,.82);color:#f3e9d0;font-size:12px;line-height:1.5;text-align:left;pointer-events:none;text-shadow:0 1px 2px #000}
+.tnews .tnd{display:block;font-size:10px;color:#c9bfa0;letter-spacing:1px}
+.tnews b{display:block;color:#ffd24a;font-size:13px}
+.tnews .tnt{display:block}
+body.mob .tnews{right:max(10px,env(safe-area-inset-right,0px));bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 20px);max-width:62vw;font-size:11px;padding:6px 9px}
+body.mob .tnews b{font-size:12px}
 </style>
 </head>
 <body>
@@ -1011,7 +1019,9 @@ body.mob.port .sty .sdlg{bottom:max(3%,calc(env(safe-area-inset-bottom,0px) + 10
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.222'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.223'; // タイトル画面の右下に表示（更新のたびに上げる）
+// タイトルの版の近くに出す、更新の日付と知らせ（Ver 0.1.223・ユーザーの依頼）。版ごとに書きかえる
+const GAMENEWS={date:'2026-11-25',head:'新機能：超モンスターハウス出現！',text:'50F以上で全滅必至の魔物の巣窟が発見されるようになった！'};
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
 //   新しい絵の資料・取りこみ道具・sprites_sheet.js の絵（razTall など）は、直してまた差しかえるかもしれないので残してある。下の7行を '〜Tall' にすれば戻る
 // Ver 0.1.58：道や部屋で動くラズの絵の切りかえ（試験実装）。'razTall'＝新しい 48×72 の絵（画面では 24×36・足元は今まで通り）／'raz'＝前の 48×48 の絵
@@ -2636,7 +2646,8 @@ function msg(t,cls){if(!G)return;G.log.push({t,cls:cls||''});if(G.log.length>60)
 function nameOf(e){return e===P?'ラズ':e.name;}
 // Ver 0.1.197：新方式の魔法の壁（G.mnIns・試験用）は、地形を書きかえずに、通れないマスとして扱う（敵・味方の移動と対角の判定）
 // Ver 0.1.29：決まった形の階では、家具と閉じた扉も通れない
-function pass(x,y){return inb(x,y)&&G.map[I(x,y)]!==0&&!(G.fixed&&fixedBlocked(x,y))&&!(G.mnIns&&typeof mnWallAt==='function'&&mnWallAt(x,y));}
+// Ver 0.1.223：超モンスターハウスの閉じた扉も通れない
+function pass(x,y){return inb(x,y)&&G.map[I(x,y)]!==0&&!(G.fixed&&fixedBlocked(x,y))&&!(G.mnIns&&typeof mnWallAt==='function'&&mnWallAt(x,y))&&!(G.smh&&smhBlocked(x,y));}
 function diagOK(x,y,dx,dy){return!(dx&&dy)||(pass(x+dx,y)&&pass(x,y+dy));}
 function entityAt(x,y){
   if(P.x===x&&P.y===y)return P;
@@ -2793,20 +2804,23 @@ function dropNear(x,y,it,far){
 <script>
 'use strict';
 /* ================= マップ生成 ================= */
-function genMap(){
+// blk（Ver 0.1.223・超モンスターハウス）：{cx0,cy0,nw,nh}＝この区画のマス目には、ふつうの部屋と通路を作らない（あとで大きな部屋を 1 つ置く）
+function genMap(blk){
   G.map=new Uint8Array(MW*MH);G.room=new Int8Array(MW*MH).fill(-1);G.rooms=[];
   const CW=4,CH=3,cw=Math.floor((MW-2)/CW),ch=Math.floor((MH-2)/CH);const cells=[];
+  const inBlk=(cx,cy)=>!!blk&&cx>=blk.cx0&&cx<blk.cx0+blk.nw&&cy>=blk.cy0&&cy<blk.cy0+blk.nh;
   for(let cy=0;cy<CH;cy++)for(let cx=0;cx<CW;cx++){
     const ox=1+cx*cw,oy=1+cy*ch;let r;
-    if(chance(.8)){const w=rr(4,cw-3),h=rr(3,ch-3);r={x:rr(ox+1,ox+cw-1-w),y:rr(oy+1,oy+ch-1-h),w,h,dummy:false};}
+    if(inBlk(cx,cy)){r={x:ox,y:oy,w:0,h:0,dummy:true,blk:true};}
+    else if(chance(.8)){const w=rr(4,cw-3),h=rr(3,ch-3);r={x:rr(ox+1,ox+cw-1-w),y:rr(oy+1,oy+ch-1-h),w,h,dummy:false};}
     else r={x:rr(ox+2,ox+cw-3),y:rr(oy+2,oy+ch-3),w:1,h:1,dummy:true};
     r.cx=cx;r.cy=cy;r.bx=ox+cw;r.by=oy+ch;cells.push(r);
   }
-  const real=cells.filter(r=>!r.dummy);if(real.length<5)return false;
-  cells.forEach(r=>{const ri=r.dummy?-1:G.rooms.length;G.rooms.push(r);r.idx=G.rooms.length-1;
+  const real=cells.filter(r=>!r.dummy);if(real.length<(blk?3:5))return false;
+  cells.forEach(r=>{const ri=r.dummy?-1:G.rooms.length;G.rooms.push(r);r.idx=G.rooms.length-1;if(r.blk)return;
     for(let y=r.y;y<r.y+r.h;y++)for(let x=r.x;x<r.x+r.w;x++){G.map[I(x,y)]=r.dummy?2:1;G.room[I(x,y)]=r.dummy?-1:r.idx;}});
   const edges=[];
-  for(let cy=0;cy<CH;cy++)for(let cx=0;cx<CW;cx++){const i=cy*CW+cx;if(cx<CW-1)edges.push([i,i+1,'h']);if(cy<CH-1)edges.push([i,i+CW,'v']);}
+  for(let cy=0;cy<CH;cy++)for(let cx=0;cx<CW;cx++){const i=cy*CW+cx;if(inBlk(cx,cy))continue;if(cx<CW-1&&!inBlk(cx+1,cy))edges.push([i,i+1,'h']);if(cy<CH-1&&!inBlk(cx,cy+1))edges.push([i,i+CW,'v']);}
   shuffle(edges);const par=cells.map((_,i)=>i);const find=i=>par[i]===i?i:(par[i]=find(par[i]));
   const carve=(x,y)=>{if(inb(x,y)&&G.map[I(x,y)]===0)G.map[I(x,y)]=2;};
   const connect=(a,b,t)=>{
@@ -2816,11 +2830,117 @@ function genMap(){
       for(let y=Math.min(ay,my);y<=Math.max(ay,my);y++)carve(ax,y);for(let x=Math.min(ax,bx);x<=Math.max(ax,bx);x++)carve(x,my);for(let y=Math.min(my,by);y<=Math.max(my,by);y++)carve(bx,y);}
   };
   for(const[a,b,t]of edges){const ra=find(a),rb=find(b);if(ra!==rb){par[ra]=rb;connect(cells[a],cells[b],t);}else if(chance(.2))connect(cells[a],cells[b],t);}
+  if(blk)return smhCarve(blk,cells,cw,ch,carve);
   return true;
 }
-function realRooms(){return G.rooms.filter(r=>!r.dummy);}
+// 超モンスターハウスの部屋は、ふつうの「部屋」の一覧に入れない（降りる場所・階段・店・ふつうの品物や敵を置かない）
+function realRooms(){return G.rooms.filter(r=>!r.dummy&&!r.smh);}
+
+/* ================= 超モンスターハウス（Ver 0.1.223・ユーザーの決定 2026-11-25） =================
+   51F より深い階で、まれに出る（100F までに出る確率が約 50%。1 回の冒険で 1 回まで）。ボス・決まった形の階・75F・テスト用の冒険では出ない。
+   フロアの 4 分の 1 くらい（3 回に 1 回は半分くらい）の大きな部屋。入口は扉が 1 つだけ。
+   扉に向かうと「扉の先から嫌な気配が漂う。入りますか？」。入ると、みんなが部屋の中へ入って扉が閉じる。
+   出る方法は、敵を全部倒すか、帰還の巻物だけ（ワープの巻物は効かない・ワープは部屋の中だけ）。全部倒すと扉が開き、宝箱が出る（4 分の 1 は 6 つ・半分は 11）。
+   記録：G.smh＝{ri（部屋の番号）, door:{x,y}, in:{x,y}（入った所）, st:'closed'|'in'|'done', half}。冒険の保存にそのまま入る */
+const SMH_FROM=51,SMH_RATE=0.0157,SMH_HALF=1/3,SMH_MONS={q:[20,24],h:[26,30]};
+const SMH_REWARD={q:{lux:1,gold:1,boss:1,norm:3,mats:3},h:{lux:1,gold:2,boss:3,norm:5,mats:5}};
+// テスト・確かめ用：'q'（4 分の 1）か 'h'（半分）を入れると、次の階で必ず出る
+let SMH_FORCE=null;
+function smhOK(){return!!G&&G.floor>=SMH_FROM&&G.floor<DEEP&&G.floor!==DMID&&!bossFloor(G.floor)&&!fixedFloorOn()&&!isTest()&&!G.smhSeen;}
+// 区画の中に大きな部屋を 1 つ作り、となりの区画から入口の通路を 1 本だけ引く。扉は、部屋のすぐ外の通路のマス
+function smhCarve(blk,cells,cw,ch,carve){
+  const CW=4,bx0=1+blk.cx0*cw,by0=1+blk.cy0*ch,bx1=bx0+blk.nw*cw,by1=by0+blk.nh*ch,left=blk.cx0===0;
+  // 入口の側は 3 マスあける（扉・通路・たての通路）。外の壁の側は 1 マス、上下は 2 マス
+  const x=left?bx0+1:bx0+3,w=(bx1-bx0)-4,y=by0+(blk.cy0===0?1:2),h=(by1-by0)-(blk.cy0===0?1:2)-(blk.cy0+blk.nh===3?1:2);
+  const r={x,y,w,h,dummy:false,smh:true,cx:blk.cx0,cy:blk.cy0,bx:bx1,by:by1};
+  // となりの区画（入口の側・同じ段）から、ふつうの部屋がある所をえらぶ（なければ通路だけの所）
+  const ncx=left?blk.cx0+blk.nw:blk.cx0-1,nb=[];
+  for(let cy=blk.cy0;cy<blk.cy0+blk.nh;cy++)nb.push(cells[cy*CW+ncx]);
+  const cand=nb.filter(c=>!c.dummy),n=pick(cand.length?cand:nb);
+  const ay=n.dummy?n.y:rr(n.y,n.y+n.h-1),ax=n.dummy?n.x:(left?n.x-1:n.x+n.w);
+  const mx=left?bx1:bx0,dy=Math.max(y+1,Math.min(y+h-2,ay)),dx=left?x+w:x-1;
+  r.idx=G.rooms.length;G.rooms.push(r);
+  for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++){G.map[I(xx,yy)]=1;G.room[I(xx,yy)]=r.idx;}
+  for(let xx=Math.min(ax,mx);xx<=Math.max(ax,mx);xx++)carve(xx,ay);
+  for(let yy=Math.min(ay,dy);yy<=Math.max(ay,dy);yy++)carve(mx,yy);
+  for(let xx=Math.min(mx,dx);xx<=Math.max(mx,dx);xx++)carve(xx,dy);
+  G.smhNew={ri:r.idx,door:{x:dx,y:dy},in:{x:left?dx-1:dx+1,y:dy},st:'closed',half:blk.nh===3};
+  // 入口が 1 つだけであること（部屋のまわりの通れるマスが、扉のマスだけ）を確かめる。ちがえば作りなおす
+  let outs=0;for(let yy=y-1;yy<=y+h;yy++)for(let xx=x-1;xx<=x+w;xx++){if(xx>=x&&xx<x+w&&yy>=y&&yy<y+h)continue;if(inb(xx,yy)&&G.map[I(xx,yy)]!==0)outs++;}
+  return outs===1&&G.map[I(dx,dy)]!==0;
+}
+// 扉の絵（決まった形の階の扉と同じ絵）。top＝人の絵のあとに、上にはみ出した部分だけをもう一度描く
+function smhDraw(cpx,cpy,top){
+  const s=G.smh;if(!s||!dShown(s.door.x,s.door.y))return;
+  const S=fixedSprites(),sp=s.st==='done'?S.doorO:S.doorC,sx=s.door.x*TS-cpx,sy=s.door.y*TS-cpy;
+  if(sx<-TS*2||sy<-TS*2||sx>NW+TS||sy>NH+TS*2)return;
+  if(top)ctx.drawImage(sp.c,0,0,sp.c.width,sp.oy,sx,sy-sp.oy,sp.c.width,sp.oy);else ctx.drawImage(sp.c,sx,sy-sp.oy);
+}
+function smhBlocked(x,y){const s=G.smh;return!!(s&&s.st!=='done'&&s.door.x===x&&s.door.y===y);}
+function smhIn(){return!!(G&&G.smh&&G.smh.st==='in');}
+function smhRoom(){return G.smh?G.rooms[G.smh.ri]:null;}
+// 階を作ったあと：敵を置く（入るまでは動かない）。扉のそば・入った所のそばには置かない
+function smhFill(){
+  const s=G.smh,r=smhRoom();if(!s||!r)return;
+  const pool=Object.keys(MON).filter(k=>monSpawnable(k));if(!pool.length)return;
+  const[a,b]=s.half?SMH_MONS.h:SMH_MONS.q,n=rr(a,b);
+  for(let i=0;i<n;i++){let t=null;for(let k=0;k<80&&!t;k++){const c=freeTile({room:r});if(c&&cheb(c,s.in)>=4)t=c;}
+    if(!t)continue;const m=makeMon(pick(pool),t.x,t.y);m.sleep=999;m.smh=true;G.mons.push(m);}
+}
+// 閉じた扉に向かって歩いたとき（tryMove から）
+function smhDoorBump(x,y){
+  const s=G&&G.smh;if(!s||s.st==='done'||s.door.x!==x||s.door.y!==y)return false;
+  if(s.st==='in'){msg('扉は固く閉ざされている。敵をすべて倒すまで開かない','bad');return true;}
+  openMenu({title:'扉',text:'扉の先から嫌な気配が漂う。入りますか？',items:[
+    {label:'はい',action:()=>{closeAll();smhEnter();}},
+    {label:'いいえ',action:()=>{closeAll();render();}}]});
+  return true;
+}
+// 入る：ラズと仲間が部屋の中へ入り、扉が閉じる。敵が目をさます
+function smhEnter(){
+  const s=G.smh,r=smhRoom();if(!s||s.st!=='closed'||!r)return;
+  sfx('door');P.x=s.in.x;P.y=s.in.y;P.rx=undefined;
+  for(const a of allies){if(!(a.hp>0||a.down>0))continue;
+    // 入った所から近い順に、部屋の中の空いたマスへ
+    let best=null,bd=1e9;for(let yy=r.y;yy<r.y+r.h;yy++)for(let xx=r.x;xx<r.x+r.w;xx++){if(entityAt(xx,yy)||!pass(xx,yy))continue;const d=Math.abs(xx-s.in.x)+Math.abs(yy-s.in.y);if(d<bd){bd=d;best=[xx,yy];}}
+    if(best){a.x=best[0];a.y=best[1];a.rx=undefined;}}
+  s.st='in';G.smhSeen=1;
+  for(const m of G.mons)if(m.smh&&m.hp>0)m.sleep=0;
+  computeVisible();
+  msg('扉が閉ざされた…！','bad');msg('超モンスターハウスだ！！','bad');
+  G.banner={text:'超モンスターハウスだ！',t0:performance.now()};shakeA=Math.max(shakeA,18);
+  sfx('mh');setSong(2);
+  busy=true;setTimeout(()=>{busy=false;render();runAfter();},2000);
+}
+// 毎ターン（mhTick のとなり）：敵が全部いなくなったら、扉が開いて宝箱が出る
+function smhTick(){
+  const s=G&&G.smh;if(!s||s.st!=='in'||G.over)return;
+  if(G.mons.some(m=>m.smh&&m.hp>0))return;
+  s.st='done';setSong(baseSong());sfx('door');
+  msg('超モンスターハウスを制圧した！','good');msg('扉が開いた。部屋のまん中に、たくさんの宝箱があらわれた！','gold');
+  statAdd('mh');
+  const r=smhRoom(),cx=r.x+Math.floor(r.w/2),cy=r.y+Math.floor(r.h/2);
+  // ごほうびの宝箱（ユーザーの決定 2026-11-25）。中身の決まりは、それぞれの宝箱の今の決まりのまま。輝きは、どれも弱まらない（超モンスターハウスだけの例外）
+  //   4 分の 1 の部屋：豪華 1・金 1・ボス 1・ふつう 3（6 つ）／半分の部屋：豪華 1・金 2・ボス 3・ふつう 5（11）
+  //   豪華＝finalChestItem（スーパーレア以上・レジェンド 10%）・金とふつう＝genChestItem()（レア以上）・ボス＝genChestItem(2)（スーパーレア以上）
+  const set=s.half?SMH_REWARD.h:SMH_REWARD.q,L=[];
+  for(let i=0;i<set.lux;i++)L.push({k:'lux',it:finalChestItem()});
+  for(let i=0;i<set.gold;i++)L.push({k:'gold',it:genChestItem()});
+  // 絵：ふつう・ボス・金は、今のゲームと同じ「ふつうの宝箱」の絵（k を入れないと、G.chests の宝箱は銀色の絵になるので、印を付ける）
+  for(let i=0;i<set.boss;i++)L.push({k:'boss',it:genChestItem(2)});
+  for(let i=0;i<set.norm;i++)L.push({k:'norm',it:genChestItem()});
+  // まん中の列に 6 つまで（豪華がまん中）、残りは 2 マス下の列。1 マスおき
+  const spots=[];for(const row of[0,2])for(const dx of[0,-2,2,-4,4,-6,6])spots.push([cx+dx,cy+row]);
+  let k=0;for(const c of L){let sp=null;while(k<spots.length&&!sp){const[x,y]=spots[k++];if(roomOf(x,y)===r.idx&&pass(x,y)&&!isStairs(x,y)&&!chestOn(x,y))sp=[x,y];}
+    if(!sp)break;
+    G.items=G.items.filter(f=>!(f.x===sp[0]&&f.y===sp[1]));
+    G.chests.push({x:sp[0],y:sp[1],ri:r.idx,k:c.k,it:c.it,opened:false,dimmed:false,was:false,noDim:true,showT:now()+600});}
+  // 魔法素材（素材のしくみが使えるときだけ）：その階のふつうの敵の候補から。宝箱ぜんぶを合わせて、4 分の 1 は 3 つ・半分は 5 つ
+  try{if(typeof mmOn==='function'&&mmOn()){const c=mmBossCands(G.floor+1);for(let i=0;i<set.mats&&c.length;i++)mmGive(pick(c),P);}}catch(e){}
+  computeVisible();
+}
 function freeTile(o){
-  o=o||{};const rooms=realRooms().filter(r=>!(o.avoidShop&&G.shop&&r.idx===G.shop.ri)&&(!o.room||r===o.room)&&(o.room||!quietRoom(r.idx)));
+  o=o||{};const rooms=(o.room&&o.room.smh?[o.room]:realRooms()).filter(r=>!(o.avoidShop&&G.shop&&r.idx===G.shop.ri)&&(!o.room||r===o.room)&&(o.room||!quietRoom(r.idx)));
   for(let t=0;t<600;t++){const r=pick(rooms);const x=rr(r.x,r.x+r.w-1),y=rr(r.y,r.y+r.h-1);
     if(entityAt(x,y)||isStairs(x,y))continue;if(G.fixed&&!pass(x,y))continue;if(o.noItem&&(itemAt(x,y)||chestOn(x,y)))continue;if(o.noTrap&&trapAt(x,y))continue;
     if(o.hidden&&G.vis[I(x,y)])continue;return{x,y};}
@@ -2833,7 +2953,14 @@ function genFloor(){
   if(G.mbIns)delete G.mbIns;
   G.fixed=null;G.chests=[];G.crate=null; // Ver 0.1.55：資材箱（village/craft.js）
   if(fixedFloorOn()){genFixedFloor();return;} // Ver 0.1.29：30階は決まった形の階（js/game/fixedfloor.js）
-  {const bk=bossFloor(G.floor);for(let t=0;t<60;t++){while(!genMap()){}if(!bk)break;const rr_=realRooms();if(rr_.length>=2&&rr_.some(BIGROOM))break;}}
+  // Ver 0.1.223：超モンスターハウス（51F より深い階・まれ）。出るときは、大きな部屋の区画をあけて地図を作る
+  G.smh=null;G.smhNew=null;
+  const smhKind=smhOK()?(SMH_FORCE||(chance(SMH_RATE)?(chance(SMH_HALF)?'h':'q'):null)):null;
+  if(smhKind){const half=smhKind==='h',blk={cx0:chance(.5)?0:2,cy0:half?0:(chance(.5)?0:1),nw:2,nh:half?3:2};
+    let okM=false;for(let t=0;t<200&&!okM;t++)okM=genMap(blk);
+    if(okM)G.smh=G.smhNew;}
+  G.smhNew=null;
+  if(!G.smh){const bk=bossFloor(G.floor);for(let t=0;t<60;t++){while(!genMap()){}if(!bk)break;const rr_=realRooms();if(rr_.length>=2&&rr_.some(BIGROOM))break;}}
   G.items=[];G.mons=[];G.traps=[];G.stairs=null;G.shop=null;G.chest=null;G.board=null;G.portal=null;G.fx=[];G.spawnT=0;
   G.explored=new Uint8Array(MW*MH);G.vis=new Uint8Array(MW*MH);
   P.x=-9;P.y=-9;
@@ -2859,7 +2986,8 @@ function genFloor(){
   if(G.floor!==LAST){const nt=rr(3,5)+Math.min(6,Math.floor(G.floor/4));for(let i=0;i<nt;i++){const t=freeTile({noItem:true,noTrap:true,avoidShop:true});if(t&&cheb(t,P)>1&&!isDoorway(t.x,t.y)&&!(G.stairs&&cheb(t,G.stairs)<=1))G.traps.push({x:t.x,y:t.y,type:pick(Object.keys(TRAPS)),known:false});}}
   const nm=rr(5,7);for(let i=0;i<nm;i++)spawnMonster(false);
   G.mh=null;
-  const mhOK=G.floor>=3&&G.floor!==LAST&&G.floor<DEEP&&!bossK,dry=G.mhDry||0;
+  // 超モンスターハウスの階には、ふつうのモンスターハウスは出さない
+  const mhOK=G.floor>=3&&G.floor!==LAST&&G.floor<DEEP&&!bossK&&!G.smh,dry=G.mhDry||0;
   const mhP=MHRATE.base+(dry>=MHRATE.after?MHRATE.step*(dry-MHRATE.after+1):0);
   if(mhOK&&chance(mhP)){
     const cand=others.filter(r=>MHROOM(r)&&!(G.shop&&r.idx===G.shop.ri));
@@ -2896,7 +3024,9 @@ function genFloor(){
     let best=null;for(let d=2;d<=4&&!best;d++)for(const[dx,dy]of D8){const x=P.x+dx*d,y=P.y+dy*d;if(pass(x,y)&&roomOf(x,y)===startR.idx&&!entityAt(x,y)&&!itemAt(x,y)&&!trapAt(x,y)){best={x,y};break;}}
     if(!best){const t=freeTile({room:startR,noItem:true,noTrap:true});if(t)best=t;}if(best)G.portal={x:best.x,y:best.y};}
   try{craftCratePlace();}catch(e){} // Ver 0.1.55：31F 以降の資材箱（1つの階に最大1箱）
-  placeAllies();computeVisible();buildDecor();
+  placeAllies();
+  if(G.smh)smhFill();
+  computeVisible();buildDecor();
 }
 function isDoorway(x,y){if(roomOf(x,y)<0)return false;for(const[dx,dy]of D8){const nx=x+dx,ny=y+dy;if(pass(nx,ny)&&roomOf(nx,ny)<0)return true;}return false;}
 function portalHere(){const q=G&&G.portal;return!!(q&&q.x===P.x&&q.y===P.y);}
@@ -5222,7 +5352,7 @@ function endTurn(){
   G.spawnT++;if(G.spawnT>=40){G.spawnT=0;if(G.mons.filter(isHostile).length<10)spawnMonster(true);}
   if(P.conf>0){P.conf--;if(!P.conf)msg('混乱がおさまった');}
   computeVisible();
-  mhTick();chestTick();bossLeash();
+  mhTick();smhTick();chestTick();bossLeash();
   if((ringIs('rsleep')||statusImmune())&&(P.sleep>0||P.conf>0)){P.sleep=0;P.conf=0;msg(statusImmune()?'魔王の加護で、すぐに正気に戻った':'腕輪の力で、すぐに正気に戻った','info');}
   if(P.sleep>0){busy=true;setTimeout(sleepStep,140);}
 }
@@ -5253,6 +5383,8 @@ function tryMove(d,dashing){
   P.dir=[dx,dy];
   const nx=P.x+dx,ny=P.y+dy;
   if(fixedDoorBump(nx,ny)){render();return false;} // Ver 0.1.29：閉じた扉に向かうと開く
+  if(smhDoorBump(nx,ny)){render();return false;}
+  // ↑ Ver 0.1.223：超モンスターハウスの扉（入るかどうかを聞く）
   if(!pass(nx,ny)||!diagOK(P.x,P.y,dx,dy))return false;
   const e=entityAt(nx,ny);
   if(e&&isHostile(e)){if(dashing)return false;return attackFront();}
@@ -5316,7 +5448,9 @@ function triggerTrap0(t){
   }
   if(was){}
 }
-function teleport(e){const t=fixedLocked()?freeTile({room:G.rooms[G.fixed.quiet[0]]}):freeTile(); // Ver 0.1.31：閉ざされた部屋の中では、部屋の中へ
+function teleport(e){
+  // Ver 0.1.223：超モンスターハウスの中にいるあいだは、部屋の中へ（外へは出られない）
+  const t=fixedLocked()?freeTile({room:G.rooms[G.fixed.quiet[0]]}):(smhIn()&&roomOf(e.x,e.y)===G.smh.ri)?freeTile({room:smhRoom()}):freeTile(); // Ver 0.1.31：閉ざされた部屋の中では、部屋の中へ
   if(t){warpFx(e);e.x=t.x;e.y=t.y;e.rx=undefined;}if(e===P)computeVisible();}
 function hostileVisible(){return G.mons.some(m=>isHostile(m)&&G.vis[I(m.x,m.y)]);}
 function dash(d){
@@ -5439,6 +5573,8 @@ function eat(it){
 }
 function readScroll(it){
   if(it.key==='kikan'&&fixedLocked()){msg('扉が強い魔力で閉ざされていて、帰還の巻物の力が届かない…','bad');return false;} // Ver 0.1.31：セヴランとの戦いのあいだは使えない
+  // Ver 0.1.223：超モンスターハウスの中では、ワープの巻物は効かない（巻物は減らない。帰還の巻物は使える）
+  if(it.key==='warp'&&smhIn()){msg('何かの力にかき消されて、ワープの巻物が効かない…','bad');return false;}
   // Ver 0.1.220：強化値が上限（+50）の装備には、強化の巻物は使えない（巻物は減らない）
   if((it.key==='wup'&&P.weapon&&P.weapon.plus>=ENH_MAX)||(it.key==='sup'&&P.shield&&P.shield.plus>=ENH_MAX)){msg(itemName(it.key==='wup'?P.weapon:P.shield)+'は、これ以上は強化できない（上限 +'+ENH_MAX+'）','info');return false;}
   const old=itemName(it);removeInv(it);msg(old+'を読んだ');afterIdentify(it.key,old);
@@ -6928,6 +7064,8 @@ function drawFrame(t,dt){
     const tr=trapAt(x,y);if(tr&&tr.known){ctx.globalAlpha=0.85;ctx.drawImage(MISC.trap[tr.type],sx,sy);ctx.globalAlpha=1;}
   }
   if(G.fixed)fixedDraw(t,cpx,cpy,lights); // Ver 0.1.29：家具・扉・じゅうたん
+  if(G.smh)smhDraw(cpx,cpy,false);
+  // ↑ Ver 0.1.223：超モンスターハウスの扉
   for(const L of DB.lights){const sx=L.x-cpx,sy=L.y-cpy;if(sx<-60||sy<-60||sx>NW+60||sy>NH+60||!dShown(L.cx,L.cy))continue;
     lights.push({x:sx,y:sy,r:L.r*(0.92+0.08*Math.sin(t/500+L.x)),a:G.vis[I(L.cx,L.cy)]||G.vis[I(L.cx,Math.min(MH-1,L.cy+1))]?L.a:L.a*0.45,col:L.col});}
   const TP=dProps(G.themeIdx).torch,TF=DFX[th.deco].fl;
@@ -6975,6 +7113,7 @@ function drawFrame(t,dt){
   const vis=ents.filter(e=>e===P||e.kind==='ally'||G.vis[I(e.x,e.y)]).sort((a,b)=>a.ry-b.ry);
   for(const e of vis)drawEnt(e,t,cpx,cpy,lights);
   if(G.fixed)fixedDrawTop(cpx,cpy); // Ver 0.1.45：背の高い家具・扉の上の部分を、うしろに立つ人の上に重ねる
+  if(G.smh)smhDraw(cpx,cpy,true);
   if(G.fixed&&G.fixed.id===50&&G.emblem&&G.emblem.held)f50DrawHeld(t,cpx,cpy,lights); // Ver 0.1.103：ラズが持ち上げた魔王の証（ラズの上に重ねる）
   if(G.skPrev)drawSkPrev(1,t,cpx,cpy);
   // 落雷の予告（光るマス）
@@ -8099,6 +8238,7 @@ function titleScreen(){
     '<div class="ttext" id="ttext" style="left:'+pc(TFR.x,TIW)+';width:'+pc(TFR.w,TIW)+';height:'+pc(TFR.h,TIH)+';background-image:url(&quot;'+TTEXTIMG+'&quot;)"></div>'+
     '<div class="tcover"></div><div class="tmenu" role="menu">'+btns+'</div></div></div>'+
     titleStorageWarn()+
+    (typeof GAMENEWS!=='undefined'&&GAMENEWS?'<div class="tnews"><span class="tnd">'+GAMENEWS.date+' 更新</span><b>'+GAMENEWS.head+'</b><span class="tnt">'+GAMENEWS.text+'</span></div>':'')+
     '<div class="ver tver">'+(AU.bgmOn&&!(AU.ctx&&AU.ctx.state==='running')?'<span id="bgmhint">♪ '+(MOB?'タップ':'クリック')+'で音楽が流れます　</span>':'')+GAMEVER+'</div>',()=>titleGo(TSEL));
   screenKey=titleKey;
   document.querySelectorAll('#ttl .tbtn').forEach(b=>{const i=+b.dataset.i;
