@@ -1019,7 +1019,7 @@ body.mob .tnews b{font-size:12px}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.223'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.224'; // タイトル画面の右下に表示（更新のたびに上げる）
 // タイトルの版の近くに出す、更新の日付と知らせ（Ver 0.1.223・ユーザーの依頼）。版ごとに書きかえる
 const GAMENEWS={date:'2026-11-25',head:'新機能：超モンスターハウス出現！',text:'50F以上で全滅必至の魔物の巣窟が発見されるようになった！'};
 // Ver 0.1.72：ユーザーの指示で、ラズと仲間6人の道や部屋の絵を、すべて前の 48×48 に戻した（新しい高い絵は、なじみが悪かったため）。
@@ -2330,7 +2330,9 @@ const AU={ctx:null,bgm:null,sfx:null,rev:null,dly:null,nb:null,bgmOn:true,sfxOn:
 try{const a=JSON.parse(localStorage.getItem('public_game_audio'));if(a){AU.bgmOn=a.bgm!==false;AU.sfxOn=a.sfx!==false;}}catch(e){}
 function saveAudio(){try{localStorage.setItem('public_game_audio',JSON.stringify({bgm:AU.bgmOn,sfx:AU.sfxOn}));}catch(e){}}
 function audioInit(){
-  if(AU.ctx){if(AU.ctx.state==='suspended')AU.ctx.resume();return;}
+  // Ver 0.1.224：閉じた音の出口は作りなおす。止まっている（suspended・iPhone の interrupted）ときは動かしなおす
+  if(AU.ctx&&AU.ctx.state==='closed')audioReset();
+  if(AU.ctx){if(AU.ctx.state!=='running'){try{const r=AU.ctx.resume();if(r&&r.catch)r.catch(()=>{});}catch(e){}}return;}
   const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
   try{
     const c=AU.ctx=new AC();
@@ -2350,6 +2352,22 @@ function audioInit(){
   sndPreload();
   if(AU.bgmOn)bgmStart();
 }
+// Ver 0.1.224（テスターの報告）：ブラウザの「戻る」でページにもどったとき、音の出口が固まって、タップしても音が出なかった。
+// もどったとき（pageshow の persisted）に音の出口を捨てて、次の操作で作りなおす（読みこみなおしたときと同じ状態にする）。
+function audioReset(){
+  bgmStop();
+  const c=AU.ctx;AU.ctx=null;
+  try{for(const k in SNDP)delete SNDP[k];}catch(e){}
+  // 読みこみの途中だった録音の音は、次に読みこみなおす（読みこめた音はそのまま使える）
+  try{for(const k in SNDB)if(SNDB[k].st!=='ok')delete SNDB[k];}catch(e){}
+  try{if(c&&c.state!=='closed'&&c.close){const r=c.close();if(r&&r.catch)r.catch(()=>{});}}catch(e){}
+}
+function audioBack(){
+  audioReset();
+  // タイトルにいるときは「タップで音楽が流れます」をもう一度出す
+  try{if(typeof MODE!=='undefined'&&MODE==='title'&&AU.bgmOn&&!document.getElementById('bgmhint')){const v=document.querySelector('.ver.tver');if(v){const h=document.createElement('span');h.id='bgmhint';h.textContent='♪ '+(typeof MOB!=='undefined'&&MOB?'タップ':'クリック')+'で音楽が流れます　';v.insertBefore(h,v.firstChild);}}}catch(e){}
+}
+try{window.addEventListener('pageshow',e=>{if(e&&e.persisted)audioBack();});}catch(e){}
 const mf=n=>440*Math.pow(2,(n-69)/12);
 function route(g,rev,dly){const c=AU.ctx;g.connect(AU.bgm);if(rev){const s=c.createGain();s.gain.value=rev;g.connect(s);s.connect(AU.rev);}if(dly){const s=c.createGain();s.gain.value=dly;g.connect(s);s.connect(AU.dly);}}
 function envG(g,t,a,d,peak,r){g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(peak*0.55,t+Math.max(a+0.01,d));g.gain.exponentialRampToValueAtTime(0.0001,t+d+r);}
@@ -13391,9 +13409,10 @@ buildPad();viewReady();
 if(!MOB&&('ontouchstart' in window||navigator.maxTouchPoints>0)){const k=$('keys');if(k){const b=document.createElement('button');b.className='btn2';b.textContent='タッチ操作（スマホ表示）に切り替える';b.style.marginTop='6px';
   b.onclick=()=>{try{localStorage.setItem('public_game_mob','1');}catch(e){}location.reload();};k.appendChild(document.createElement('br'));k.appendChild(b);}}
 startOpening(); // Ver 0.1.21：初めてのときは歴史のプロローグ → タイトル（2回目からはタイトル）
-{const wake=()=>{if(MODE==='title'||MODE==='prologue'||MODE==='story'){ // Ver 0.1.54：プロローグと導入の物語でも、最初の操作で音を鳴らし始める
+{const wake=()=>{if(!AU.ctx)audioInit();if(MODE==='title'||MODE==='prologue'||MODE==='story'){ // Ver 0.1.54：プロローグと導入の物語でも、最初の操作で音を鳴らし始める
 audioInit();if(AU.ctx&&AU.ctx.state==='suspended')try{AU.ctx.resume();}catch(e){}bgmStart();}const h=$('bgmhint');if(h)h.remove();};
- document.addEventListener('pointerdown',wake);document.addEventListener('keydown',wake,true);}
+ // Ver 0.1.224：タップも先に受け取る（上にかぶさる画面がタップを止めても、音を動かせるように）
+ document.addEventListener('pointerdown',wake,true);document.addEventListener('keydown',wake,true);}
 requestAnimationFrame(loop);
 </script>
 <script>
