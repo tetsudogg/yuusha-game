@@ -1059,7 +1059,7 @@ body.mob .skvid .skvbox{width:100%}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.229'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.230'; // タイトル画面の右下に表示（更新のたびに上げる）
 // タイトルの版の近くに出す、更新の日付と知らせ（Ver 0.1.223・ユーザーの依頼）。版ごとに書きかえる
 // Ver 0.1.227：更新のお知らせの一覧（ユーザーの文。新しいものが上）。タイトルの「詳細を見る」で出す。版ごとに上に足す
 const GAMENEWS_LIST=[
@@ -1749,8 +1749,9 @@ map:{cat:'scroll',name:'地図の巻物',price:160,w:14},
 blast:{cat:'scroll',name:'爆発の巻物',price:240,w:10},
 sleeps:{cat:'scroll',name:'眠りの巻物',price:200,w:12},
 // Ver 0.1.117：武器・盾強化の巻物はよく落ちるので、エピックにして出にくく（出やすさ 1.2 → 0.4。ユーザーの依頼）
-wup:{cat:'scroll',name:'武器強化の巻物',price:1500,w:0.4,rar:3,noshop:true},
-sup:{cat:'scroll',name:'盾強化の巻物',price:1500,w:0.4,rar:3,noshop:true},
+// Ver 0.1.230：武器・盾の強化の巻物の出やすさを半分に（w 0.4 → 0.2。ユーザーの決定）
+wup:{cat:'scroll',name:'武器強化の巻物',price:1500,w:0.2,rar:3,noshop:true},
+sup:{cat:'scroll',name:'盾強化の巻物',price:1500,w:0.2,rar:3,noshop:true},
 warp:{cat:'scroll',name:'転移の巻物',price:120,w:12},
 kikan:{cat:'scroll',name:'帰還の巻物',price:1200,f:3,w:1,rar:3,noshop:true,known:true}, // 誤って使わないよう、最初から名前がわかる
 thunder:{cat:'staff',name:'雷の杖',price:500,w:10},
@@ -1926,7 +1927,7 @@ starwisp:{name:'流星ウィスプ',shape:'wisp',C:'#9ad8ff',hp:130,atk:40,def:1
 chaosknight:{name:'混沌騎士',shape:'knight',C:'#5a1a4a',hp:250,atk:45,def:24,exp:560,f:[44,53]},
 abyssdragon:{name:'深淵竜',shape:'dragon',C:'#2a1a5a',hp:260,atk:46,def:23,exp:600,f:[45,52],breath:true,brd:44,dragon:true,move:'room'},
 chaosgolem:{name:'混沌のゴーレム',shape:'golem',C:'#4a1a3a',gar:true,hp:320,atk:48,def:28,exp:640,f:[46,52],speed:0.5,move:'room'},
-stardragon:{name:'星喰いの竜ゾルグ',shape:'dragon',C:'#3a4ab0',hp:760,atk:42,def:21,exp:3000,f:[99,99],ai:'area',area:{el:'bolt',r:3,cd:7,mul:0.8,nm:'星雷'},breath:true,brd:40,dragon:true,boss:true,
+stardragon:{name:'星喰いの竜ゾルグ',shape:'dragon',C:'#3a4ab0',hp:760,atk:42,def:21,exp:3000,f:[99,99],ai:'area',area:{el:'bolt',r:3,cd:7,mul:1.0,nm:'星雷',p:0.25,charge:'ゾルグが星の力をためている…'},breath:true,brd:40,dragon:true,boss:true,
   wake:'星喰いの竜ゾルグ「…星の光を喰らい続けて千年。王の魂、さぞ美味かろう」',death:'星喰いの竜ゾルグ「その輝き…まさしく…魔王の…」'},
 sevran:{name:'セヴラン',shape:'bfly',C:'#9a9a18',hp:731,/* Ver 0.1.53：430 → 731（1.7倍。ユーザー指示「必殺技を使う前に倒せてしまう」）。30Fのボスの倍率1.6で、実際のHPは 688 → 1170 */atk:28,def:14,exp:1500,f:[99,99],boss:true,ai:'bfly',recruit:'sevran',
   wake:'セヴラン「おや、ラズではないか。こんなところまで来るとは、ずいぶん頑張ったようだね。……仕事に戻れ？ 困ったね、私は今とても忙しいのだよ。どうしてもと言うなら、私に勝ってみたまえ」',death:'セヴラン「……まさか。本当に私を倒すとはね」'},
@@ -4829,8 +4830,16 @@ function shadowWave(m){ // 闇の波動：まわり2マスにダメージ＋魔�
   if(maouOn()){if(maouActive()){P.maou=Math.max(1,P.maou-2);P.mh=Math.min(P.mh||0,P.maou-1);msg('魔王の姿が揺らいだ…！（残り'+P.maou+'ターン）','bad');}else if((P.mp||0)>0){P.mp=Math.max(0,(P.mp||0)-20);msg('魔王の力を奪われた…！','bad');popText(P,'力を奪われた','#c080ff');}}}
 function bossAI(m){
   const t=pickTarget(m);const ok=!m.spJust;m.spJust=0; // Ver 0.1.73：技の「何ターンごと」はやめて、確率だけ。ただし技を使った次のターンは、技を使わない（2ターン続けて技を出さない）
-  if(m.charge&&!m.sealed){stormStrike(m);return true;}if(!t||m.sealed)return false;
-  if(m.d.area&&ok&&cheb(m,t)<=m.d.area.r&&chance(.35)){elemArea(m,m.d.area);m.spJust=1;return true;}
+  if(m.charge&&!m.sealed){stormStrike(m);return true;}
+  /* Ver 0.1.230（ユーザーの決定）：力をためる広範囲技（40F のゾルグの星雷）。area.charge があるボスは、使うと決めたターンは力をためるだけ（何もしない）で、次のターンに撃つ。
+     撃つときは、そのときのボスのまわり（r マス）にいる人にだけ当たる（ためている間に離れれば避けられる）。ためている間に封印されたら、ためは消える。撃った次のターンは技を使わない */
+  if(m.areaCharge){m.areaCharge=0;
+    if(m.sealed){msg(m.name+'のためた力が、封印でかき消された','good');popText(m,'封印','#c8a0ff');}
+    else{const A=m.d.area,hit=partyNear(m,A.r).length;elemArea(m,A);if(!hit)msg('しかし、誰にも当たらなかった','good');m.spJust=1;return true;}}
+  if(!t||m.sealed)return false;
+  if(m.d.area&&ok&&cheb(m,t)<=m.d.area.r&&chance(m.d.area.p||.35)){
+    if(m.d.area.charge){m.areaCharge=1;msg(m.d.area.charge,'bad');popText(m,'力をためている',ELEM[m.d.area.el]?ELEM[m.d.area.el].col:'#ffe070');{const[cx,cy]=ctr(m);burst(cx,cy,26,ELEM[m.d.area.el]?ELEM[m.d.area.el].col:'#ffe070',40,0.9,-10,true);}sfx('mcircle');return true;}
+    elemArea(m,m.d.area);m.spJust=1;return true;}
   if(m.d.ai==='area')return false;
   if(m.d.ai==='frost'){
     if(!m.armor&&m.hp<m.maxHp*0.5){m.armor=1;m.def=Math.round(m.def*1.5);msg(m.name+'は氷の鎧をまとった！ 守りが固くなった','bad');const[cx,cy]=ctr(m);burst(cx,cy,30,'#e0f8ff',40,1,4,true);return true;}
