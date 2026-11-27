@@ -2593,7 +2593,7 @@ header.top.mof-skill-head { display: flex; align-items: center; }
 <span id="creator-wrap"><label>作成者 <select id="creator"><option value="rizel">リゼル</option><option value="sevran">セヴラン</option></select></label></span>
 <div id="trial" data-active="core"></div>
 </main>
-<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.231" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
+<section id="mtw-book" class="view mtw-book" role="tabpanel" aria-labelledby="mtw-tab-book" hidden><h2 class="view-title" id="mtw-book-title" tabindex="-1">魔導書 <span id="mtw-book-count2"></span></h2><p id="mtw-book-info" class="mtw-book-info"></p><ul id="mtw-book-list" class="book-list mtw-book-list"></ul><div id="mtw-book-detail" class="detail mtw-book-detail" hidden></div></section><section id="mtw-lab" class="view mtw-book mtw-lab" role="tabpanel" aria-labelledby="mtw-tab-lab" hidden><h2 class="view-title" id="mtw-lab-title" tabindex="-1">実験場</h2><p id="mtw-lab-info" class="mtw-book-info"></p><div id="mtw-lab-head" class="mtw-lab-head"></div><div id="mtw-lab-board" class="mtw-lab-board"></div></section><section id="mtw-settings" class="view mtw-book mtw-settings" role="tabpanel" aria-labelledby="mtw-tab-settings" data-ver="Ver 0.1.232" hidden><h2 class="view-title" id="mtw-settings-title" tabindex="-1">設定</h2><div id="mtw-settings-body"></div></section>
 <script>
 'use strict';
 // 魔法錬成 Stage 0：乱数・ハッシュ・正規化 JSON
@@ -17719,7 +17719,7 @@ function fanTiles(x0,y0,d){ // 扇形：1列目1マス・2列目3マス・3列�
     for(let j=1;j<k;j++){if(dx&&dy){o.push([cx-dx*j,cy]);o.push([cx,cy-dy*j]);}else{const px=dy?1:0,py=dx?1:0;o.push([cx+px*j,cy+py*j]);o.push([cx-px*j,cy-py*j]);}}}
   return o;
 }
-function monElemImmune(m,el){const d=m.d||{};return d.el===el||(d.elm&&d.elm[0]===el)||(d.area&&d.area.el===el)||(el==='fire'&&d.breath&&!d.el)||(el==='ice'&&d.ai==='frost')||(el==='bolt'&&d.ai==='storm');}
+function monElemImmune(m,el){const d=m.d||{};return d.elite==='rainbow'||d.gel===el||d.el===el||(d.elm&&d.elm[0]===el)||(d.area&&d.area.el===el)||(el==='fire'&&d.breath&&!d.el)||(el==='ice'&&d.ai==='frost')||(el==='bolt'&&d.ai==='storm');}
 let NOWAKE=0;
 function noWake(f){NOWAKE++;try{return f();}finally{NOWAKE--;}}
 function hitWake(e,n){
@@ -17740,7 +17740,7 @@ function entityAt(x,y){
 }
 function isHostile(m){return m&&m.kind==='mon'&&m.hostile&&m.hp>0;}
 const NOSLEEP=['golem','ghost','wisp'];
-function sleepImmune(e){return!!(e&&e!==P&&e.kind==='mon'&&e.d&&(NOSLEEP.includes(e.d.shape)||e.d.nosleep));}
+function sleepImmune(e){return!!(e&&e!==P&&e.kind==='mon'&&e.d&&(NOSLEEP.includes(e.d.shape)||e.d.nosleep||e.d.elite==='rainbow'));}
 function isBoss(e){return!!(e&&e!==P&&e.d&&e.d.boss);}
 function sealResist(e){return!!(e&&isBoss(e)&&e.sealImm>0);}
 const ELEM={
@@ -17750,12 +17750,14 @@ const ELEM={
  poison:{nm:'毒',st:'毒',seal:'毒',col:'#b060ff',rgb:'180,100,255',turns:5,sfx:'epoison'}}
 const ELCHANCE=0.6,ELORDER=['bolt','ice','fire','poison'];
 const PSNPCT=0.01,PSNCAP=30;
-function applySlip(e,t,d,nm,by){if(!e||e.hp<=0)return;if(e.kind==='mon'&&String(nm).includes('毒'))d=Math.max(d,Math.min(PSNCAP,Math.round((e.maxHp||0)*PSNPCT)));if(e===P&&maouGuard()){popText(P,'無効','#e0a8ff');return;}e.slip={t,d:Math.max(1,Math.round(d)),nm,by};popText(e,nm,'#c8a0ff');stFx(e,nm==='火傷'?'fire':'poison');}
+function applySlip(e,t,d,nm,by){if(!e||e.hp<=0)return;if(e.d&&e.d.elite==='rainbow'){popText(e,'効かない','#b8b0d8');return;}if(e.kind==='mon'&&String(nm).includes('毒'))d=Math.max(d,Math.min(PSNCAP,Math.round((e.maxHp||0)*PSNPCT)));if(e===P&&maouGuard()){popText(P,'無効','#e0a8ff');return;}e.slip={t,d:Math.max(1,Math.round(d)),nm,by};popText(e,nm,'#c8a0ff');stFx(e,nm==='火傷'?'fire':'poison');}
 function cureOne(c){ // Ver 0.1.9：かかっている状態異常から、ランダムに1つだけ治す（浄化の息吹）
   const L=[];if(c.est)for(const el of ELORDER)if(c.est[el]&&c.est[el].t>0)L.push('e:'+el);if(c.slip&&c.slip.t>0)L.push('slip');if(c.sleep>0)L.push('sleep');if(c.conf>0)L.push('conf');
   if(!L.length)return false;const k=pick(L);if(k==='slip')delete c.slip;else if(k==='sleep')c.sleep=0;else if(k==='conf')c.conf=0;else{const el=k.slice(2);delete c.est[el];if(el==='ice')c.frz=false;}
   popText(c,'治った','#b8ffb0');return true;}
 function stunMon(m,t,quiet,bt){ // Ver 2.6.0：敵をしびれさせる。ボスはしびれが解けたあと3ターン、しびれない（耐性）
+  // Ver 0.1.232：七色の幻獣には効かない
+  if(m.d&&m.d.elite==='rainbow'){popText(m,'効かない','#b8b0d8');return false;}
   if(isBoss(m)&&m.stunImm>0){popText(m,'耐性','#c8c0e8');if(!quiet)msg(m.name+'には、しびれへの耐性がついている（あと'+m.stunImm+'ターン）','info');return false;}
   m.stun=Math.max(m.stun||0,isBoss(m)?(bt||1):t);popText(m,'しびれ',ELEM.bolt.col);stFx(m,'bolt');return true;}
 function atkDown(m,r,t){ // 敵の攻撃力ダウン（重ねがけはしない。強いほうが残る）

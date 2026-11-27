@@ -1059,7 +1059,7 @@ body.mob .skvid .skvbox{width:100%}
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const GAMEVER='Ver 0.1.231'; // タイトル画面の右下に表示（更新のたびに上げる）
+const GAMEVER='Ver 0.1.232'; // タイトル画面の右下に表示（更新のたびに上げる）
 // タイトルの版の近くに出す、更新の日付と知らせ（Ver 0.1.223・ユーザーの依頼）。版ごとに書きかえる
 // Ver 0.1.227：更新のお知らせの一覧（ユーザーの文。新しいものが上）。タイトルの「詳細を見る」で出す。版ごとに上に足す
 const GAMENEWS_LIST=[
@@ -2017,6 +2017,37 @@ MON.sevran.hp=Math.round(MON.sevran.hp*1.2);
 MON.maouphantom=Object.assign({},MON.shadowking,{name:'魔王の幻影',shape:'maouphantom',C:'#1a1028',hp:Math.round(MON.shadowking.hp*1.3),atk:Math.round(MON.shadowking.atk*1.3),wake:'',death:'',noAwake2:true});
 // Ver 0.1.152：100F のアステルの HP は、3000 より少なければ 3000（ユーザー指定）。魔王の幻影（3640）は変えないので、幻影を作ったあとに変える
 if(MON.shadowking.hp<3000)MON.shadowking.hp=3000;
+/* ---- Ver 0.1.232：深層の強敵 13 体（ユーザーの決定 2026-11-26。絵は Codex の deep_elites_24x24_v1・2026-11-27 採用）----
+   51〜99F（ボスの階・75F・100F・超モンスターハウスの中はのぞく）に、まれに出る。1 つの階に強敵は 1 体まで（七色の幻獣は別）。
+   強さは、その階に出るふつうの敵のうち HP がいちばん多い敵（eliteRef）をもとに、出たときに決める（下の表の hp・atk・def は 51F のときの見本・図鑑用）。
+   el＝守護獣のまわり 1 マスの属性の攻撃（追憶の守護獣の毒は仮）。reflect＝鏡の守護獣は、ラズの攻撃の一部をはね返す。
+   動き・落とすものは ai.js の「深層の強敵」。出やすさは ELITE。名前はユーザーの決定。経験値の倍率・技の確率・技の名前は仮 */
+const ELITE={glob:0.04,band:0.06,rain:0.02,
+  mul:{tyrant:{hp:1.8,atk:1,exp:2},sorcerer:{hp:1,atk:1,exp:2,mag:1.2},guard:{hp:1.6,atk:1.3,exp:2},hunt:{hp:1.1,atk:1.4,exp:2},rainbow:{exp:5}},
+  bands:[{f:[51,59],g:'e_guard_ash',h:'e_hunt_ash'},{f:[61,69],g:'e_guard_mirror',h:'e_hunt_mirror'},{f:[71,79],g:'e_guard_frost',h:'e_hunt_throne'},
+    {f:[81,89],g:'e_guard_thunder',h:'e_hunt_thunder'},{f:[91,99],g:'e_guard_memory',h:'e_hunt_memory'}]};
+Object.assign(MON,{
+e_rainbow:{name:'七色の幻獣',shape:'erainbow',sheet:'rainbow',elite:'rainbow',hp:5,atk:1,def:0,exp:0,f:[51,99]},
+e_tyrant:{name:'深淵の暴君',shape:'etyrant',sheet:'tyrant',elite:'tyrant',hp:1,atk:1,def:0,exp:0,f:[51,99]},
+e_sorcerer:{name:'深淵の呪術師',shape:'esorc',sheet:'sorcerer',elite:'sorcerer',hp:1,atk:1,def:0,exp:0,f:[51,99]},
+e_guard_ash:{name:'灰燼の守護獣',shape:'eguard',sheet:'guard_ash',elite:'guard',gel:'fire',speed:0.5,move:'room',hp:1,atk:1,def:0,exp:0,f:[51,59]},
+e_guard_mirror:{name:'鏡の守護獣',shape:'eguard',sheet:'guard_mirror',elite:'guard',gel:'ice',reflect:true,speed:0.5,move:'room',hp:1,atk:1,def:0,exp:0,f:[61,69]},
+e_guard_frost:{name:'氷獄の守護獣',shape:'eguard',sheet:'guard_frost',elite:'guard',gel:'ice',speed:0.5,move:'room',hp:1,atk:1,def:0,exp:0,f:[71,79]},
+e_guard_thunder:{name:'雷鳴の守護獣',shape:'eguard',sheet:'guard_thunder',elite:'guard',gel:'bolt',speed:0.5,move:'room',hp:1,atk:1,def:0,exp:0,f:[81,89]},
+e_guard_memory:{name:'追憶の守護獣',shape:'eguard',sheet:'guard_memory',elite:'guard',gel:'poison',speed:0.5,move:'room',hp:1,atk:1,def:0,exp:0,f:[91,99]},
+e_hunt_ash:{name:'灰燼の狩人',shape:'ehunt',sheet:'hunt_ash',elite:'hunt',speed:2,hp:1,atk:1,def:0,exp:0,f:[51,59]},
+e_hunt_mirror:{name:'鏡の狩人',shape:'ehunt',sheet:'hunt_mirror',elite:'hunt',speed:2,hp:1,atk:1,def:0,exp:0,f:[61,69]},
+e_hunt_throne:{name:'玉座の狩人',shape:'ehunt',sheet:'hunt_throne',elite:'hunt',speed:2,hp:1,atk:1,def:0,exp:0,f:[71,79]},
+e_hunt_thunder:{name:'雷鳴の狩人',shape:'ehunt',sheet:'hunt_thunder',elite:'hunt',speed:2,hp:1,atk:1,def:0,exp:0,f:[81,89]},
+e_hunt_memory:{name:'追憶の狩人',shape:'ehunt',sheet:'hunt_memory',elite:'hunt',speed:2,hp:1,atk:1,def:0,exp:0,f:[91,99]}});
+// その階に出るふつうの敵のうち、HP がいちばん多い敵（強敵の強さのもと）
+function eliteRef(f){let b=null;for(const k in MON){const d=MON[k];if(d.boss||d.elite||k==='shopkeeper'||!d.f||d.f[0]===99||d.f[0]>f||f>d.f[1])continue;if(!b||d.hp>b.hp)b=d;}return b;}
+// 強敵の強さ（その階のとき）。七色の幻獣は HP 5・攻撃なし（経験値だけ、その階の強い敵の ELITE.mul.rainbow.exp 倍）
+function eliteStats(k,f){const d=MON[k],r=eliteRef(f)||{hp:300,atk:50,def:25,exp:600},M=ELITE.mul[d.elite]||{};
+  if(d.elite==='rainbow')return{hp:5,atk:1,def:0,exp:Math.round(r.exp*M.exp)};
+  return{hp:Math.round(r.hp*(M.hp||1)),atk:Math.round(r.atk*(M.atk||1)),def:r.def,exp:Math.round(r.exp*(M.exp||1)),mag:Math.round(r.atk*(M.mag||1))};}
+// 図鑑の数字は、出はじめの階のとき
+for(const k in MON)if(MON[k].elite){const s=eliteStats(k,MON[k].f[0]);Object.assign(MON[k],{hp:s.hp,atk:s.atk,def:s.def,exp:s.exp});}
 /* 階の表：to=この行が受け持つ最後の階。theme=THEMES の番号。boss=その階のボス（ボス階は1階だけの行にする）
    50階に伸ばすときは LAST を変え、行を足す */
 const BANDS=[
@@ -3120,6 +3151,8 @@ function genFloor(){
     let best=null;for(let d=2;d<=4&&!best;d++)for(const[dx,dy]of D8){const x=P.x+dx*d,y=P.y+dy*d;if(pass(x,y)&&roomOf(x,y)===startR.idx&&!entityAt(x,y)&&!itemAt(x,y)&&!trapAt(x,y)){best={x,y};break;}}
     if(!best){const t=freeTile({room:startR,noItem:true,noTrap:true});if(t)best=t;}if(best)G.portal={x:best.x,y:best.y};}
   try{craftCratePlace();}catch(e){} // Ver 0.1.55：31F 以降の資材箱（1つの階に最大1箱）
+  // Ver 0.1.232：深層の強敵（ai.js の eliteSpawnFloor）
+  eliteSpawnFloor();
   placeAllies();
   if(G.smh)smhFill();
   computeVisible();buildDecor();
@@ -3173,7 +3206,7 @@ function mhDormant(m){return!!(m&&m.mh&&G.mh&&!G.mh.on);}
 function mhDark(){return!!(G.mh&&!G.mh.on&&G.mons.some(m=>m.mh&&m.hp>0));}
 // Ver 0.1.35：決まった形の階は、ボスがいるあいだだけボスの曲
 // Ver 0.1.152：ふつうに出てくる敵か。ボス・商人・幻影など f:[99,99] の物は「ふつうには出ない」印（前は 50F が最後だったので 99 にしていた）。99F で出てしまっていたのを直した
-function monSpawnable(k){const f=MON[k].f;return!(f[0]===99&&f[1]===99)&&f[0]<=G.floor&&G.floor<=f[1];}
+function monSpawnable(k){const f=MON[k].f;return!MON[k].elite&&!(f[0]===99&&f[1]===99)&&f[0]<=G.floor&&G.floor<=f[1];}
 function baseSong(){if(G.fixed)return G.sealed?1:0;return bossFloor(G.floor)&&(G.floor===LAST||G.sealed)?1:0;}
 function triggerMH(){
   if(!G.mh||G.mh.on)return;G.mh.on=true;
@@ -4366,6 +4399,8 @@ function dmgMon(m,n,killer){
   // Ver 0.1.135：ガルディンの絶対防御のあいだは、すべての攻撃を受け付けない
   if(m.absG){popText(m,'無効','#ff6a6a');return;} // Ver 0.1.94：戦いを終えたボス（30F・50F・100F のよろめいたあと）には、もうダメージを与えない（しんそくの剣の2回目などで倒れてイベントが止まっていた）
   if(mhDormant(m))triggerMH();
+  // Ver 0.1.232：七色の幻獣は、どの攻撃も 1 ダメージ
+  if(m.d&&m.d.elite==='rainbow'&&n>0)n=1;
   hurtFx(m,n);m.hp-=n;if(m.sleep>=900)m.sleep=0;makeHostile(m);if(m.d&&m.d.boss&&m.hp>0)m.rd=(m.rd||0)+n;
   if(m.hp>0&&typeof hitWake==='function')hitWake(m,n);
   if(m.hp<=0){killMon(m,killer);if(killer&&killer.kind==='ally')skGain(killer,3);}
@@ -4397,6 +4432,8 @@ function killMon(m,killer){if(f30Yield(m,killer)||f50Yield(m,killer)||f100Yield(
     msg(itemName(it)+'を取り返した！','good');const[bx,by]=ctr(m);burst(bx,by,18,'#ffe070',30,0.8,14,true);}
   else if(m.kind==='mon'&&!m.d.boss&&m.key!=='shopkeeper'&&chance(.08))dropNear(m.x,m.y,genItem());
   // Ver 0.1.193（R8A）：魔法素材（51F からのふつうの敵。道具のドロップとは別の抽選。magicmat.js）
+  // Ver 0.1.232：深層の強敵の落とすもの（ふつうの魔法素材の抽選のかわり。ai.js の eliteDrop）
+  if(m.elite)eliteDrop(m);
   if(typeof mmDrop==='function')mmDrop(m);
   if(m.d&&m.d.boss)memBoss(m.key);
   if(m.d&&m.d.boss&&!m.d.minion)try{craftBossKill(m.key);}catch(e){} // Ver 0.1.55：ボス記念装飾のレシピ（初めて倒したときに記録だけ。お知らせは村で）
@@ -4466,7 +4503,7 @@ function attackFront(){
   return true;
 }
 const CRITRATE=0.12; // 会心の剣・［会］の印で会心が出る確率（Ver 1.9.5 で25%→12%）
-function monElemImmune(m,el){const d=m.d||{};return d.el===el||(d.elm&&d.elm[0]===el)||(d.area&&d.area.el===el)||(el==='fire'&&d.breath&&!d.el)||(el==='ice'&&d.ai==='frost')||(el==='bolt'&&d.ai==='storm');}
+function monElemImmune(m,el){const d=m.d||{};return d.elite==='rainbow'||d.gel===el||d.el===el||(d.elm&&d.elm[0]===el)||(d.area&&d.area.el===el)||(el==='fire'&&d.breath&&!d.el)||(el==='ice'&&d.ai==='frost')||(el==='bolt'&&d.ai==='storm');}
 function monElem(m,el){ // 属性の武器の効果（敵）：火傷＝毎ターンダメージ、凍え＝半分の確率で動けない、しびれ＝1ターン動けない
   const E=ELEM[el];if(monElemImmune(m,el)){popText(m,'効かない','#b8b0d8');return;}elemFx(m,el,P);
   if(el==='fire'){applySlip(m,3,Math.max(2,Math.round(playerAtk()*0.15)),'火傷','P');msg(m.name+'は火傷した！（3ターン）','good');}
@@ -4482,7 +4519,8 @@ function hitMon(m){
   // Ver 0.1.135：絶対防御（ガルディン）のあいだは、ラズの攻撃も印の効果も入らない
   if(m.absG){animAtk(P,m);msg(m.name+'は攻撃を受け付けない！（絶対防御）','bad');popText(m,'無効','#ff6a6a');sfx('miss');return;} // Ver 0.1.94：戦いを終えたボスには当てない（しんそくの剣の2回目・疾風の二の太刀）
   animAtk(P,m);
-  if(m.d&&m.d.ai==='mirage'&&!m.sealed&&chance(.2)){const rd=Math.max(1,Math.round(playerAtk()*0.3));msg('鏡の障壁が攻撃をはね返した！ '+rd+'のダメージを受けた','bad');popText(m,'反射','#bfefff');fx([[m.x,m.y]],'rgba(200,240,255,0.7)');damagePlayer(rd,m.name);return;}
+  // Ver 0.1.232：鏡の守護獣も、攻撃の一部をはね返す（ELT.reflect）
+  if(m.d&&(m.d.ai==='mirage'||m.d.reflect)&&!m.sealed&&chance(m.d.reflect&&typeof ELT!=='undefined'?ELT.reflect:.2)){const rd=Math.max(1,Math.round(playerAtk()*0.3));msg('鏡の障壁が攻撃をはね返した！ '+rd+'のダメージを受けた','bad');popText(m,'反射','#bfefff');fx([[m.x,m.y]],'rgba(200,240,255,0.7)');damagePlayer(rd,m.name);return;}
   if(!chance(.95)){msg('ラズの攻撃は外れた');sfx('miss');popText(m,'MISS','#c8c8e0');return;}
   // Ver 0.1.129：2回攻撃の武器は、丸める前の攻撃力でダメージを出す（＋0.6 が丸めで消えないように）。ほかの武器は今まで通り
   const w=P.weapon;let dmg=(w&&ITEMS[w.key].double?playerAtkRaw():playerAtk())*(0.85+Math.random()*0.3)-m.def;
@@ -4708,7 +4746,7 @@ function drawBolts(t,cpx,cpy){ // 雷：空から稲妻が落ちる
 /* ---- 毒のスリップダメージ（古い仕組み。中断データのため残す） ---- */
 // Ver 0.1.139：毒のダメージ（ユーザーの依頼）。敵にかける毒も最大HPの1%（前の強さのほうが大きいときは、そちら）。HPの多いボスで強くなりすぎないよう、1%の分は1ターン PSNCAP まで（仮）
 const PSNPCT=0.01,PSNCAP=30;
-function applySlip(e,t,d,nm,by){if(!e||e.hp<=0)return;if(e.kind==='mon'&&String(nm).includes('毒'))d=Math.max(d,Math.min(PSNCAP,Math.round((e.maxHp||0)*PSNPCT)));if(e===P&&maouGuard()){popText(P,'無効','#e0a8ff');return;}e.slip={t,d:Math.max(1,Math.round(d)),nm,by};popText(e,nm,'#c8a0ff');stFx(e,nm==='火傷'?'fire':'poison');}
+function applySlip(e,t,d,nm,by){if(!e||e.hp<=0)return;if(e.d&&e.d.elite==='rainbow'){popText(e,'効かない','#b8b0d8');return;}if(e.kind==='mon'&&String(nm).includes('毒'))d=Math.max(d,Math.min(PSNCAP,Math.round((e.maxHp||0)*PSNPCT)));if(e===P&&maouGuard()){popText(P,'無効','#e0a8ff');return;}e.slip={t,d:Math.max(1,Math.round(d)),nm,by};popText(e,nm,'#c8a0ff');stFx(e,nm==='火傷'?'fire':'poison');}
 // Ver 0.1.197：継続ダメージでは眠りから起こさない（noWake）
 function slipTick(e){return noWake(()=>slipTick0(e));}
 function slipTick0(e){const s=e.slip;if(!s||!(s.t>0))return;s.t--;const d=s.d,nm=s.nm||'毒';if(s.t<=0)delete e.slip;
@@ -4924,6 +4962,8 @@ function monActBody(m){
   if(m.frz2>0){m.frz2--;if(chance(.5)){popText(m,'凍え',ELEM.ice.col);return;}}
   if(m.conf>0){m.conf--;randomStep(m);return;}
   if(m.d.ai&&bossAI(m))return;
+  // Ver 0.1.232：深層の強敵の動き（ai.js の下の eliteAI）
+  if(m.d.elite&&eliteAI(m))return;
   if(m.stolen){let best=null,bd=cheb(m,P);for(const[dx,dy]of D8){if(!canStep(m,dx,dy))continue;const d=Math.max(Math.abs(m.x+dx-P.x),Math.abs(m.y+dy-P.y));if(d>bd){bd=d;best=[dx,dy];}}if(best){m.x+=best[0];m.y+=best[1];}return;}
   if(m.d.erratic&&chance(.5)){randomStep(m);return;}
   const t=pickTarget(m);
@@ -5306,6 +5346,8 @@ function skillFx(a,k){ // 必殺技の演出（カットイン＋技ごとの見
     for(let i=0;i<10;i++){const dx=rr(-ERUPTR,ERUPTR),dy=rr(-ERUPTR,ERUPTR);if(!pass(a.x+dx,a.y+dy))continue;vfx({k:'pillar',x:(a.x+dx+.5)*TS,y:(a.y+dy+.5)*TS+10,w:14,h:70,c:'255,80,20',c2:'255,230,150',pc:'#ff8a30',dur:650,delay:250+i*60});}
     vfx({k:'flash',c:'255,120,40',dur:450,delay:200});setTimeout(()=>{if(G&&!G.over){sfx('blaze');sfx('ebolt');shakeA=Math.max(shakeA,16);}},200);burst(x,y,60,'#ff6a20',90,1.3,30,true);burst(x,y,30,'#ffe070',60,1,20,true);}}
 function stunMon(m,t,quiet,bt){ // Ver 2.6.0：敵をしびれさせる。ボスはしびれが解けたあと3ターン、しびれない（耐性）
+  // Ver 0.1.232：七色の幻獣には効かない
+  if(m.d&&m.d.elite==='rainbow'){popText(m,'効かない','#b8b0d8');return false;}
   if(isBoss(m)&&m.stunImm>0){popText(m,'耐性','#c8c0e8');if(!quiet)msg(m.name+'には、しびれへの耐性がついている（あと'+m.stunImm+'ターン）','info');return false;}
   m.stun=Math.max(m.stun||0,isBoss(m)?(bt||1):t);popText(m,'しびれ',ELEM.bolt.col);stFx(m,'bolt');return true;}
 function atkDown(m,r,t){ // 敵の攻撃力ダウン（重ねがけはしない。強いほうが残る）
@@ -5533,6 +5575,77 @@ function julieSkill(a,k){
       fx(pos,'rgba(200,160,255,0.5)');computeVisible();}
     julieSay('わぁ！ なんか大変なことになっちゃった！');return true;}
 }
+/* ================= Ver 0.1.232：深層の強敵（ユーザーの決定 2026-11-26。表は data.js の ELITE・MON の e_〜） =================
+   七色の幻獣：ふだんは自分の部屋から動かない。見つかる（ラズたちから見える）と逃げ、見つかってから 5 ターンで消える。どの攻撃も 1 ダメージ（HP 5）。
+     状態異常・杖の効果は効かない。攻撃はしない。落とすもの：珍しい触媒は必ず・エピックの装備 1/3。
+   深淵の暴君：ときどき 2 回つづけて攻撃。深淵の呪術師：離れて雷・眠りの魔法。となりに来られると瞬間移動で離れる。
+   守護獣：ゆっくり・自分の部屋を守る。3 ターンに 1 回、まわり 1 マスに属性の攻撃。狩人：1 ターンに 2 回動き、見つけると追ってくる。
+   落とすもの：魔法素材は必ず（その階のふつうの敵の候補から）・珍しい触媒は暴君と呪術師 40%・守護獣と狩人 25%。
+   確率・技の名前・消えるときの文は仮（ELT） */
+const ELT={tyrant2:0.25,sorcWarp:0.6,sorcCast:0.6,guardCd:3,guardMul:1.0,reflect:0.2,rainT:5,rainEpic:1/3,cat:{tyrant:0.4,sorcerer:0.4,guard:0.25,hunt:0.25}};
+function eliteOf(m){return m&&m.d&&m.d.elite||null;}
+function isRainbow(m){return eliteOf(m)==='rainbow';}
+// 強敵を作る（その階の強さにする）
+function eliteMake(k,x,y){const m=makeMon(k,x,y),s=eliteStats(k,G.floor);m.hp=m.maxHp=s.hp;m.atk=s.atk;m.def=s.def;m.exp=s.exp;if(s.mag)m.mag=s.mag;m.elite=1;
+  if(isRainbow(m))m.sleep=0;return m;}
+// 階を作ったとき（genFloor から）：まれに強敵を置く。降りた部屋・店・モンスターハウス・超モンスターハウスの部屋には置かない
+function eliteSpawnFloor(){
+  const f=G.floor;if(f<51||f>99||f%10===0||f===DMID||G.fixed||G.peace||bossFloor(f))return;
+  const sr=roomOf(P.x,P.y),bad=new Set([sr]);if(G.shop)bad.add(G.shop.ri);if(G.mh)bad.add(G.mh.ri);if(G.smh)bad.add(G.smh.ri);
+  const rooms=realRooms().filter(r=>!bad.has(r.idx)&&!quietRoom(r.idx));if(!rooms.length)return;
+  const place=k=>{for(let n=0;n<40;n++){const t=freeTile({room:pick(rooms)});if(t&&cheb(t,P)>=6&&!isDoorway(t.x,t.y)){const m=eliteMake(k,t.x,t.y);G.mons.push(m);return m;}}return null;};
+  const B=ELITE.bands.find(b=>b.f[0]<=f&&f<=b.f[1]);
+  if(chance(ELITE.glob))place(pick(['e_tyrant','e_sorcerer']));
+  else if(B&&chance(ELITE.band))place(pick([B.g,B.h]));
+  if(chance(ELITE.rain))place('e_rainbow');
+}
+function eliteFloorMsg(){if(G&&G.mons&&G.mons.some(m=>m.elite&&!isRainbow(m)&&m.hp>0))msg('強い気配を感じる…','bad');}
+// 毎ターン（turn.js の敵の番の前）：見つかった印・七色の幻獣の時間と、効かない状態の後かたづけ。消えたら true
+function eliteTurn(m){
+  if(!m.seenT&&G.vis[I(m.x,m.y)]){m.seenT=G.turn;msg(m.name+'が現れた！','gold');popText(m,m.name,'#ffd24a');
+    if(isRainbow(m)){m.sleep=0;msg(m.name+'は逃げ出そうとしている！（'+ELT.rainT+'ターンで消える）','gold');}}
+  if(!isRainbow(m))return false;
+  m.sleep=0;m.slow=0;m.conf=0;m.stun=0;m.frz2=0;m.sealed=false;m.sealT=0;m.curse=0;m.root=0;delete m.slip;delete m.est;
+  if(m.seenT&&G.turn-m.seenT>=ELT.rainT){
+    const[cx,cy]=ctr(m);burst(cx,cy,30,'#ffffff',40,0.9,-8,true);for(const c of['#ff6a6a','#ffd24a','#6ae070','#62b4ff','#cf8aff'])burst(cx,cy,8,c,30,0.8,-10,true);
+    msg(m.name+'は、光の中へ消えてしまった…','info');sfx('warp');G.mons=G.mons.filter(x=>x!==m);return true;}
+  return false;}
+// 敵の番（monActBody から）。true＝この番は終わり
+function eliteAI(m){
+  const e=eliteOf(m),t=pickTarget(m);
+  if(e==='rainbow'){
+    if(m.seenT){let best=null,bd=-1;const foes=[P,...allies].filter(c=>c.hp>0&&!(c.down>0));const far=(x,y)=>Math.min(...foes.map(c=>Math.max(Math.abs(c.x-x),Math.abs(c.y-y))));
+      bd=far(m.x,m.y);for(const[dx,dy]of D8){if(!canStep(m,dx,dy))continue;const d=far(m.x+dx,m.y+dy);if(d>bd){bd=d;best=[dx,dy];}}
+      if(best){m.x+=best[0];m.y+=best[1];if(best[0])m.face=best[0];}}
+    else if(chance(.3)){const home=m.home!==undefined?m.home:(m.home=roomOf(m.x,m.y)),ds=shuffle(D8.slice());for(const[dx,dy]of ds)if(canStep(m,dx,dy)&&roomOf(m.x+dx,m.y+dy)===home){m.x+=dx;m.y+=dy;if(dx)m.face=dx;break;}}
+    return true;}
+  if(!t||m.sealed&&e!=='tyrant')return false;
+  const adj=cheb(m,t)===1&&diagOK(m.x,m.y,t.x-m.x,t.y-m.y);
+  if(e==='tyrant'){if(adj&&chance(ELT.tyrant2)){m.fdir=[Math.sign(t.x-m.x),Math.sign(t.y-m.y)];if(t.x!==m.x)m.face=Math.sign(t.x-m.x);msg(m.name+'の連続攻撃！','bad');monAttack(m,t);if(!G.over&&t.hp>0&&!(t.down>0))monAttack(m,t);return true;}return false;}
+  if(e==='sorcerer'){
+    if(cheb(m,t)<=1&&chance(ELT.sorcWarp)){const r=roomOf(m.x,m.y);let sp=null;for(let k=0;k<40&&!sp;k++){const x=m.x+rr(-5,5),y=m.y+rr(-5,5);if(pass(x,y)&&!entityAt(x,y)&&!isStairs(x,y)&&cheb({x,y},t)>=3&&(r<0||roomOf(x,y)===r))sp={x,y};}
+      if(sp){warpFx(m);m.x=sp.x;m.y=sp.y;m.rx=undefined;warpFx(m);sfx('warp');msg(m.name+'は瞬間移動で離れた','bad');return true;}}
+    if(cheb(m,t)>=2&&lined(m,t,6)&&chance(ELT.sorcCast)){const mg=m.mag||m.atk;
+      if(chance(.5)){fireAt(m,t,mg,m.name+'の雷の魔法！','bolt');return true;}
+      fireAt(m,t,Math.round(mg*0.7),m.name+'の眠りの魔法！');if(G.over||!(t.hp>0)||t.down>0)return true;
+      if(t===P){if(statusImmune()||ringIs('rsleep'))msg('しかし眠りを防いだ','good');else if(gWard('眠り')){}else if(chance(SEVSLEEP)){P.sleep=Math.max(P.sleep||0,2);msg('眠ってしまった…','bad');}else msg('眠気をこらえた！','good');}
+      else if(!(t.guardT>0)&&chance(SEVSLEEP)){t.sleep=Math.max(t.sleep||0,2);msg(t.name+'は眠ってしまった','bad');}
+      return true;}
+    return false;}
+  if(e==='guard'){
+    if(partyNear(m,1).length&&G.turn-(m.gT||-99)>=ELT.guardCd){m.gT=G.turn;elemArea(m,{el:m.d.gel,r:1,mul:ELT.guardMul,nm:ELEM[m.d.gel].nm+'の衝撃'});return true;}
+    return false;}
+  return false;}
+// 落とすもの（killMon から。ふつうの魔法素材の抽選のかわり）
+function eliteDrop(m){
+  if(!m.elite||m.elDone)return;m.elDone=1;m.mmDone=1;
+  const e=eliteOf(m),mm=!isTest()&&typeof mmOn==='function'&&mmOn();
+  if(e==='rainbow'){if(mm)mmGive(pick(MMAT_SPECIAL),m);
+    if(chance(ELT.rainEpic)){const it=makeTiered(wpick([['weapon',4],['shield',4],['ring',2]]),3);dropNear(m.x,m.y,it);msg(m.name+'は'+itemName(it)+'を落とした！','gold');}
+    return;}
+  if(!mm)return;
+  const c=mmBossCands(G.floor+1);if(c.length)mmGive(pick(c),m);
+  if(chance(ELT.cat[e]||0))mmGive(pick(MMAT_SPECIAL),m);}
 </script>
 <script>
 'use strict';
@@ -5591,6 +5704,8 @@ function endTurn(){
     if(G.mbIns&&typeof mbMistMon==='function'){mbMistMon(m);if(G.over)break;if(m.hp<=0||!G.mons.includes(m))continue;}
     // Ver 0.1.197：新方式の魔法の霧の中の敵へ、そのターン 1 回
     if(G.mnIns&&typeof mnMistMon==='function'){mnMistMon(m);if(G.over)break;if(m.hp<=0||!G.mons.includes(m))continue;}
+    // Ver 0.1.232：深層の強敵（見つかった印・七色の幻獣が消える）
+    if(m.elite&&eliteTurn(m))continue;
     m.energy+=m.speed*(m.slow>0?0.5:1);
     while(m.energy>=1&&m.hp>0&&!G.over){m.energy-=1;monAct(m);}
     if(m.slow>0)m.slow--;
@@ -5745,6 +5860,8 @@ function nextFloor(){
   if(floorMsg(G.floor))msg(floorMsg(G.floor),'info');
   if(G.mons.some(n=>n.kind==='npc'))msg('何か、人の気配がする…','info');
   if(G.shop)msg('このフロアには店があるようだ','gold');
+  // Ver 0.1.232：深層の強敵がいる階
+  eliteFloorMsg();
   render();
 }
 
@@ -5877,6 +5994,8 @@ function zapStaff(it){
   const e=r.hit,nm=nameOf(e);
   if(e.kind==='npc'||(e.kind==='ally'&&e.down>0)){msg(nm+'には効果がなかった');return true;}
   if(e.kind==='mon')makeHostile(e);
+  // Ver 0.1.232：七色の幻獣には、杖の効果が効かない（ユーザーの決定）
+  if(e.d&&e.d.elite==='rainbow'){ufxBurst(e,'#ffffff',12,6);popText(e,'効かない','#b8b0d8');msg(nm+'には杖の力が効かない！','info');return true;}
   switch(it.key){
     case'thunder':{sfx('thunder');vfx({k:'flash',c:'255,250,200',dur:260});ufxPillar(e,'255,240,120','#fff0a0',{w:14,h:110,dur:500});ufxBurst(e,'#fff070',20,4);const d=15+G.floor;msg('雷が落ちた！ '+nm+'に'+d+'のダメージ');damageEnt(e,d,P,'雷');break;}
     case'blow':{let n=0;const bmax=isBoss(e)?5:10;while(n<bmax){const nx=e.x+dx,ny=e.y+dy;if(!pass(nx,ny)||!diagOK(e.x,e.y,dx,dy)||entityAt(nx,ny))break;e.x=nx;e.y=ny;n++;}
@@ -6033,7 +6152,7 @@ function enhFailText(si){
 }
 function isBoss(e){return!!(e&&e!==P&&e.d&&e.d.boss);}
 const NOSLEEP=['golem','ghost','wisp'];
-function sleepImmune(e){return!!(e&&e!==P&&e.kind==='mon'&&e.d&&(NOSLEEP.includes(e.d.shape)||e.d.nosleep));}
+function sleepImmune(e){return!!(e&&e!==P&&e.kind==='mon'&&e.d&&(NOSLEEP.includes(e.d.shape)||e.d.nosleep||e.d.elite==='rainbow'));}
 const SEALSLEEP=0.15; // ［眠］の印（通常攻撃の眠り）の確率。バタフライの必殺技の眠りも同じ
 // Ver 0.1.96：睡眠が強すぎる（ユーザー）→ ボスは1ターン、ほかの敵は2ターン（前はボス2・ほかの敵3）。かかる確率は前のまま
 const SLEEPT={boss:1,mon:2};
@@ -6818,7 +6937,7 @@ function mkDirN(fd,fu,fs,n){const o=mkPosesN(fd,n);o.u=mkPosesN(fu,n);o.s=mkPose
 function initSprites(){
   SPRS.player=mkDir(drawRaz,drawRazB,drawRazS);SPRS.maou=mkDir(drawRazM,drawRazMB,drawRazMS);SPRS.maouS=mkDir(goldEdge(drawRazM),goldEdge(drawRazMB),goldEdge(drawRazMS));SPRS.shadowking=mkDir(shadowize(drawRazM),shadowize(drawRazMB),shadowize(drawRazMS));SPRS.rizel=mkDir(drawRizel,drawRizelB,drawRizelS);SPRS.born=mkDir(drawBorn,drawBornB,drawBornS);SPRS.fina=mkDir(drawFina,drawFinaB,drawFinaS);SPRS.merchant=mkPoses(drawMerchant);
   SPRS.sevran=mkDirN(drawBfly,drawBflyB,drawBflyS,32);SPRS.galdin=mkDirN(drawCerb,drawCerbB,drawCerbS,32);SPRS.astel=mkDirN(drawVolc,drawVolcB,drawVolcS,32);
-  for(const k in MON){const d=MON[k];SPRS['m_'+k]=d.shape==='merchant'?SPRS.merchant:d.shape==='bfly'?SPRS.sevran:d.shape==='cerb'?SPRS.galdin:d.shape==='shadowking'?SPRS.shadowking:d.shape==='maouphantom'?(SPRS.maouphantom=SPRS.maouphantom||{}):mkPoses(MONDRAW[d.shape],d);}
+  for(const k in MON){const d=MON[k];SPRS['m_'+k]=d.sheet?(SPRS['m_'+k]||{}):d.shape==='merchant'?SPRS.merchant:d.shape==='bfly'?SPRS.sevran:d.shape==='cerb'?SPRS.galdin:d.shape==='shadowking'?SPRS.shadowking:d.shape==='maouphantom'?(SPRS.maouphantom=SPRS.maouphantom||{}):mkPoses(MONDRAW[d.shape],d);}
   for(const k in ITEMS){const L=ITEMS[k].legend;if(L)SPR['i_L_'+L]=auraCanvas(makeLegend(L));}
   for(const k of['sword','shield','herb','scroll','staff','bag','bread','gold','shard'])SPR['i_'+k]=makeItem(k,{herb:'#4fb04a',scroll:'#c83a3a',staff:'#5ab0ff'}[k]);
   for(const k in VNPC)SPRS['v_'+k]=mkDir((p,q,d)=>{drawVillagerV(p,q,d,'d');vMonFeat(p,d,'d');},(p,q,d)=>{drawVillagerV(p,q,d,'u');vMonFeat(p,d,'u');},(p,q,d)=>{drawVillagerV(p,q,d,'s');vMonFeat(p,d,'s');},VNPC[k]);
@@ -6963,6 +7082,8 @@ function applySheets(){ // Ver 0.1.14：ラズ・魔王化・仲間6人を、新
   // Ver 0.1.226：ジュリー（ドット絵だけ。前の描き方の絵はない）
   SPRS.julie=sheetSet(SPRS.julie||{},'julie');
   sheetSet(SPRS.shadowking,'astel');
+  // Ver 0.1.232：深層の強敵（24×24・右向き 1 方向・横 4 コマ。左向きは反転）
+  for(const k in MON)if(MON[k].sheet&&ELSHEETS[MON[k].sheet])elSheetSet(SPRS['m_'+k]||(SPRS['m_'+k]={}),MON[k].sheet);
   for(const k in URLC)delete URLC[k];}
 // 高い絵を使うキャラ：描くときのキー（entKey）→ 高い絵の入れ物の名前。切りかえの設定と、前の絵のシート名
 const TALLOF={player:'playerTall',sevran:'sevranTall',rizel:'rizelTall',fina:'finaTall',astel:'astelTall',galdin:'galdinTall',born:'bornTall'};
@@ -6973,6 +7094,41 @@ function dir8Of(e){ // 向き（8方向）の番号。シートの行の順
   let d=(e===P||e.kind==='vnpc')?e.dir:e.fdir;
   if(e.an&&now()-e.an.t0<220&&(e.an.dx||e.an.dy))d=[e.an.dx,e.an.dy];
   if(!d||(!d[0]&&!d[1]))return 0;const i=DIR8.findIndex(([x,y])=>x===Math.sign(d[0])&&y===Math.sign(d[1]));return i<0?0:i;}
+/* ---- Ver 0.1.232：深層の強敵の絵（Codex の deep_elites_24x24_v1・ユーザーが 2026-11-27 に採用。src/assets/high_detail_sprite_assets_v1/implementation_packages/deep_elites_24x24_v1/data/）
+   1 枚＝横 4 コマ（立ち・歩きA・歩きB・攻撃）×1 段、1 コマ 24×24。右向き（左向きは描くときに反転）。pal・d の書き方は SHEETS と同じ。
+   守護獣・狩人は、階層ごとの色ちがい（Codex の palettes.json の色）。scratchpad の道具で PNG から作った。手で書きかえない ---- */
+const ELSHEETS={
+ rainbow:{src:'elite_rainbow_beast_24.png',pal:[null,'#261327','#281529','#fdfbec','#e3d5fc','#241225','#f491c9','#fcf5ed','#f1e5fc','#efe3fb','#000000','#8c95cd','#865ea8','#261427','#f4ebf6','#e15290','#dacdf0','#f09d80','#251326','#fef194','#2f1c30','#99cc93','#b6eff6'],
+  d:'A685BA2CA20BA2CA20BA2CA43BDA2DA19BDA2DA19BDA2DA43E2DAEFA18E2DAEFA18E2DAEFA18F2A3FA18EGHBEIA18EGHBEIA18EGHBEIA12F2A4FJHFAKJA11JCA4EG2HEGA12JCA4EG2HEGA12JCA4EG2HEGA12FJFA3FLMHAKJFA10IHDNA2FEGOJCA12IHDNA2FEGOJCA12IHDNA2FEGOJCA10F2PJHLA3QGLDLQFA9P2D2NA3NEQDPFA10P2D2NA3NEQDPFA10P2D2NA3NEQDPFA9PRPJHFA3FG2OF3A8PRI2DCA3SE2HQIA9PRI2DCA3SE2HQIA9PRI2DCA3SE2HQIA8FRTJ2EFA4NEIEHA8SRTIFA4P2UEDH2CA7SRTIFA4P2UEDH2CA7SRTIFA4P2UEDH2CA7FT2VUFA3F2EFH2P2A7NT2VA5BR2TLNA9NT2VA5BR2TLNA9NT2VA5BR2TLNA10TVWFA4FPMJHOUJCA7VW2BAFDIJPTV2BA10VW2BAFDIJPTV2BA10VW2BAFDIJPTV2BA10VWLFADJEPR2MEH3FA7VWL3JDIJIPVLWNA9FWL3H2J3PVMLFA9VWL3H2JEJMVMLFA9CML2J3EJRTVWUF2A9NL2UJ2LQJIQLSA11FL2MJELQE2UL2A11FL2FJ2MQEJL3A11F3HELQEM2VWFA14IQKLBQIS2A14FEJFLF2CJFA14LUQEF2QJKFA14J2EU2LJML2A14BOCLA2NHA16HFAFLA3FOHA12FMFJMA2OF2LHA11FO2F2A2UOAFMFA13CMAMFANMNA15MFA2MFA3F2A15FMFAMFAF2A11FMF2MFAFMFAFMA102'},
+ tyrant:{src:'elite_abyss_tyrant_24.png',pal:[null,'#0f070f','#0f080f','#0e070e','#3c1d48','#381b43','#7c468a','#0f070e','#140915','#381c44','#331a3f','#361b42','#371b43','#683574','#110711','#0e060e','#653472','#63316e','#4c2559','#0c060c','#221129','#e2c5bd','#0d090d'],
+  d:'A201BCDA21BCDA21BCDA43CDEFG2HA17CDEFG2HA17CDEFG2HA20I3A17CJKLMJFN2CA14CJKLMJFN2CA14CJKLMJFN2CA15CICE2G2ICA13BJLJ2MIMFN2CA12BJLJ2MIMFN2CA12BJLJ2MIMFN2CA14CE5JNIOA12JPBQNI2FMFJGEHA10JPBQNI2FMFJGEHA10JPBQNI2FMFJGEHA10CE5IE2NGPC2A10BOQG2QILIJFE2GHA9BOQG2QILIJFE2GHA9BOQG2QILIJFE2GHA9ICIOGNIE4G2IA9CLRGRQ2NIJEJIE2SGHA6CLRGRQ2NIJEJIE2SGHA6CLRGRQ2NIJEJIE2SGHA7ITNG2N2PEI2E2G2CA7B2LQ2LNMSI2E2QNDUNCA5B2LQ2LNMSI2E2QNDUNCA5B2LQ2LNMSI2E2QNDUNCA5IEN6I2E2IETSGOA5BQPLNLM2JKSUPQBVRS2CA4BQPLNLM2JKSUPQBVRS2CA4BQPLNLM2JKSUPQBVRS2CA5I2EN4SIEUE2QRI2GA4DQ3NBHBDRKCTPEVC2IVA4DQ3NBHBDRKCTPEVC2IVA4DQ3NBHBDRKCTPEVC2IVA4IRNE5UIE3IRCVBITA4JNRFRPHKR3BTCHSVPTA6G2ENQI4NEI2E2IVICA4IN4I4NEI2UECVWIA5IN2ENI4N2EI2JCO2A5CQRGETPL2K2RECDACHCA5CENGNEIOIE2N2JCILESIA4IJNGJI3E2N2CICOS2TA5OLNGE2I2EJQN2I3EI2A5BEQ2NOCPLPBPBDTNPA7CE2NSCIE2FKSCEI2A8IRNGQENIEKSIEI2A9IQNGEI2EJIE2CIKIRV2A5CL2QLFTDUL2TBIJN4CA4IEQN2RI3JEJOILR3A6IEQN3ENIE2I2EN2IA7IE2NEI3KJ2I2UJRSCIA6BRNQLNPUKHA2BJLQ2N2DA3IERENVOIE3CAIJEN3IA4IE2SQNSIVKOAIJENGQOA5CE2N2UIJLCA3IUKN3QVA4DQLQF2CBEBHADK2MNGKNA4IVIVI2EJEI2A2IE2NGNCA4OUE2IVIVOIOAWEQN2UA6UQSNSCJO2IA3IUSREVHIA3DL2PVIHE2JE2A2DMNKTNTA4TIVI2OJ2RIA2I2ENEINIA5IV2IHILR2AIJRE2JA6CSIVTILCJSIA3IKVCVI2A4FVDVWDCBUE2A2BL2V3CA4I2AU2I2ERIA4ENSV2CA5UIVI2KERNATIV2CVA7VUVCKI2LS2IA3IHVAIA6HPCL2AHU2BA3DVACVHA6IKUACE2IHA3IVHV2IA4IFKIA2CJCA2WICAI2A7CIUKIA2CJECA5CA9S2UA3HR2A3CTA2CA6ILKIA2IJRV2CA2VI2CA4OFJIA2IELRSIAIA2IA8CEKIA3OER2OA13CLVPHACUTV2CA12IOVOCA2COCIA11CIV2IAI2COCOA13OCV2IA2O2IVWCA104'},
+ sorcerer:{src:'elite_abyss_sorcerer_24.png',pal:[null,'#140b18','#1a0d1d','#130916','#fcf7ef','#fcf2e7','#fcf1e6','#160b19','#d6cac4','#160c19','#150c19','#49235c','#170d1a','#4b245d','#150b18','#150b17','#170b19','#502965','#b497b4','#150b19','#000000','#2f183a','#010003','#6d3688'],
+  d:'A201BCA22BCA22BCA22D2A19EFACGHA18EFACGHA18EFACGHA17DGBADGDA18IFAHICA18IFAHICA18IFAHICA18DEDAIGDA17JIGKIEA18JIGKIEA18JIGKIEA18DI3GEGA16LAJI2F2MA16LAJI2F2MA16LAJI2F2MA16ND2I2G2EA14OPNOJI2OGFQA13OPNOJI2OGFQA13OPNOJI2OGFQA14DR2D2IGDGPA13N2LNHOSFP2JA13N2LNHOSFP2JA13N2LNHOSFP2JA12D2N4DSGD2BA15LN2TDG2UJA2MA3MA8LN2TDG2UJA2MA3MA8LN2TDG2UJA2MA3MA7D2N2V3FGDQGPDGDA10OHVOPSFJA2E2JE2MA8OHVOPSFJA2E2JE2MA8OHVOPSFJA2E2JE2MA7D5RSEQIGSEIDA10MTOTRTGJACIESEIJA8MTOTRTGJACIESEIJA8MTOTRTGJACIESEIJA5BDLNV2RD2IDR2KR2DA7PKN2V2RB2WOARX2MX2A6PKN2V2RB2WOARX2MX2A6PKN2V2RB2WOARX2MX2A7MD2VNRDRDMADSDA10CAH2R2TNOLQAMDVMA7DGBA2D2RN3CA2QA10BDADNDLDNDADADA9D2AD2NCDNLVKA3MGDA5MFPMAHBML2NJA2MJGA8DIWGAD2RNDNA2DCDA8DG2ACNDNDRD2GEGA8BEDA2QNLNDND4G2DA6JSFSATHMLTLTAF3SA9DIBDNDRNDNAWG2SA8DIEACD2NDRD2IWA9DIGD2RDN2D2A3BSDGA7JSA2LJMLALOAHSDA13QLDR2DNA2IBA10IDAD3NDLVA13D2AVRDLRLCA17JLHMLANOA16LNDAS2AN2A15DLDMND2LDA14TLDANRDNMA16PSAMSAMNA15DRDA2RNA2SRA13NRTARSD2SDA13DSDADS2AS2DA15OXAMNAHXA16RA3R2MA2DA13R2D2NRADRDA13DWA2DNQA2LDA16MAPNA2XA16DA3DNWA16CA2DRDA2LA14DA3R2DA3DA18DSA24S2A19S2A22WSDA23MA25MA19D2A22DRA110'},
+ guard_ash:{src:'elite_guardian_ash_24.png',pal:[null,'#0b080b','#0d090d','#625252','#0d0a0d','#0e090e','#635353','#2b242a','#da7f3d','#0e0a0e','#3c3237','#110e12','#572f2a','#5a302b','#0c090d','#372428','#532e2a','#0f0a0e','#f4a949','#544648','#5c4d4e','#0d090e','#0e0a0d'],
+  d:'A496BA23BA23BA23BA22CDACEA19CDACEA19CDACEA19BDAFBA19GHIJEA19GHIJEA19GHIJEA19GKILBA17LMGCN2IOA16LMGCN2IOA16LMGCN2IOA16BPDHNIMIA15JM3NBONQA15JM3NBONQA15JM3NBONQA16N2BMP2N2FA12RIS2BIJITSJOA12RIS2BIJITSJOA12RIS2BIJITSJOA13B3QNBTB3A11RCN3CTJINOD2E2A9RCN3CTJINOD2E2A9RCN3CTJINOD2E2A11INB3RIPBHUDVA3GOAJIGPCNRJLMJNID4A4GOAJIGPCNRJLMJNID4A4GOAJIGPCNRJLMJNID4A10IFPN2RTFNPUD2UBA2LGDIN5RQI2BNCJ2FJCA3BD2BIPIRPRIP2KBIHBDHBA4DBLIPMBPBIPNKRIKBDKBA4RBA2BRPRNBFBPKRIKBABA3BKFN2TNORPQ3SCN3MA5BK2RPTNLMIQILBPRKBA6BUHINTPBHMQILBNBHFA6LDBRINTQPBIMIBNPBKRA6JINIR2CBPQ3SBRI2OWA5B2P2HTDRQ3SOIP2BWA5BKLPNTQSBPNQTRIP2BWA5BDKIN2PR2Q4SBP2FT2A6K2HUTH2DQ2IOGMKHNA7B3DUFBIQML2MJRNLA6RI2BD2RBINQIRMRLNWA5BHBINPBLBMQ3SBRI2B2A6CSU2TJKDBIBURQTKNA8SLDUTKT2MDFNK2PA8FSD3BHTMILRNK2NBA7BDGHUK2BPQIBQNKRA8URT3JKJU2TUTVNMBA6ERTDUBREBRTDUBPMBA7BKBUGUWBWU3BFNMBA7R2STDUK2TSBHURIPBA7JU2H2JHJOU2HEBUJKA7BUKB2HKBAHBTUSB2A8BKLRUHA2BU2HLHB2A8U5B3ATUTBFB2KBA5CUSWAK2VA2KS2A2EKSEA6SKBAHKBABH2FSKUFA7BHKB2USBA2HS2B2HKBA6BDSB3HA2B2T2BABHKSRA5HUGAWKCA2HG2JA2STVA6BKA2BK2BAKTBAUKDBA6BKTBARUDBAKUDB2KLBA6BHDRAHKBA2RDURA2BSU2LA4EDGEVGLCAOGTHA2CDGOA9B2RBABWBA12B3A2BFBAWBRBAB2A8BRBARB2A2B4A3B2RBA98'},
+ guard_mirror:{src:'elite_guardian_mirror_24.png',pal:[null,'#0b080b','#0d090d','#7c94a6','#0d0a0d','#0e090e','#7e96a8','#31394b','#dbeff4','#0e0a0e','#455468','#110e12','#50738a','#53778e','#0c090d','#344c63','#4e7086','#0f0a0e','#b9eef2','#687d90','#748b9d','#0d090e','#0e0a0d'],
+  d:'A496BA23BA23BA23BA22CDACEA19CDACEA19CDACEA19BDAFBA19GHIJEA19GHIJEA19GHIJEA19GKILBA17LMGCN2IOA16LMGCN2IOA16LMGCN2IOA16BPDHNIMIA15JM3NBONQA15JM3NBONQA15JM3NBONQA16N2BMP2N2FA12RIS2BIJITSJOA12RIS2BIJITSJOA12RIS2BIJITSJOA13B3QNBTB3A11RCN3CTJINOD2E2A9RCN3CTJINOD2E2A9RCN3CTJINOD2E2A11INB3RIPBHUDVA3GOAJIGPCNRJLMJNID4A4GOAJIGPCNRJLMJNID4A4GOAJIGPCNRJLMJNID4A10IFPN2RTFNPUD2UBA2LGDIN5RQI2BNCJ2FJCA3BD2BIPIRPRIP2KBIHBDHBA4DBLIPMBPBIPNKRIKBDKBA4RBA2BRPRNBFBPKRIKBABA3BKFN2TNORPQ3SCN3MA5BK2RPTNLMIQILBPRKBA6BUHINTPBHMQILBNBHFA6LDBRINTQPBIMIBNPBKRA6JINIR2CBPQ3SBRI2OWA5B2P2HTDRQ3SOIP2BWA5BKLPNTQSBPNQTRIP2BWA5BDKIN2PR2Q4SBP2FT2A6K2HUTH2DQ2IOGMKHNA7B3DUFBIQML2MJRNLA6RI2BD2RBINQIRMRLNWA5BHBINPBLBMQ3SBRI2B2A6CSU2TJKDBIBURQTKNA8SLDUTKT2MDFNK2PA8FSD3BHTMILRNK2NBA7BDGHUK2BPQIBQNKRA8URT3JKJU2TUTVNMBA6ERTDUBREBRTDUBPMBA7BKBUGUWBWU3BFNMBA7R2STDUK2TSBHURIPBA7JU2H2JHJOU2HEBUJKA7BUKB2HKBAHBTUSB2A8BKLRUHA2BU2HLHB2A8U5B3ATUTBFB2KBA5CUSWAK2VA2KS2A2EKSEA6SKBAHKBABH2FSKUFA7BHKB2USBA2HS2B2HKBA6BDSB3HA2B2T2BABHKSRA5HUGAWKCA2HG2JA2STVA6BKA2BK2BAKTBAUKDBA6BKTBARUDBAKUDB2KLBA6BHDRAHKBA2RDURA2BSU2LA4EDGEVGLCAOGTHA2CDGOA9B2RBABWBA12B3A2BFBAWBRBAB2A8BRBARB2A2B4A3B2RBA98'},
+ guard_frost:{src:'elite_guardian_frost_24.png',pal:[null,'#0b080b','#0d090d','#809dbd','#0d0a0d','#0e090e','#829fbf','#2c4269','#e4f6fa','#0e0a0e','#415b88','#110e12','#3e70a7','#4074ac','#0c090d','#26477a','#3b6ca2','#0f0a0e','#c1f1f8','#6884ac','#7693b6','#0d090e','#0e0a0d'],
+  d:'A496BA23BA23BA23BA22CDACEA19CDACEA19CDACEA19BDAFBA19GHIJEA19GHIJEA19GHIJEA19GKILBA17LMGCN2IOA16LMGCN2IOA16LMGCN2IOA16BPDHNIMIA15JM3NBONQA15JM3NBONQA15JM3NBONQA16N2BMP2N2FA12RIS2BIJITSJOA12RIS2BIJITSJOA12RIS2BIJITSJOA13B3QNBTB3A11RCN3CTJINOD2E2A9RCN3CTJINOD2E2A9RCN3CTJINOD2E2A11INB3RIPBHUDVA3GOAJIGPCNRJLMJNID4A4GOAJIGPCNRJLMJNID4A4GOAJIGPCNRJLMJNID4A10IFPN2RTFNPUD2UBA2LGDIN5RQI2BNCJ2FJCA3BD2BIPIRPRIP2KBIHBDHBA4DBLIPMBPBIPNKRIKBDKBA4RBA2BRPRNBFBPKRIKBABA3BKFN2TNORPQ3SCN3MA5BK2RPTNLMIQILBPRKBA6BUHINTPBHMQILBNBHFA6LDBRINTQPBIMIBNPBKRA6JINIR2CBPQ3SBRI2OWA5B2P2HTDRQ3SOIP2BWA5BKLPNTQSBPNQTRIP2BWA5BDKIN2PR2Q4SBP2FT2A6K2HUTH2DQ2IOGMKHNA7B3DUFBIQML2MJRNLA6RI2BD2RBINQIRMRLNWA5BHBINPBLBMQ3SBRI2B2A6CSU2TJKDBIBURQTKNA8SLDUTKT2MDFNK2PA8FSD3BHTMILRNK2NBA7BDGHUK2BPQIBQNKRA8URT3JKJU2TUTVNMBA6ERTDUBREBRTDUBPMBA7BKBUGUWBWU3BFNMBA7R2STDUK2TSBHURIPBA7JU2H2JHJOU2HEBUJKA7BUKB2HKBAHBTUSB2A8BKLRUHA2BU2HLHB2A8U5B3ATUTBFB2KBA5CUSWAK2VA2KS2A2EKSEA6SKBAHKBABH2FSKUFA7BHKB2USBA2HS2B2HKBA6BDSB3HA2B2T2BABHKSRA5HUGAWKCA2HG2JA2STVA6BKA2BK2BAKTBAUKDBA6BKTBARUDBAKUDB2KLBA6BHDRAHKBA2RDURA2BSU2LA4EDGEVGLCAOGTHA2CDGOA9B2RBABWBA12B3A2BFBAWBRBAB2A8BRBARB2A2B4A3B2RBA98'},
+ guard_thunder:{src:'elite_guardian_thunder_24.png',pal:[null,'#0b080b','#0d090d','#716691','#0d0a0d','#0e090e','#736893','#292748','#91a7d8','#0e0a0e','#3d385c','#110e12','#333b71','#343d74','#0c090d','#222752','#31396e','#0f0a0e','#f4de5f','#5e547e','#695f89','#0d090e','#0e0a0d'],
+  d:'A496BA23BA23BA23BA22CDACEA19CDACEA19CDACEA19BDAFBA19GHIJEA19GHIJEA19GHIJEA19GKILBA17LMGCN2IOA16LMGCN2IOA16LMGCN2IOA16BPDHNIMIA15JM3NBONQA15JM3NBONQA15JM3NBONQA16N2BMP2N2FA12RIS2BIJITSJOA12RIS2BIJITSJOA12RIS2BIJITSJOA13B3QNBTB3A11RCN3CTJINOD2E2A9RCN3CTJINOD2E2A9RCN3CTJINOD2E2A11INB3RIPBHUDVA3GOAJIGPCNRJLMJNID4A4GOAJIGPCNRJLMJNID4A4GOAJIGPCNRJLMJNID4A10IFPN2RTFNPUD2UBA2LGDIN5RQI2BNCJ2FJCA3BD2BIPIRPRIP2KBIHBDHBA4DBLIPMBPBIPNKRIKBDKBA4RBA2BRPRNBFBPKRIKBABA3BKFN2TNORPQ3SCN3MA5BK2RPTNLMIQILBPRKBA6BUHINTPBHMQILBNBHFA6LDBRINTQPBIMIBNPBKRA6JINIR2CBPQ3SBRI2OWA5B2P2HTDRQ3SOIP2BWA5BKLPNTQSBPNQTRIP2BWA5BDKIN2PR2Q4SBP2FT2A6K2HUTH2DQ2IOGMKHNA7B3DUFBIQML2MJRNLA6RI2BD2RBINQIRMRLNWA5BHBINPBLBMQ3SBRI2B2A6CSU2TJKDBIBURQTKNA8SLDUTKT2MDFNK2PA8FSD3BHTMILRNK2NBA7BDGHUK2BPQIBQNKRA8URT3JKJU2TUTVNMBA6ERTDUBREBRTDUBPMBA7BKBUGUWBWU3BFNMBA7R2STDUK2TSBHURIPBA7JU2H2JHJOU2HEBUJKA7BUKB2HKBAHBTUSB2A8BKLRUHA2BU2HLHB2A8U5B3ATUTBFB2KBA5CUSWAK2VA2KS2A2EKSEA6SKBAHKBABH2FSKUFA7BHKB2USBA2HS2B2HKBA6BDSB3HA2B2T2BABHKSRA5HUGAWKCA2HG2JA2STVA6BKA2BK2BAKTBAUKDBA6BKTBARUDBAKUDB2KLBA6BHDRAHKBA2RDURA2BSU2LA4EDGEVGLCAOGTHA2CDGOA9B2RBABWBA12B3A2BFBAWBRBAB2A8BRBARB2A2B4A3B2RBA98'},
+ guard_memory:{src:'elite_guardian_memory_24.png',pal:[null,'#0b080b','#0d090d','#87747b','#0d0a0d','#0e090e','#89767d','#3b343c','#c9afbb','#0e0a0e','#51464e','#110e12','#604a62','#634d65','#0c090d','#423247','#5d485f','#0f0a0e','#cebe9f','#73646b','#7f6e75','#0d090e','#0e0a0d'],
+  d:'A496BA23BA23BA23BA22CDACEA19CDACEA19CDACEA19BDAFBA19GHIJEA19GHIJEA19GHIJEA19GKILBA17LMGCN2IOA16LMGCN2IOA16LMGCN2IOA16BPDHNIMIA15JM3NBONQA15JM3NBONQA15JM3NBONQA16N2BMP2N2FA12RIS2BIJITSJOA12RIS2BIJITSJOA12RIS2BIJITSJOA13B3QNBTB3A11RCN3CTJINOD2E2A9RCN3CTJINOD2E2A9RCN3CTJINOD2E2A11INB3RIPBHUDVA3GOAJIGPCNRJLMJNID4A4GOAJIGPCNRJLMJNID4A4GOAJIGPCNRJLMJNID4A10IFPN2RTFNPUD2UBA2LGDIN5RQI2BNCJ2FJCA3BD2BIPIRPRIP2KBIHBDHBA4DBLIPMBPBIPNKRIKBDKBA4RBA2BRPRNBFBPKRIKBABA3BKFN2TNORPQ3SCN3MA5BK2RPTNLMIQILBPRKBA6BUHINTPBHMQILBNBHFA6LDBRINTQPBIMIBNPBKRA6JINIR2CBPQ3SBRI2OWA5B2P2HTDRQ3SOIP2BWA5BKLPNTQSBPNQTRIP2BWA5BDKIN2PR2Q4SBP2FT2A6K2HUTH2DQ2IOGMKHNA7B3DUFBIQML2MJRNLA6RI2BD2RBINQIRMRLNWA5BHBINPBLBMQ3SBRI2B2A6CSU2TJKDBIBURQTKNA8SLDUTKT2MDFNK2PA8FSD3BHTMILRNK2NBA7BDGHUK2BPQIBQNKRA8URT3JKJU2TUTVNMBA6ERTDUBREBRTDUBPMBA7BKBUGUWBWU3BFNMBA7R2STDUK2TSBHURIPBA7JU2H2JHJOU2HEBUJKA7BUKB2HKBAHBTUSB2A8BKLRUHA2BU2HLHB2A8U5B3ATUTBFB2KBA5CUSWAK2VA2KS2A2EKSEA6SKBAHKBABH2FSKUFA7BHKB2USBA2HS2B2HKBA6BDSB3HA2B2T2BABHKSRA5HUGAWKCA2HG2JA2STVA6BKA2BK2BAKTBAUKDBA6BKTBARUDBAKUDB2KLBA6BHDRAHKBA2RDURA2BSU2LA4EDGEVGLCAOGTHA2CDGOA9B2RBABWBA12B3A2BFBAWBRBAB2A8BRBARB2A2B4A3B2RBA98'},
+ hunt_ash:{src:'elite_hunter_ash_24.png',pal:[null,'#170d16','#150c14','#160d16','#974e2e','#160c15','#635353','#6f3a2c','#1b101a','#da7f3d','#c06c37','#5f322b','#180e17','#b56435','#130912','#372428','#170c16','#482a29','#ba6736','#2b242a','#a85b32','#170e17'],
+  d:'A400BCA22BCA22BCA21CDA21EFBGBA19EFBGBA19EFBGBA18HAIJACA17JKLEMN2OA16JKLEMN2OA16JKLEMN2OA15CMOEMJPHA15DQEJ2ERFGSQA13DQEJ2ERFGSQA13DQEJ2ERFGSQA13O2J2LHE3CA14DCEJER2SKT2A13DCEJER2SKT2A13DCEJER2SKT2A13E5REPJUA13S2NJ2E2FJK2CBA11S2NJ2E2FJK2CBA11S2NJ2E2FJK2CBA11E2J2EHQJUMIOA11PKP3ELEJUKG2SDA9PKP3ELEJUKG2SDA9PKP3ELEJUKG2SDA9CE4HUJCJG3A11TSA2LFG2JBA2VGA10TSA2LFG2JBA2VGA10TSA2LFG2JBA2VGA10E2RDIHG2A3COA6KQA2BPA2L2UJG2A10OSOAD2A2LHJ2GCA10Q2A2TJOAL2UJGQA15OTORHJ2CRQCACTMA3SMA2MSBA2MHGCJLFA8EOA2OE2CILEGIO2A9UIA3EMA2IEGMIPA9CUOA4JE2QIACDOJENAGA2NFA3GOGAUHUJA2BLTIFA4PHA3OGA2RE2IAIRTOCDA4PEA3ELEAPE2TAQPTIA6DNA5QLEHGDA6MCA3SBA3MFAN2JEHEMA2CSOGA3RLA6DE2UPA2ORLOUIA3PRA3IOI2EJ2UA2CE3A5HOA4DLEOI2H2CA9BLOA3RQNJSBR2E2A2GAIA3IROA4PQHEJUIA4CQCA4RIA4OPIEUJEA3O2A5HRA3C2EJEQPR2H2A10QL3VDLJKABIREMA8QRPC2PDPQIE3A11MPR2OP2CACHEKQA9QR5EJEQA2CPR2A14JS2KVA2PRQA14OP2CA2E2A19DPIE2A12OQCE3UA4PRA14FSIFQA2LRA14C2PCA4QECA16CIPCE2A14CE2C2A4R2A15TBA5BLTA13CEA7OTQA15POA2ITOA13TMA7IRJA13BFA7MUD2A10MPMA8OE2TA12QTLA3CECQA10OHIA8CMHCA10FEG2A7L2MBA9MPHA8CPQC2A12CQA3DPKJA9DE3CA8DPTJA101'},
+ hunt_mirror:{src:'elite_hunter_mirror_24.png',pal:[null,'#170d16','#150c14','#160d16','#91bed1','#160c15','#7e96a8','#6891a6','#1b101a','#dbeff4','#bedce6','#587d93','#180e17','#b3d4e1','#130912','#344c63','#170c16','#446278','#b7d7e3','#31394b','#a4cbda','#170e17'],
+  d:'A400BCA22BCA22BCA21CDA21EFBGBA19EFBGBA19EFBGBA18HAIJACA17JKLEMN2OA16JKLEMN2OA16JKLEMN2OA15CMOEMJPHA15DQEJ2ERFGSQA13DQEJ2ERFGSQA13DQEJ2ERFGSQA13O2J2LHE3CA14DCEJER2SKT2A13DCEJER2SKT2A13DCEJER2SKT2A13E5REPJUA13S2NJ2E2FJK2CBA11S2NJ2E2FJK2CBA11S2NJ2E2FJK2CBA11E2J2EHQJUMIOA11PKP3ELEJUKG2SDA9PKP3ELEJUKG2SDA9PKP3ELEJUKG2SDA9CE4HUJCJG3A11TSA2LFG2JBA2VGA10TSA2LFG2JBA2VGA10TSA2LFG2JBA2VGA10E2RDIHG2A3COA6KQA2BPA2L2UJG2A10OSOAD2A2LHJ2GCA10Q2A2TJOAL2UJGQA15OTORHJ2CRQCACTMA3SMA2MSBA2MHGCJLFA8EOA2OE2CILEGIO2A9UIA3EMA2IEGMIPA9CUOA4JE2QIACDOJENAGA2NFA3GOGAUHUJA2BLTIFA4PHA3OGA2RE2IAIRTOCDA4PEA3ELEAPE2TAQPTIA6DNA5QLEHGDA6MCA3SBA3MFAN2JEHEMA2CSOGA3RLA6DE2UPA2ORLOUIA3PRA3IOI2EJ2UA2CE3A5HOA4DLEOI2H2CA9BLOA3RQNJSBR2E2A2GAIA3IROA4PQHEJUIA4CQCA4RIA4OPIEUJEA3O2A5HRA3C2EJEQPR2H2A10QL3VDLJKABIREMA8QRPC2PDPQIE3A11MPR2OP2CACHEKQA9QR5EJEQA2CPR2A14JS2KVA2PRQA14OP2CA2E2A19DPIE2A12OQCE3UA4PRA14FSIFQA2LRA14C2PCA4QECA16CIPCE2A14CE2C2A4R2A15TBA5BLTA13CEA7OTQA15POA2ITOA13TMA7IRJA13BFA7MUD2A10MPMA8OE2TA12QTLA3CECQA10OHIA8CMHCA10FEG2A7L2MBA9MPHA8CPQC2A12CQA3DPKJA9DE3CA8DPTJA101'},
+ hunt_throne:{src:'elite_hunter_throne_24.png',pal:[null,'#170d16','#150c14','#160d16','#7a4f8e','#160c15','#bc4951','#5b3873','#1b101a','#aa75af','#9766a2','#4f2f68','#180e17','#90609d','#130912','#311f43','#170c16','#3e2653','#93629f','#521d31','#865997','#170e17'],
+  d:'A400BCA22BCA22BCA21CDA21EFBGBA19EFBGBA19EFBGBA18HAIJACA17JKLEMN2OA16JKLEMN2OA16JKLEMN2OA15CMOEMJPHA15DQEJ2ERFGSQA13DQEJ2ERFGSQA13DQEJ2ERFGSQA13O2J2LHE3CA14DCEJER2SKT2A13DCEJER2SKT2A13DCEJER2SKT2A13E5REPJUA13S2NJ2E2FJK2CBA11S2NJ2E2FJK2CBA11S2NJ2E2FJK2CBA11E2J2EHQJUMIOA11PKP3ELEJUKG2SDA9PKP3ELEJUKG2SDA9PKP3ELEJUKG2SDA9CE4HUJCJG3A11TSA2LFG2JBA2VGA10TSA2LFG2JBA2VGA10TSA2LFG2JBA2VGA10E2RDIHG2A3COA6KQA2BPA2L2UJG2A10OSOAD2A2LHJ2GCA10Q2A2TJOAL2UJGQA15OTORHJ2CRQCACTMA3SMA2MSBA2MHGCJLFA8EOA2OE2CILEGIO2A9UIA3EMA2IEGMIPA9CUOA4JE2QIACDOJENAGA2NFA3GOGAUHUJA2BLTIFA4PHA3OGA2RE2IAIRTOCDA4PEA3ELEAPE2TAQPTIA6DNA5QLEHGDA6MCA3SBA3MFAN2JEHEMA2CSOGA3RLA6DE2UPA2ORLOUIA3PRA3IOI2EJ2UA2CE3A5HOA4DLEOI2H2CA9BLOA3RQNJSBR2E2A2GAIA3IROA4PQHEJUIA4CQCA4RIA4OPIEUJEA3O2A5HRA3C2EJEQPR2H2A10QL3VDLJKABIREMA8QRPC2PDPQIE3A11MPR2OP2CACHEKQA9QR5EJEQA2CPR2A14JS2KVA2PRQA14OP2CA2E2A19DPIE2A12OQCE3UA4PRA14FSIFQA2LRA14C2PCA4QECA16CIPCE2A14CE2C2A4R2A15TBA5BLTA13CEA7OTQA15POA2ITOA13TMA7IRJA13BFA7MUD2A10MPMA8OE2TA12QTLA3CECQA10OHIA8CMHCA10FEG2A7L2MBA9MPHA8CPQC2A12CQA3DPKJA9DE3CA8DPTJA101'},
+ hunt_thunder:{src:'elite_hunter_thunder_24.png',pal:[null,'#170d16','#150c14','#160d16','#586aac','#160c15','#736893','#404c88','#1b101a','#91a7d8','#7b8fc7','#374079','#180e17','#7285c0','#130912','#222752','#170c16','#2b3263','#7689c3','#292748','#6779b7','#170e17'],
+  d:'A400BCA22BCA22BCA21CDA21EFBGBA19EFBGBA19EFBGBA18HAIJACA17JKLEMN2OA16JKLEMN2OA16JKLEMN2OA15CMOEMJPHA15DQEJ2ERFGSQA13DQEJ2ERFGSQA13DQEJ2ERFGSQA13O2J2LHE3CA14DCEJER2SKT2A13DCEJER2SKT2A13DCEJER2SKT2A13E5REPJUA13S2NJ2E2FJK2CBA11S2NJ2E2FJK2CBA11S2NJ2E2FJK2CBA11E2J2EHQJUMIOA11PKP3ELEJUKG2SDA9PKP3ELEJUKG2SDA9PKP3ELEJUKG2SDA9CE4HUJCJG3A11TSA2LFG2JBA2VGA10TSA2LFG2JBA2VGA10TSA2LFG2JBA2VGA10E2RDIHG2A3COA6KQA2BPA2L2UJG2A10OSOAD2A2LHJ2GCA10Q2A2TJOAL2UJGQA15OTORHJ2CRQCACTMA3SMA2MSBA2MHGCJLFA8EOA2OE2CILEGIO2A9UIA3EMA2IEGMIPA9CUOA4JE2QIACDOJENAGA2NFA3GOGAUHUJA2BLTIFA4PHA3OGA2RE2IAIRTOCDA4PEA3ELEAPE2TAQPTIA6DNA5QLEHGDA6MCA3SBA3MFAN2JEHEMA2CSOGA3RLA6DE2UPA2ORLOUIA3PRA3IOI2EJ2UA2CE3A5HOA4DLEOI2H2CA9BLOA3RQNJSBR2E2A2GAIA3IROA4PQHEJUIA4CQCA4RIA4OPIEUJEA3O2A5HRA3C2EJEQPR2H2A10QL3VDLJKABIREMA8QRPC2PDPQIE3A11MPR2OP2CACHEKQA9QR5EJEQA2CPR2A14JS2KVA2PRQA14OP2CA2E2A19DPIE2A12OQCE3UA4PRA14FSIFQA2LRA14C2PCA4QECA16CIPCE2A14CE2C2A4R2A15TBA5BLTA13CEA7OTQA15POA2ITOA13TMA7IRJA13BFA7MUD2A10MPMA8OE2TA12QTLA3CECQA10OHIA8CMHCA10FEG2A7L2MBA9MPHA8CPQC2A12CQA3DPKJA9DE3CA8DPTJA101'},
+ hunt_memory:{src:'elite_hunter_memory_24.png',pal:[null,'#170d16','#150c14','#160d16','#987b91','#160c15','#89767d','#765d74','#1b101a','#c9afbb','#b69bab','#685169','#180e17','#ae93a4','#130912','#423247','#170c16','#523f56','#b196a7','#3b343c','#a5899c','#170e17'],
+  d:'A400BCA22BCA22BCA21CDA21EFBGBA19EFBGBA19EFBGBA18HAIJACA17JKLEMN2OA16JKLEMN2OA16JKLEMN2OA15CMOEMJPHA15DQEJ2ERFGSQA13DQEJ2ERFGSQA13DQEJ2ERFGSQA13O2J2LHE3CA14DCEJER2SKT2A13DCEJER2SKT2A13DCEJER2SKT2A13E5REPJUA13S2NJ2E2FJK2CBA11S2NJ2E2FJK2CBA11S2NJ2E2FJK2CBA11E2J2EHQJUMIOA11PKP3ELEJUKG2SDA9PKP3ELEJUKG2SDA9PKP3ELEJUKG2SDA9CE4HUJCJG3A11TSA2LFG2JBA2VGA10TSA2LFG2JBA2VGA10TSA2LFG2JBA2VGA10E2RDIHG2A3COA6KQA2BPA2L2UJG2A10OSOAD2A2LHJ2GCA10Q2A2TJOAL2UJGQA15OTORHJ2CRQCACTMA3SMA2MSBA2MHGCJLFA8EOA2OE2CILEGIO2A9UIA3EMA2IEGMIPA9CUOA4JE2QIACDOJENAGA2NFA3GOGAUHUJA2BLTIFA4PHA3OGA2RE2IAIRTOCDA4PEA3ELEAPE2TAQPTIA6DNA5QLEHGDA6MCA3SBA3MFAN2JEHEMA2CSOGA3RLA6DE2UPA2ORLOUIA3PRA3IOI2EJ2UA2CE3A5HOA4DLEOI2H2CA9BLOA3RQNJSBR2E2A2GAIA3IROA4PQHEJUIA4CQCA4RIA4OPIEUJEA3O2A5HRA3C2EJEQPR2H2A10QL3VDLJKABIREMA8QRPC2PDPQIE3A11MPR2OP2CACHEKQA9QR5EJEQA2CPR2A14JS2KVA2PRQA14OP2CA2E2A19DPIE2A12OQCE3UA4PRA14FSIFQA2LRA14C2PCA4QECA16CIPCE2A14CE2C2A4R2A15TBA5BLTA13CEA7OTQA15POA2ITOA13TMA7IRJA13BFA7MUD2A10MPMA8OE2TA12QTLA3CECQA10OHIA8CMHCA10FEG2A7L2MBA9MPHA8CPQC2A12CQA3DPKJA9DE3CA8DPTJA101'}
+};
+function elSheetSet(o,k){const S=ELSHEETS[k],W=96,px=new Array(W*24);let i=0;const re=/([A-Za-z])(\d*)/g;let m;
+  while((m=re.exec(S.d))){const c=S.pal[m[1].charCodeAt(0)-(m[1]<'a'?65:71)],n=m[2]?+m[2]:1;for(let j=0;j<n;j++)px[i++]=c;}
+  ['stand','walkA','walkB','atk'].forEach((pose,c)=>{const p=new PX(24,24);for(let y=0;y<24;y++)for(let x=0;x<24;x++)p.p[y*24+x]=px[y*W+c*24+x]||null;o[pose]=p.canvas();});
+  return o;}
 </script>
 <script>
 'use strict';
@@ -7697,7 +7853,7 @@ function drawEnt(e,t,cpx,cpy,lights){
   const key=entKey(e),s=(TALLOF[key]&&SPRS[TALLOF[key]])||SPRS[key];if(!s)return; // Ver 0.1.58〜0.1.62：高い絵（ラズ＝RAZ_SPRITE・セヴラン＝SEVRAN_SPRITE。魔王化・30F のボスは変えない）
   if(e===P&&G.warp&&t-G.warp.t0>650)return; // 光に包まれて消える
   const moving=Math.abs(e.rx-e.x)+Math.abs(e.ry-e.y)>0.03;
-  const flyer=(e.d&&['bat','wisp','ghost','eye','mirage','frostqueen'].includes(e.d.shape)); // Ver 0.1.14：セヴランは新しい絵で翼がないので、浮かばない
+  const flyer=(e.d&&['bat','wisp','ghost','eye','mirage','frostqueen','esorc'].includes(e.d.shape)); // Ver 0.1.14：セヴランは新しい絵で翼がないので、浮かばない
   let pose='stand',ox=0,oy=0;
   const wk=e===P?wKind(P.weapon):null,wd=wk?WDUR[wk]:220;
   if(e.an&&t-e.an.t0<wd){const p=(t-e.an.t0)/wd;
@@ -7721,6 +7877,9 @@ function drawEnt(e,t,cpx,cpy,lights){
   ctx.globalAlpha=flyer?0.2:0.35;ctx.drawImage(MISC.shadow,Math.round(e.rx*TS-cpx+ox)+12-Math.round(12*sc),Math.round(e.ry*TS-cpy)+18,Math.round(24*sc),8);ctx.globalAlpha=1;
   {const el=estOn(e)||(e.slip&&e.slip.t>0&&e.kind!=='mon'?'poison':null)||(e.kind==='mon'?(e.stun>0?'bolt':e.frz2>0?'ice':e.slip&&e.slip.t>0&&e.slip.nm==='火傷'?'fire':null):null);if(el){const ti=tintOf(img,ELEM[el].col);ctx.globalAlpha=0.75+0.25*Math.sin(t/140);for(const[ox2,oy2]of[[-1,0],[1,0],[0,-1],[0,1]])drawSpr(ti,sx+ox2,sy+oy2,w,fl,h);ctx.globalAlpha=1;
     if(Math.random()<0.12)PS().push({x:(e.rx+0.2+Math.random()*0.6)*TS,y:(e.ry+0.3+Math.random()*0.5)*TS,vx:0,vy:el==='fire'?-16:el==='ice'?4:-6,g:0,life:0.7,max:0.7,col:ELEM[el].col,s:1,glow:true});}}
+  // Ver 0.1.232：深層の強敵のオーラ（金色。七色の幻獣は色が変わる）
+  if(e.elite){const rb=e.d&&e.d.elite==='rainbow',ac=rb?['#ff6a6a','#ffd24a','#6ae070','#62b4ff','#cf8aff'][Math.floor(t/160)%5]:'#ffd24a',ti=tintOf(img,ac);ctx.globalAlpha=0.4+0.25*Math.sin(t/180);for(const[ox2,oy2]of[[-1,0],[1,0],[0,-1],[0,1]])drawSpr(ti,sx+ox2,sy+oy2,w,fl,h);ctx.globalAlpha=1;
+    lights.push({x:bx+12,y:by+10,r:1.3,a:0.3,col:rb?[230,230,255]:[255,200,80]});if(Math.random()<0.12)PS().push({x:(e.rx+0.15+Math.random()*0.7)*TS,y:(e.ry+0.3+Math.random()*0.6)*TS,vx:0,vy:-10,g:0,life:0.8,max:0.8,col:ac,s:1,glow:true,star:true});}
   if(e.down>0)ctx.globalAlpha=0.45;drawSpr(img,sx,sy,w,fl,h);ctx.globalAlpha=1;
   // Ver 0.1.135：ガルディンの絶対防御のあいだは、全身を赤く光らせる
   if(e.absG){const ti=tintOf(img,'#ff2a2a');ctx.globalAlpha=0.8;for(const[ox2,oy2]of[[-1,0],[1,0],[0,-1],[0,1]])drawSpr(ti,sx+ox2,sy+oy2,w,fl,h);ctx.globalAlpha=1;drawSpr(img,sx,sy,w,fl,h);ctx.globalAlpha=0.32+0.12*Math.sin(t/90);drawSpr(ti,sx,sy,w,fl,h);ctx.globalAlpha=1;}
@@ -8775,7 +8934,7 @@ function newGame(carry,startF){
   if(G.maou&&homeLv()>=6)P.mp=Math.floor(MAOU.need/2);
   msg('── 魔界の迷宮 '+G.floor+'F ──','info');if(G.start>1)msg('近道を通って'+G.floor+'Fから出発した（Lv'+P.lv+'）。【'+band(G.floor).name+'】','r3');
   if(G.bless)msg('祠の加護：'+BLESS[G.bless].name+'（'+BLESS[G.bless].desc+'）','r3');
-  if(G.party.length)msg(G.party.map(k=>ALLY[k].name).join('、')+'が一緒に来てくれた','good');if(G.mons.some(n=>n.kind==='npc'))msg('何か、人の気配がする…','info');if(G.floor===1)msg(FLOORMSG[1],'info');else if(floorMsg(G.floor))msg(floorMsg(G.floor),'info');msg(MOB?'「設定」ボタンの「遊び方」で操作を確認できる':'Hキーで遊び方を確認できる');
+  if(G.party.length)msg(G.party.map(k=>ALLY[k].name).join('、')+'が一緒に来てくれた','good');if(G.mons.some(n=>n.kind==='npc'))msg('何か、人の気配がする…','info');eliteFloorMsg();if(G.floor===1)msg(FLOORMSG[1],'info');else if(floorMsg(G.floor))msg(floorMsg(G.floor),'info');msg(MOB?'「設定」ボタンの「遊び方」で操作を確認できる':'Hキーで遊び方を確認できる');
   if(G.maou&&homeLv()>=6)msg('魔王城の魔力で、魔王の力が半分たまった状態で出発した','r4');
   if(G.maou)msg('魔王の力：戦うとたまり、満タンで'+(MOB?'「魔王」ボタン':'Yキー')+'を押すと魔王の姿に戻れる','r3');
   if(pm.str||pm.hp)msg('魂に刻まれた力：ちから+'+pm.str+'　最大HP+'+pm.hp,'r3');
@@ -10050,6 +10209,7 @@ function startTestRun(c){
   msg('── テスト用の冒険 '+G.floor+'F ──','gold');msg('Lv'+P.lv+'で出発した。【'+band(G.floor).name+'】（図鑑・実績・記録には残らない）','r3');
   if(allies.length)msg('仲間：'+allies.map(a=>a.name+' Lv'+a.lv).join('、'),'good');if(G.maou)msg('魔王化：使える（'+(MOB?'「魔王」ボタン':'Yキー')+'）','r3');
   if(G.mnTest)msg('新方式の魔法の試験：オン（仲間技の一覧から唱える）','r3');
+  eliteFloorMsg();
   setSong(baseSong());bgmStart();render();saveGame();}
 function testGive(k){if(P.inv.length>=20){msg('持ち物がいっぱいで受け取れない','bad');return false;}const it=createItem(k);it.test=true;P.inv.push(it);msg(itemName(it)+'を受け取った（テスト用）','gold');sfx('pickup');return true;}
 /* ---- Ver 0.1.100：イベントを見る（テスト用・ユーザーの依頼）。村のイベントを、条件に関係なく初めてのときと同じように流す。
@@ -10345,7 +10505,7 @@ function dexList(cat,sel){
   openMenu({title:'図鑑：'+DEXCAT.find(c=>c[0]===cat)[1]+'（'+x+' / '+y+'）',items,lr:null});
   if(sel){const m=MS[MS.length-1];m.sel=Math.max(0,Math.min(sel,items.length-1));drawMenu();}
 }
-function monNotes(d){const o=[];if(d.breath)o.push(d.el==='ice'?'凍てつく息を吐く（凍え）':'炎を吐く（火傷）');if(d.caster&&d.el)o.push(ELEM[d.el].nm+'の魔法（'+ELEM[d.el].st+'）');if(d.elm)o.push('攻撃がときどき'+ELEM[d.elm[0]].nm+'属性になる（'+ELEM[d.elm[0]].st+'）');if(d.area)o.push('広範囲の「'+d.area.nm+'」（'+ELEM[d.area.el].st+'）');if(d.boss)o.push('部屋から逃げると傷を癒やす');if(d.drain)o.push('HPを吸い取る');if(d.summon)o.push('仲間を呼ぶ');if(d.speed===2)o.push('動きが速い');if(d.move==='room')o.push('部屋から出ない');if(d.ai==='bfly')o.push('1マス飛び越えて攻撃','紫の霧で眠らせる','回復する');if(d.ai==='frost')o.push('絶対零度（まわり4マス・凍って動けない）','HPが減ると氷の鎧');if(d.ai==='storm')o.push('落雷（光ったマスに次のターン落ちる）','雷光の突進');if(d.ai==='shadow')o.push('前方3方向の攻撃','闇の波動（魔王の力を奪う）','HPが減ると本気を出す');if(d.ai==='ignis')o.push('業火（まわり3マス＋火傷）');if(d.ai==='mirage')o.push('攻撃をはね返すことがある','幻影を呼び出す','鏡の中を移動する');if(d.ai==='cerb')o.push('前方3方向に噛みつく','たまに3回攻撃','月賦ブレス（まっすぐ10マス＋毒）');if(NOSLEEP.includes(d.shape)||d.nosleep)o.push('眠らない');if(d.shape==='bat'||d.shape==='wisp'||d.shape==='ghost'||d.shape==='eye')o.push('空を飛ぶ');return o.length?'特徴：'+o.join('・'):'';}
+function monNotes(d){const o=[];if(d.elite)o.push(d.elite==='rainbow'?'見つかると逃げ、5ターンで消える。どの攻撃も1ダメージ。状態異常・杖が効かない':d.elite==='tyrant'?'ときどき2回つづけて攻撃する':d.elite==='sorcerer'?'離れて雷・眠りの魔法。近づくと瞬間移動で離れる':d.elite==='guard'?'まわり1マスに'+ELEM[d.gel].nm+'の攻撃（3ターンに1回）'+(d.reflect?'・攻撃の一部をはね返す':''):'見つけると追ってくる','深層の強敵（強さは出た階で変わる）');if(d.breath)o.push(d.el==='ice'?'凍てつく息を吐く（凍え）':'炎を吐く（火傷）');if(d.caster&&d.el)o.push(ELEM[d.el].nm+'の魔法（'+ELEM[d.el].st+'）');if(d.elm)o.push('攻撃がときどき'+ELEM[d.elm[0]].nm+'属性になる（'+ELEM[d.elm[0]].st+'）');if(d.area)o.push('広範囲の「'+d.area.nm+'」（'+ELEM[d.area.el].st+'）');if(d.boss)o.push('部屋から逃げると傷を癒やす');if(d.drain)o.push('HPを吸い取る');if(d.summon)o.push('仲間を呼ぶ');if(d.speed===2)o.push('動きが速い');if(d.move==='room')o.push('部屋から出ない');if(d.ai==='bfly')o.push('1マス飛び越えて攻撃','紫の霧で眠らせる','回復する');if(d.ai==='frost')o.push('絶対零度（まわり4マス・凍って動けない）','HPが減ると氷の鎧');if(d.ai==='storm')o.push('落雷（光ったマスに次のターン落ちる）','雷光の突進');if(d.ai==='shadow')o.push('前方3方向の攻撃','闇の波動（魔王の力を奪う）','HPが減ると本気を出す');if(d.ai==='ignis')o.push('業火（まわり3マス＋火傷）');if(d.ai==='mirage')o.push('攻撃をはね返すことがある','幻影を呼び出す','鏡の中を移動する');if(d.ai==='cerb')o.push('前方3方向に噛みつく','たまに3回攻撃','月賦ブレス（まっすぐ10マス＋毒）');if(NOSLEEP.includes(d.shape)||d.nosleep)o.push('眠らない');if(d.shape==='bat'||d.shape==='wisp'||d.shape==='ghost'||d.shape==='eye')o.push('空を飛ぶ');return o.length?'特徴：'+o.join('・'):'';}
 /* ---- 鍛冶屋（合成の袋と同じ合成を、ゴールドで） ---- */
 function smithCost(si,mat){return 1000+200*Math.max(0,mat?mat.plus:0);} // Ver 2.7.0：素材の＋1ごとに200G
 function smithMenu(){
@@ -13559,7 +13719,7 @@ function mmDrop(m){
   mmGive(pick(c),m);
 }
 // ボスの階の候補：その階の 1 つ手前の階に出る、ふつうの敵の候補を合わせたもの
-function mmBossCands(bf){const f=bf-1,s=[];for(const k in MON){const d=MON[k];if(!d||d.boss||!d.f||d.f[0]>f||d.f[1]<f)continue;for(const x of mmCands(d))if(!s.includes(x))s.push(x);}return s;}
+function mmBossCands(bf){const f=bf-1,s=[];for(const k in MON){const d=MON[k];if(!d||d.boss||d.elite||!d.f||d.f[0]>f||d.f[1]<f)continue;for(const x of mmCands(d))if(!s.includes(x))s.push(x);}return s;}
 // ボスを倒したとき（bossDefeated・50F／100F のイベントの決着から・1 体につき 1 回）
 function mmBossDrop(m){
   if(!m||m.mmDone)return;m.mmDone=1;
